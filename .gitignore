@@ -1,0 +1,3 @@
+tests/browser/*.html
+tests/undefined/
+HANDOFF.md

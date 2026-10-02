@@ -1,0 +1,1306 @@
+/* ==========================================================================
+   Brilliant Futures dashboard — wp-admin
+   Brand taken from the live bftutoring.com theme, and matched to the parent
+   portal so a tutor filling in a section sees roughly what a parent will read.
+   ========================================================================== */
+
+:root{
+  --bftd-purple:#70567F;
+  --bftd-purple-deep:#513C5D;
+  --bftd-purple-mid:#8A6F99;
+  --bftd-purple-pale:#EFE9F2;
+  --bftd-purple-wash:#F7F3F9;
+  --bftd-sage:#A2A55A;
+  --bftd-sage-deep:#5A6B2C;
+  --bftd-sage-pale:#F0F2E1;
+  --bftd-clay:#B85C2E;
+  --bftd-clay-pale:#FAEDE3;
+  /* Clay warns; this removes. They are different acts and a tutor about to
+     take a row off a lesson should not be reading the same colour that marks
+     a section as hidden from the family. */
+  --bftd-red:#C42B1C;
+  --bftd-red-pale:#FBEAE8;
+  --bftd-ink:#241E2A;
+  --bftd-body:#39323F;
+  --bftd-muted:#5F5769;
+  --bftd-line:#E2D9E6;
+  --bftd-line-soft:#EFE9F2;
+  /* A warm stone for the states that are not a verdict: nothing entered
+     yet, nothing checked yet, shipped wording nobody has changed. Every
+     other surface in here is tinted violet, so a violet-grey chip read as
+     a paler version of the purple pill beside it rather than as its own
+     state. Stone is the one neutral that still belongs to the palette. */
+  --bftd-stone-pale:#EAE7E1;
+  --bftd-stone-line:#DCD8CF;
+  --bftd-stone-deep:#57534A;
+  /* The alphabet a child is measured on printing, in the letterforms they are
+     taught to print: single-storey a and g, a circle and a stick. Same stack
+     as the report, so the editor shows what the family will read. */
+  --bftd-abc:'Century Gothic','Didact Gothic','URW Gothic','Questrial','Avant Garde',sans-serif;
+  --bftd-card:#fff;
+  --bftd-sunk:#FBF8F9;
+  --bftd-d:'Raleway','Trebuchet MS',sans-serif;
+  --bftd-b:'Source Sans 3',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+
+.bftd-wrap{max-width:1240px}
+.bftd-wrap h1{font-family:var(--bftd-d);font-weight:800;color:var(--bftd-ink);letter-spacing:-.01em}
+.bftd-wrap h2{font-family:var(--bftd-d);font-weight:700;color:var(--bftd-ink);margin-top:28px}
+.bftd-lede{font-family:var(--bftd-b);font-size:14.5px;line-height:1.6;color:var(--bftd-muted);max-width:76ch}
+.bftd-none{color:#8b8b8b}
+.bftd-empty{padding:22px;background:var(--bftd-sunk);border:1px dashed var(--bftd-line);border-radius:6px;color:var(--bftd-muted)}
+.bftd-count{display:inline-block;background:var(--bftd-clay);color:#fff;border-radius:11px;padding:2px 9px;font-size:12px;font-weight:600}
+
+/* ---------- Today ---------- */
+.bftd-cols{display:grid;grid-template-columns:1fr;gap:22px;margin-top:18px}
+@media (min-width:1100px){.bftd-cols{grid-template-columns:1fr 300px}}
+.bftd-card{background:var(--bftd-card);border:1px solid var(--bftd-line);border-radius:6px;padding:16px;margin-bottom:16px}
+.bftd-card h3{font-family:var(--bftd-d);font-weight:700;margin:0 0 10px;font-size:14px;color:var(--bftd-ink)}
+.bftd-recent{margin:0;padding:0;list-style:none;font-size:13px}
+.bftd-recent li{padding:7px 0;border-top:1px solid var(--bftd-line-soft);color:var(--bftd-body)}
+.bftd-recent li:first-child{border-top:0}
+.bftd-recent span{display:block;color:var(--bftd-muted);font-size:12px}
+
+.bftd-waiting{display:flex;flex-direction:column;gap:1px;background:var(--bftd-line-soft);border:1px solid var(--bftd-line);border-radius:6px;overflow:hidden}
+.bftd-waiting-row{display:grid;grid-template-columns:180px 180px 1fr;gap:14px;padding:13px 15px;background:#fff;text-decoration:none;color:var(--bftd-body);align-items:baseline}
+.bftd-waiting-row:hover{background:var(--bftd-purple-wash)}
+.bftd-w-student{font-weight:700;color:var(--bftd-ink)}
+.bftd-w-section{color:var(--bftd-purple-deep);font-size:13px}
+.bftd-w-body{color:var(--bftd-body)}
+.bftd-w-meta{grid-column:1/-1;color:var(--bftd-muted);font-size:12px}
+@media (max-width:900px){.bftd-waiting-row{grid-template-columns:1fr}}
+
+/* ---------- Student hub ---------- */
+.bftd-hub{border:1px solid var(--bftd-line);border-radius:6px;overflow:hidden;margin:18px 0}
+.bftd-hub-row{display:flex;gap:18px;align-items:center;justify-content:space-between;padding:16px 18px;background:#fff;border-top:1px solid var(--bftd-line-soft)}
+.bftd-hub-row:first-child{border-top:0}
+.bftd-hub-row h3{font-family:var(--bftd-d);font-weight:700;margin:0 0 3px;font-size:16px;color:var(--bftd-ink)}
+.bftd-hub-row .description{margin:0}
+
+/* ---------- Report builder ---------- */
+.bftd-box{padding:4px 2px 8px}
+.bftd-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.bftd-field{margin-bottom:16px}
+.bftd-label{display:block;font-family:var(--bftd-d);font-weight:700;font-size:13px;color:var(--bftd-ink);margin-bottom:5px}
+.bftd-field input[type=text],.bftd-field input[type=email],.bftd-field textarea{width:100%}
+.bftd-multi{width:100%;min-height:120px}
+
+.bftd-jump{display:flex;flex-wrap:wrap;gap:7px;align-items:center;padding:12px 14px;background:var(--bftd-purple-wash);border:1px solid var(--bftd-purple-pale);border-radius:6px;margin-bottom:14px;font-size:13px}
+.bftd-jump span{font-weight:700;color:var(--bftd-purple-deep);margin-right:4px}
+.bftd-jump a{background:#fff;border:1px solid var(--bftd-line);border-radius:14px;padding:5px 11px;text-decoration:none;color:var(--bftd-body)}
+.bftd-jump a:hover{border-color:var(--bftd-purple-mid);color:var(--bftd-purple-deep)}
+
+.bftd-section{border:1px solid var(--bftd-line);border-left:3px solid var(--bftd-purple);border-radius:6px;padding:18px 20px;margin:0 0 18px;background:#fff}
+.bftd-section.is-empty{border-left-color:var(--bftd-line);background:var(--bftd-sunk)}
+.bftd-section-head{display:flex;gap:18px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--bftd-line-soft)}
+.bftd-section-head h3{font-family:var(--bftd-d);font-weight:700;font-size:19px;color:var(--bftd-ink);margin:2px 0 4px}
+.bftd-eyebrow{display:block;font-family:var(--bftd-d);font-weight:700;font-size:11.5px;color:var(--bftd-purple);letter-spacing:.04em}
+.bftd-section-meta{text-align:right;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.bftd-where{font-size:12px;color:var(--bftd-muted)}
+.bftd-vis{font-size:12.5px;color:var(--bftd-body)}
+.bftd-derived{font-size:13px;color:var(--bftd-muted);background:var(--bftd-purple-wash);border:1px solid var(--bftd-purple-pale);border-radius:5px;padding:10px 12px}
+
+.bftd-pill{display:inline-block;border-radius:13px;padding:4px 11px;font-size:11.5px;font-weight:600}
+.bftd-pill-sage{background:var(--bftd-sage-pale);color:var(--bftd-sage-deep)}
+.bftd-pill-clay{background:var(--bftd-clay-pale);color:var(--bftd-clay)}
+.bftd-pill-quiet{background:var(--bftd-stone-pale);color:var(--bftd-stone-deep);box-shadow:inset 0 0 0 1px var(--bftd-stone-line)}
+.bftd-pill-purple{background:var(--bftd-purple-wash);color:var(--bftd-purple-deep)}
+
+.bftd-thread-note{margin-top:14px;padding:11px 13px;background:var(--bftd-purple-wash);border:1px solid var(--bftd-purple-pale);border-radius:5px;font-size:13px;color:var(--bftd-body)}
+.bftd-thread-note .dashicons{color:var(--bftd-purple);vertical-align:-4px}
+
+/* Picking an activity out of a hundred and fifty */
+.bftd-actpick{display:flex;flex-direction:column;gap:5px;min-width:260px}
+.bftd-actpick-q{width:100%}
+.bftd-actpick-s{width:100%;max-width:100%}
+.bftd-actpick-n{font-size:11.5px;color:var(--bftd-muted)}
+.bftd-actpick{position:relative}
+.bftd-actpick-is{display:flex;align-items:baseline;gap:10px}
+.bftd-actpick-name{font-weight:700;color:var(--bftd-ink);font-size:14px}
+.bftd-actpick-change{font-size:12.5px;text-decoration:none;color:var(--bftd-purple-deep)}
+.bftd-actpick-find{display:flex;flex-direction:column;gap:5px}
+/* An author display rule beats the browser's own [hidden]{display:none}, so
+   hiding these has to be said again here. Without it the search box stayed on
+   screen beside the activity it had already found. */
+.bftd-actpick-is[hidden],.bftd-actpick-find[hidden],.bftd-rowpanel-b[hidden]{display:none}
+/* Narrowing to one programme. Two tracks plus "all", one on at a time. */
+.bftd-actpick-b{display:flex;gap:4px;flex-wrap:wrap}
+.bftd-actpick-t{
+  appearance:none;border:1px solid var(--bftd-line);background:#fff;color:var(--bftd-body);
+  border-radius:999px;padding:2px 11px;font:500 11.5px/1.7 inherit;cursor:pointer;
+}
+.bftd-actpick-t:hover{border-color:var(--bftd-purple);color:var(--bftd-purple-deep)}
+.bftd-actpick-t.is-on{background:var(--bftd-purple);border-color:var(--bftd-purple);color:#fff}
+/* The list hangs off the search box, not off the whole picker: with the track
+   buttons above the input, a list measured from the top of the picker landed
+   on top of the box it belongs under. */
+.bftd-actpick-box{position:relative}
+.bftd-actpick-r{position:absolute;z-index:20;top:100%;left:0;right:0;margin:2px 0 0;padding:4px;list-style:none;
+  max-height:232px;overflow:auto;background:#fff;border:1px solid var(--bftd-line);border-radius:6px;
+  box-shadow:0 10px 24px -12px rgba(36,30,42,.45)}
+.bftd-actpick-r li{margin:0;padding:6px 9px;border-radius:4px;font-size:13px;color:var(--bftd-body);cursor:pointer}
+.bftd-actpick-r li b{color:var(--bftd-purple-deep)}
+.bftd-actpick-r li.is-on,.bftd-actpick-r li:hover{background:var(--bftd-purple-wash)}
+.bftd-actpick-r li.is-more{color:var(--bftd-muted);cursor:default;font-size:11.5px}
+.bftd-actpick-r li.is-more:hover{background:none}
+.bftd-actpick-none{margin:0}
+.bftd-rows-table .bftd-actpick{min-width:0}
+
+/* Where one programme ends and the other begins, in the activity library. */
+.bftd-trackhead th{
+  background:var(--bftd-purple-wash); color:var(--bftd-purple-deep);
+  font:700 13px/1.6 inherit; letter-spacing:.01em;
+  padding:8px 12px !important; border-top:1px solid var(--bftd-line);
+}
+
+/* The skills box, printed between the title and the editor rather than
+   registered as a metabox, so it needs the spacing a metabox would have had. */
+.bftd-abovebox{margin:0 0 18px}
+
+/* The cancellation questions, which only a cancelled lesson has.
+   Directly under what happened now, rather than at the foot of the screen
+   past the activities, so they read as part of recording the cancellation
+   rather than as an optional afterthought. */
+.bftd-onlymissed{display:none}
+.bftd-onlymissed.is-on{display:block}
+.bftd-missed-rule{margin-top:10px}
+/* Said once, on the field, when somebody tries to publish without it. Clay
+   rather than red: this is a thing still to do, not an error. */
+.bftd-missed-warn{margin:0 0 12px;padding:9px 12px;border-radius:5px;
+  background:var(--bftd-clay-pale);border:1px solid var(--bftd-clay);
+  color:var(--bftd-ink);font-weight:600}
+
+/* An activity, stacked: which one, then what happened, then the work */
+.bftd-stack{display:flex;flex-direction:column;gap:12px;margin-bottom:10px}
+.bftd-stackrow{border:1px solid var(--bftd-line);border-left:3px solid var(--bftd-purple-pale);border-radius:6px;background:#fff;padding:12px 14px}
+.bftd-stackrow.ui-sortable-helper{box-shadow:0 6px 18px -8px rgba(36,30,42,.4)}
+.bftd-stackrow-h{display:flex;align-items:flex-start;gap:10px}
+.bftd-stackrow-h .bftd-drag{margin-top:6px;color:#b5b5b5;cursor:grab}
+.bftd-stackrow-lead{flex:0 1 auto;min-width:0;max-width:420px}
+/* Hard right, away from everything it is not. Sitting next to Change, it read
+   as part of the same pair of controls; against the far edge it reads as what
+   it is, the one thing on the row that throws work away. */
+.bftd-stackrow-h .bftd-row-rm{margin-left:auto;margin-top:2px;flex:0 0 auto}
+.bftd-stackrow-part{margin:9px 0 0 26px}
+.bftd-stackrow-part:empty{display:none}
+.bftd-stackrow.is-blank .bftd-stackrow-part{display:none}
+/* A row still pointing at something that has been deleted. Not empty, not
+   chosen, and it still holds whatever was written under it. */
+
+/* Notes and work samples against one activity */
+.bftd-rowpanel{display:block}
+.bftd-rowpanel-t{font-size:12.5px;text-decoration:none;color:var(--bftd-purple-deep)}
+.bftd-rowpanel-t:hover{color:var(--bftd-purple)}
+.bftd-rowpanel.is-open > .bftd-rowpanel-t{font-weight:600}
+.bftd-rowpanel-b{margin-top:7px}
+.bftd-rowpanel-b .wp-editor-container{border:1px solid var(--bftd-line);border-radius:5px}
+.bftd-rowpanel-b .bftd-gallery-box{min-height:84px;padding:12px}
+.bftd-rowpanel-a{width:100%}
+
+/* repeatable rows */
+.bftd-rows-table{margin-bottom:9px}
+.bftd-rows-table td{vertical-align:top;padding:7px}
+.bftd-rows-table input[type=text],.bftd-rows-table textarea,.bftd-rows-table select{width:100%}
+.bftd-drag{width:26px;color:#b5b5b5;cursor:grab}
+.bftd-rm{width:26px;text-align:center}
+.bftd-row-rm{color:var(--bftd-red);font-size:19px;line-height:1;text-decoration:none;
+  padding:2px 7px;border-radius:5px}
+.bftd-row-rm:hover,.bftd-row-rm:focus{color:var(--bftd-red);background:var(--bftd-red-pale)}
+.bftd-row.ui-sortable-helper{box-shadow:0 6px 18px -8px rgba(36,30,42,.4)}
+
+.bftd-media-prev img,.bftd-thumb img{max-width:110px;height:auto;border:1px solid var(--bftd-line);border-radius:4px;display:block;margin-bottom:7px}
+.bftd-gallery-prev{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.bftd-gallery-prev:empty{margin-bottom:0}
+
+/* A target big enough to aim a file at, that still says what it is for. */
+.bftd-gallery-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
+  min-height:118px;padding:20px;border:2px dashed var(--bftd-line);border-radius:7px;
+  background:var(--bftd-line-soft);text-align:center;transition:border-color .12s,background .12s}
+.bftd-gallery-box:hover{border-color:var(--bftd-purple-mid)}
+.bftd-gallery-hint{font-size:12.5px;line-height:1.5;color:var(--bftd-muted)}
+.bftd-gallery.is-dropping .bftd-gallery-box{border-color:var(--bftd-purple);border-style:solid;
+  background:var(--bftd-purple-wash);box-shadow:inset 0 0 0 3px rgba(112,86,127,.10)}
+.bftd-gallery.is-dropping .bftd-gallery-hint{color:var(--bftd-purple-deep);font-weight:600}
+.bftd-gallery.is-dropping .bftd-gallery-hint::after{content:' Let go to add them.'}
+.bftd-gallery-note{display:none;margin-top:7px;font-size:12.5px;line-height:1.5;padding:7px 10px;border-radius:5px;
+  background:var(--bftd-line-soft);color:var(--bftd-body)}
+.bftd-gallery-note.is-good{background:var(--bftd-sage-pale);color:var(--bftd-sage-deep)}
+.bftd-gallery-note.is-bad{background:var(--bftd-clay-pale);color:var(--bftd-clay)}
+.bftd-thumb{position:relative;display:inline-block}
+.bftd-thumb-x{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:var(--bftd-clay);color:#fff;cursor:pointer;line-height:1}
+
+/* ---------- change bar ---------- */
+.bftd-change-bar{background:var(--bftd-clay-pale);border:1px solid rgba(184,92,46,.3);border-radius:6px;padding:14px 16px;margin:14px 0}
+.bftd-change-bar.is-held{background:#F4F2F6;border-color:var(--bftd-line)}
+.bftd-change-bar.is-held p{margin:0;font-size:13.5px;line-height:1.6;color:var(--bftd-body)}
+.bftd-change-head strong{font-family:var(--bftd-d);font-size:15px;color:var(--bftd-ink);margin-right:10px}
+.bftd-change-pills{display:flex;flex-wrap:wrap;gap:10px;margin-top:11px}
+.bftd-change-pill{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--bftd-line);border-radius:20px;padding:6px 8px 6px 14px}
+.bftd-change-label{font-weight:600;font-size:13px;color:var(--bftd-ink)}
+.bftd-change-n{background:var(--bftd-clay);color:#fff;border-radius:9px;font-size:11px;font-weight:700;padding:1px 7px}
+
+.bftd-modal{position:fixed;inset:0;background:rgba(30,24,38,.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:24px}
+.bftd-modal[hidden]{display:none}
+.bftd-modal-box{background:#fff;border-radius:8px;padding:24px;max-width:680px;width:100%;max-height:88vh;overflow:auto}
+.bftd-modal-box h2{margin-top:0;font-family:var(--bftd-d)}
+.bftd-modal-box label{display:block;font-weight:600;font-size:13px;margin:14px 0 4px;color:var(--bftd-ink)}
+.bftd-modal-to{background:var(--bftd-sunk);border:1px solid var(--bftd-line);border-radius:4px;padding:9px 11px;font-size:13px;color:var(--bftd-body)}
+.bftd-modal-foot{display:flex;align-items:center;gap:10px;margin-top:18px}
+.bftd-modal-status{font-size:13px;color:var(--bftd-muted)}
+
+/* ---------- conversations ---------- */
+.bftd-inbox{display:grid;grid-template-columns:1fr;gap:0;border:1px solid var(--bftd-line);border-radius:6px;overflow:hidden;margin-top:18px;background:#fff}
+@media (min-width:1000px){.bftd-inbox{grid-template-columns:340px 1fr}}
+.bftd-inbox-list{border-right:1px solid var(--bftd-line);max-height:74vh;overflow:auto}
+.bftd-inbox-filters{display:flex;gap:7px;padding:12px}
+.bftd-chip{border:1px solid var(--bftd-line);border-radius:16px;padding:6px 12px;font-size:12.5px;text-decoration:none;color:var(--bftd-body)}
+.bftd-chip.is-on{background:var(--bftd-purple);border-color:var(--bftd-purple);color:#fff}
+.bftd-inbox-item{display:block;padding:13px 14px;border-top:1px solid var(--bftd-line-soft);text-decoration:none;color:var(--bftd-body)}
+.bftd-inbox-item:hover{background:var(--bftd-purple-wash)}
+.bftd-inbox-item.is-on{background:var(--bftd-purple-pale);box-shadow:inset 3px 0 0 var(--bftd-purple)}
+.bftd-i-top{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--bftd-muted)}
+.bftd-i-student{font-weight:700;color:var(--bftd-ink);flex:1;min-width:0}
+.bftd-i-section{display:block;font-size:13px;color:var(--bftd-purple-deep);font-weight:600;margin-top:3px}
+.bftd-i-prev{display:block;font-size:13px;color:var(--bftd-muted);margin-top:2px}
+.bftd-dot{width:8px;height:8px;border-radius:50%;background:var(--bftd-clay);flex:0 0 auto}
+
+.bftd-inbox-pane{padding:18px 20px;max-height:74vh;overflow:auto}
+.bftd-pane-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding-bottom:14px;border-bottom:1px solid var(--bftd-line-soft)}
+.bftd-pane-head h2{margin:0;font-size:19px}
+.bftd-msgs{padding:16px 0}
+.bftd-msg{padding:13px 15px;border-radius:6px;margin-bottom:11px;background:var(--bftd-sunk);border:1px solid var(--bftd-line-soft)}
+.bftd-msg.is-staff{background:var(--bftd-purple-wash);border-color:var(--bftd-purple-pale)}
+.bftd-msg-h{display:flex;gap:9px;align-items:baseline;flex-wrap:wrap;margin-bottom:5px;font-size:13px}
+.bftd-msg-h b{color:var(--bftd-ink)}
+.bftd-msg-rel{color:var(--bftd-purple-deep);font-size:12px}
+.bftd-msg-h time{color:var(--bftd-muted);font-size:12px;margin-left:auto}
+.bftd-msg-b{font-size:14px;line-height:1.6;color:var(--bftd-body)}
+.bftd-msg-b p{margin:0 0 8px}
+.bftd-msg-files{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.bftd-file{display:inline-flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--bftd-line);border-radius:5px;padding:6px 10px 6px 6px;text-decoration:none;max-width:300px}
+.bftd-file img{width:32px;height:32px;object-fit:cover;border-radius:3px}
+.bftd-file-ic{width:32px;height:32px;border-radius:3px;background:var(--bftd-purple-pale);color:var(--bftd-purple-deep);font:700 10px/32px var(--bftd-d);text-align:center}
+.bftd-file-n{font-size:13px;font-weight:600;color:var(--bftd-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bftd-file-s{font-size:11px;color:var(--bftd-muted)}
+
+.bftd-reply{border-top:1px solid var(--bftd-line-soft);padding-top:14px}
+.bftd-reply-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}
+.bftd-attach-label{font-size:12.5px;color:var(--bftd-muted)}
+
+/* ---------- activity log ---------- */
+.bftd-log-filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0}
+.bftd-log-count{color:var(--bftd-muted);font-size:13px}
+.bftd-log td{vertical-align:top;font-size:13px}
+.bftd-log-to{color:var(--bftd-muted);font-size:12px}
+.bftd-log-diff{margin-top:6px}
+.bftd-log-diff summary{cursor:pointer;color:var(--bftd-purple-deep);font-size:12.5px;font-weight:600}
+.bftd-log-diff dl{margin:8px 0 0;padding:10px 12px;background:var(--bftd-sunk);border:1px solid var(--bftd-line-soft);border-radius:5px}
+.bftd-log-diff dt{font-weight:700;font-size:12px;color:var(--bftd-ink);margin-top:8px}
+.bftd-log-diff dt:first-child{margin-top:0}
+.bftd-log-diff dd{margin:3px 0 0;display:flex;gap:9px;flex-wrap:wrap;align-items:baseline;font-size:12.5px}
+.bftd-log-diff .was,.bftd-hist .was{color:var(--bftd-muted);text-decoration:line-through;text-decoration-color:var(--bftd-line)}
+.bftd-log-diff .now,.bftd-hist .now{color:var(--bftd-ink)}
+.bftd-log-diff .arrow,.bftd-hist .arrow{color:var(--bftd-purple-mid)}
+.bftd-hist{display:flex;gap:9px;flex-wrap:wrap;align-items:baseline;padding:5px 0;font-size:12.5px}
+.bftd-hist b{font-size:12px;color:var(--bftd-ink)}
+
+/* ---------- emails ---------- */
+.bftd-tpl{background:#fff;border:1px solid var(--bftd-line);border-radius:6px;padding:16px 20px;margin-bottom:16px}
+.bftd-tpl h2{margin-top:0;font-size:17px}
+.bftd-rules td{vertical-align:top}
+.bftd-radio,.bftd-check{display:block;font-size:13px;margin-bottom:5px;color:var(--bftd-body)}
+
+/* ==========================================================================
+   The branded shell
+   wp-admin in Brilliant Futures colours. Colour, type and spacing only —
+   nothing here changes what a screen does, so a WordPress update can move
+   things around without breaking a feature.
+   Every rule is scoped to a core admin class rather than a positional
+   selector, so a re-ordered menu or a new panel degrades to plain WordPress
+   instead of landing half-styled.
+   ========================================================================== */
+
+body.wp-admin{background:#F7F5F7}
+body.wp-admin,#wpbody-content{font-family:var(--bftd-b)}
+#wpbody-content .wrap>h1,#wpbody-content h1.wp-heading-inline{font-family:var(--bftd-d);font-weight:800;color:var(--bftd-ink);letter-spacing:-.01em}
+
+/* sidebar */
+#adminmenuback,#adminmenuwrap,#adminmenu{background:var(--bftd-purple-deep)}
+#adminmenu a{color:rgba(255,255,255,.82)}
+#adminmenu div.wp-menu-image:before{color:rgba(255,255,255,.62)}
+#adminmenu li.menu-top:hover,#adminmenu li.opensub>a.menu-top,#adminmenu li>a.menu-top:focus{background:rgba(255,255,255,.09);color:#fff}
+#adminmenu li.menu-top:hover div.wp-menu-image:before{color:#fff}
+#adminmenu .wp-has-current-submenu .wp-submenu,#adminmenu .wp-has-current-submenu.opensub .wp-submenu,
+#adminmenu a.wp-has-current-submenu:focus+.wp-submenu,#adminmenu .wp-submenu{background:#3F2F49}
+#adminmenu .wp-submenu a{color:rgba(255,255,255,.72)}
+#adminmenu .wp-submenu a:hover,#adminmenu .wp-submenu a:focus{color:var(--bftd-sage)}
+/* Where you are, said once.
+   WordPress paints the FIRST submenu item as the highlight, because in a core
+   menu that item is a repeat of the parent. Ours is not: the first item under
+   Brilliant Futures is Students, a page of its own. So standing on Lessons lit
+   Students purple and left Lessons as plain white text, and the sidebar named
+   the wrong page. The highlight belongs to .current and nothing else; the
+   parent keeps its own, which is the one place two are right at once. */
+#adminmenu li.current a.menu-top,
+#adminmenu li.wp-has-current-submenu a.wp-has-current-submenu{background:var(--bftd-purple);color:#fff}
+#adminmenu li.wp-has-current-submenu div.wp-menu-image:before,#adminmenu li.current div.wp-menu-image:before{color:#fff}
+/* Written twice, the second time carrying .wp-has-current-submenu. Core's
+   first-item rule holds three classes and would otherwise outweigh ours on
+   the one page where the current item IS the first one, which is the case a
+   fix for the other pages quietly leaves blue. */
+#adminmenu .wp-submenu li.current>a,
+#adminmenu .wp-submenu li.current>a:hover,
+#adminmenu .wp-submenu li.current>a:focus,
+#adminmenu .wp-has-current-submenu .wp-submenu li.current>a,
+#adminmenu .wp-has-current-submenu .wp-submenu li.current>a:hover,
+#adminmenu .wp-has-current-submenu .wp-submenu li.current>a:focus{background:var(--bftd-purple);color:#fff;font-weight:600}
+/* and the one core paints by position gets nothing extra. */
+#adminmenu .wp-has-current-submenu .wp-submenu li.wp-first-item:not(.current)>a{background:transparent;font-weight:400}
+/* The five "add" rows, registered but not drawn.
+   Every one of them is already a button on the screen it belongs to: the
+   Lessons list has Record a Lesson, the Diagnostics list has New Reading
+   Diagnostic, and so on. In the sidebar they doubled the length of the menu
+   and buried the pages a person actually navigates to.
+
+   They are hidden here rather than removed, and that is not a shortcut.
+   remove_submenu_page() unsets the entry from $submenu, and $submenu is the
+   array get_admin_page_parent() searches to work out what post-new.php
+   belongs to. With no entry it finds nothing, falls through to a branch that
+   matches the bare filename against core's own blacklisted Posts menu, and
+   refuses the screen to somebody holding every capability, with no message
+   but "Sorry, you are not allowed to access this page". The row has to exist.
+   It does not have to be visible. See BFTD_CPT::register_add_new_pages.
+
+   The one on the screen you are standing on stays, so the sidebar still names
+   where you are while you are creating something. A browser without :has()
+   simply shows all of them, which is where this started. */
+#adminmenu .wp-submenu li:not(.current):has(> a[href*="post-new.php?post_type=bftd_"]){display:none}
+#adminmenu li.menu-top>a{font-family:var(--bftd-d);font-weight:600;letter-spacing:.01em}
+#collapse-button{color:rgba(255,255,255,.6)}
+#adminmenu li.wp-menu-separator{background:rgba(255,255,255,.09)}
+
+/* toolbar */
+#wpadminbar{background:var(--bftd-ink)}
+#wpadminbar .ab-top-menu>li:hover>.ab-item,#wpadminbar .ab-top-menu>li.hover>.ab-item,
+#wpadminbar .ab-top-menu>li>.ab-item:focus{background:var(--bftd-purple);color:#fff}
+#wpadminbar .bftd-tb-mark{font-family:var(--bftd-d);font-weight:800;letter-spacing:.09em;font-size:12px;text-transform:none;color:#fff}
+#wpadminbar #adminbarsearch:before,#wpadminbar .ab-icon:before,#wpadminbar .ab-item:before{color:rgba(255,255,255,.66)}
+
+/* buttons */
+.wp-core-ui .button-primary{background:var(--bftd-sage);border-color:var(--bftd-sage);color:#22260B;
+  text-shadow:none;box-shadow:none;border-radius:3px;font-weight:600}
+.wp-core-ui .button-primary:hover,.wp-core-ui .button-primary:focus{background:var(--bftd-sage-deep);border-color:var(--bftd-sage-deep);color:#fff;box-shadow:none}
+.wp-core-ui .button-primary:disabled,.wp-core-ui .button-primary.disabled{background:#D6D8BC!important;border-color:#D6D8BC!important;color:#6d6d6d!important}
+.wp-core-ui .button,.wp-core-ui .button-secondary{border-radius:3px;border-color:var(--bftd-line);color:var(--bftd-purple-deep)}
+.wp-core-ui .button:hover{border-color:var(--bftd-purple-mid);color:var(--bftd-purple-deep)}
+.wp-core-ui .button-link{color:var(--bftd-purple-deep)}
+a{color:var(--bftd-purple-deep)}
+a:hover,a:focus{color:var(--bftd-purple)}
+input[type=text]:focus,input[type=email]:focus,input[type=url]:focus,input[type=number]:focus,
+input[type=search]:focus,input[type=date]:focus,input[type=time]:focus,select:focus,textarea:focus{
+  border-color:var(--bftd-purple-mid);box-shadow:0 0 0 1px var(--bftd-purple-mid);outline:2px solid transparent}
+
+/* panels */
+.postbox{border-color:var(--bftd-line);border-radius:6px;overflow:hidden}
+.postbox-header{background:var(--bftd-purple-wash);border-bottom:1px solid var(--bftd-line)}
+.postbox-header h2,.postbox .hndle{font-family:var(--bftd-d);font-weight:700;color:var(--bftd-ink);font-size:15px}
+.wp-list-table thead th,.wp-list-table tfoot th{background:var(--bftd-purple-wash)}
+.wp-list-table thead th a,.wp-list-table thead th{color:var(--bftd-purple-deep)}
+.nav-tab-wrapper{border-bottom-color:var(--bftd-line)}
+.nav-tab{background:transparent;border-color:transparent;color:var(--bftd-muted);font-family:var(--bftd-d);font-weight:600}
+.nav-tab:hover{color:var(--bftd-purple-deep);background:var(--bftd-purple-wash)}
+.nav-tab-active,.nav-tab-active:hover{background:#fff;border-color:var(--bftd-line);border-bottom-color:#fff;color:var(--bftd-ink)}
+.notice{border-radius:5px}
+#wpfooter{color:var(--bftd-muted)}
+#wpfooter a{color:var(--bftd-purple-deep)}
+
+/* the one dashboard widget we keep */
+.bftd-widget-line{font-size:14px;color:var(--bftd-body)}
+.bftd-widget-line b{font-family:var(--bftd-d);font-size:17px;color:var(--bftd-ink)}
+.bftd-widget-warn{color:var(--bftd-clay)!important}
+
+/* people table */
+.bftd-person{display:inline-block;margin-right:10px;font-size:13px}
+.bftd-person em{color:var(--bftd-muted);font-style:normal;font-size:12px}
+.bftd-settings-form .form-table th{width:220px;font-family:var(--bftd-d);color:var(--bftd-ink)}
+
+/* ==========================================================================
+   Priority items and For review, in the editor
+   ========================================================================== */
+
+.bftd-items{padding:2px 0 6px}
+.bftd-item-rows{display:flex;flex-direction:column;gap:10px;margin:12px 0}
+.bftd-item-row{border:1px solid var(--bftd-line);border-left:3px solid var(--bftd-clay);border-radius:5px;background:#fff;padding:13px 15px}
+.bftd-items-sage .bftd-item-row{border-left-color:var(--bftd-sage-deep)}
+.bftd-item-row.is-confirmed{border-left-color:var(--bftd-line);background:var(--bftd-sunk);opacity:.72}
+.bftd-item-main{display:flex;gap:11px;align-items:flex-start}
+.bftd-item-fields{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.bftd-item-fields input[type=text],.bftd-item-fields input[type=url],.bftd-item-fields textarea,.bftd-item-fields select{width:100%}
+.bftd-item-text{font-weight:600}
+.bftd-item-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.bftd-item-grid label{font-size:12px;color:var(--bftd-muted);display:flex;flex-direction:column;gap:3px}
+.bftd-item-state{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12.5px}
+.bftd-item-rm{color:var(--bftd-clay)}
+
+/* Core puts .wp-core-ui on <body>, but a handful of screens render buttons
+   outside that scope. Repeating the button rules unscoped keeps the brand
+   consistent rather than leaving a stray blue button on one screen. */
+.button-primary{background:var(--bftd-sage);border-color:var(--bftd-sage);color:#22260B;
+  text-shadow:none;box-shadow:none;border-radius:3px;font-weight:600}
+.button-primary:hover,.button-primary:focus{background:var(--bftd-sage-deep);border-color:var(--bftd-sage-deep);color:#fff}
+.button,.button-secondary{border-radius:3px}
+.bftd-item-fields textarea,.bftd-item-fields input{font-family:var(--bftd-b);font-size:14px}
+.bftd-rows-table textarea,.bftd-rows-table input{font-family:var(--bftd-b)}
+
+/* Conversations: the flat "every message" view */
+.bftd-view-switch{display:flex;gap:7px;margin:14px 0}
+.bftd-msg-list td{vertical-align:top;font-size:13.5px}
+.bftd-msg-list td p{margin:0 0 7px}
+.bftd-msg-list td p:last-child{margin-bottom:0}
+.bftd-msg-who{color:var(--bftd-muted);font-size:12px;margin-top:3px}
+
+/* Roles and permissions */
+.bftd-yes{color:var(--bftd-sage-deep);font-weight:600}
+.bftd-no{color:var(--bftd-muted)}
+.bftd-part{color:var(--bftd-clay);font-weight:600}
+.bftd-cap-bad{background:var(--bftd-clay-pale);color:var(--bftd-clay);padding:2px 6px;border-radius:3px;font-size:12px}
+.notice.inline{margin:14px 0}
+
+/* Assigning tutors to a report */
+.bftd-assign-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.bftd-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}
+.bftd-chip{display:inline-flex;align-items:center;gap:7px;background:var(--bftd-purple-pale);
+  border:1px solid var(--bftd-purple-mid);border-radius:14px;padding:4px 6px 4px 11px;font-size:12.5px}
+.bftd-chip-name{font-weight:600;color:var(--bftd-purple-deep)}
+.bftd-chip-role{color:var(--bftd-muted);font-size:11.5px}
+.bftd-chip-x{width:18px;height:18px;border:0;border-radius:50%;background:transparent;color:var(--bftd-purple-deep);
+  cursor:pointer;line-height:1;font-size:14px;padding:0}
+.bftd-chip-x:hover{background:var(--bftd-clay);color:#fff}
+.bftd-chip-none{display:block;color:var(--bftd-muted)}
+.bftd-assign-search{position:relative;margin-bottom:8px}
+.bftd-assign-results{position:absolute;z-index:20;left:0;right:0;background:#fff;border:1px solid var(--bftd-line);
+  border-radius:5px;box-shadow:0 8px 20px -10px rgba(36,30,42,.35);max-height:260px;overflow:auto}
+.bftd-assign-hit{display:block;width:100%;text-align:left;background:none;border:0;cursor:pointer;
+  padding:9px 11px;border-top:1px solid var(--bftd-line-soft);font:inherit}
+.bftd-assign-results .bftd-assign-hit:first-child{border-top:0}
+.bftd-assign-hit:hover{background:var(--bftd-purple-wash)}
+.bftd-hit-name{display:block;font-weight:600;color:var(--bftd-ink);font-size:13.5px}
+.bftd-hit-meta{display:block;color:var(--bftd-muted);font-size:12px}
+.bftd-assign-none{padding:9px 11px;margin:0}
+
+/* Lessons and schedule */
+.bftd-bank{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:4px 0 16px}
+.bftd-bank-tile{background:var(--bftd-purple-wash);border:1px solid var(--bftd-purple-pale);border-radius:6px;padding:13px 15px}
+.bftd-bank-n{display:block;font-family:var(--bftd-d);font-weight:800;font-size:26px;color:var(--bftd-ink);line-height:1}
+.bftd-bank-l{display:block;font-weight:600;font-size:13px;color:var(--bftd-purple-deep);margin-top:4px}
+.bftd-bank-h{display:block;font-size:11.5px;color:var(--bftd-muted);margin-top:3px;line-height:1.4}
+.bftd-sched h4{font-family:var(--bftd-d);font-size:15px;color:var(--bftd-ink);margin:20px 0 4px}
+.bftd-sched-rules td{padding:7px}
+.bftd-sched-rules select,.bftd-sched-rules input[type=time],.bftd-sched-rules input[type=date]{width:100%}
+.bftd-sched-rm{color:var(--bftd-clay);font-size:17px;text-decoration:none}
+
+.bftd-occ{margin:8px 0 0;padding:0;list-style:none;border:1px solid var(--bftd-line);border-radius:6px;overflow:hidden}
+.bftd-occ-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 14px;
+  border-top:1px solid var(--bftd-line-soft);background:#fff;font-size:13.5px}
+.bftd-occ li:first-child{border-top:0}
+.bftd-occ-date{font-weight:700;color:var(--bftd-ink);min-width:96px}
+.bftd-occ-time{font-family:var(--bftd-b);color:var(--bftd-body);min-width:80px}
+.bftd-occ-status{border-radius:11px;padding:3px 10px;font-size:11.5px;font-weight:600}
+.is-booked .bftd-occ-status{background:var(--bftd-purple-pale);color:var(--bftd-purple-deep)}
+.is-held .bftd-occ-status{background:var(--bftd-sage-pale);color:var(--bftd-sage-deep)}
+.is-cancelled .bftd-occ-status{background:var(--bftd-clay-pale);color:var(--bftd-clay)}
+.is-moved .bftd-occ-status{background:var(--bftd-line-soft);color:var(--bftd-muted)}
+.is-cancelled .bftd-occ-date,.is-moved .bftd-occ-date{text-decoration:line-through;color:var(--bftd-muted)}
+.bftd-occ-why{color:var(--bftd-muted);font-size:12.5px;flex:1;min-width:0}
+.bftd-occ-do{margin-left:auto;display:flex;gap:12px}
+
+/* The reschedule picker */
+.bftd-resched .bftd-modal-box{max-width:520px}
+.bftd-resched-from{margin:0 0 14px}
+.bftd-cal{border:1px solid var(--bftd-line);border-radius:6px;padding:12px;background:#fff}
+.bftd-cal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.bftd-cal-head strong{font-family:var(--bftd-d);font-size:15px;color:var(--bftd-ink)}
+.bftd-cal-prev,.bftd-cal-next{min-width:34px;text-align:center}
+.bftd-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.bftd-cal-dow{text-align:center;font-size:11px;font-weight:700;color:var(--bftd-muted);padding-bottom:4px}
+.bftd-cal-pad{aspect-ratio:1}
+.bftd-cal-day{position:relative;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;border:1px solid transparent;border-radius:5px;background:var(--bftd-sunk);
+  cursor:pointer;font:inherit;padding:0}
+.bftd-cal-day:hover{border-color:var(--bftd-purple-mid)}
+.bftd-cal-n{font-size:13px;font-weight:600;color:var(--bftd-ink);line-height:1}
+.bftd-cal-tick{width:5px;height:5px;border-radius:50%;background:var(--bftd-purple)}
+.bftd-cal-day.is-held .bftd-cal-tick{background:var(--bftd-sage-deep)}
+.bftd-cal-day.is-cancelled .bftd-cal-tick{background:var(--bftd-clay)}
+.bftd-cal-day.is-past{opacity:.45}
+.bftd-cal-day.is-today{box-shadow:inset 0 0 0 1px var(--bftd-purple-mid)}
+.bftd-cal-day.is-pick{background:var(--bftd-purple);border-color:var(--bftd-purple)}
+.bftd-cal-day.is-pick .bftd-cal-n{color:#fff}
+.bftd-cal-day.is-pick .bftd-cal-tick{background:#fff}
+/* A day the tutor has already filled. Not selectable, and it says why on
+   hover; the diagonal keeps it legible without relying on colour alone. */
+.bftd-cal-day.is-full{cursor:not-allowed;opacity:.55;border-style:dashed;
+  background-image:repeating-linear-gradient(135deg,transparent 0 4px,var(--bftd-line) 4px 5px)}
+.bftd-cal-day.is-full:hover{border-color:var(--bftd-line)}
+.bftd-cal-day.is-full .bftd-cal-n{color:var(--bftd-muted)}
+.bftd-occ-warn{margin:0 0 10px;padding:9px 11px;border-left:3px solid var(--bftd-clay);
+  background:#fdf3ee;color:var(--bftd-body)}
+.bftd-cal-key{display:flex;gap:14px;align-items:center;margin:10px 0 0;font-size:12px;color:var(--bftd-muted)}
+.bftd-cal-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:0}
+.bftd-cal-dot.is-booked{background:var(--bftd-purple)}
+.bftd-cal-dot.is-held{background:var(--bftd-sage-deep)}
+.bftd-cal-dot.is-pick{background:var(--bftd-purple);border-radius:3px;width:10px;height:10px}
+.bftd-resched-when{display:flex;gap:14px;margin:16px 0 0}
+.bftd-resched-when label,.bftd-resched-why{display:block;font-weight:600;font-size:13px;color:var(--bftd-ink)}
+.bftd-resched-when input,.bftd-resched-why input{display:block;margin-top:4px;width:100%;font-weight:400}
+.bftd-resched-why{margin-top:14px}
+.bftd-resched-warn{margin:14px 0 0;padding:10px 12px;background:var(--bftd-clay-pale);
+  border:1px solid rgba(184,92,46,.3);border-radius:5px;font-size:13px;color:var(--bftd-ink)}
+
+/* A value the admin shows rather than asks for. Sits at the same height as
+   the inputs beside it so the grid row does not go ragged. */
+.bftd-readonly{margin:0;padding:7px 0;font-size:14px;font-weight:600;color:var(--bftd-purple-deep)}
+
+/* ==========================================================================
+   Picking a tutor for one slot
+   A search box over a fixed list, sitting in a table cell, so it has to stay
+   compact and its list has to escape the cell without stretching the row.
+   ========================================================================== */
+.bftd-pick{position:relative}
+.bftd-pick-in{width:100%;padding:6px 26px 6px 9px;border:1px solid #8c8f94;border-radius:4px;
+  font-size:13.5px;line-height:1.5;background:#fff;color:var(--bftd-body)}
+.bftd-pick-in:focus{border-color:var(--bftd-purple);box-shadow:0 0 0 1px var(--bftd-purple);outline:0}
+/* An overridden slot looks overridden, so a table of them can be scanned. */
+.bftd-pick-in.is-set{font-weight:600;color:var(--bftd-purple-deep);border-color:var(--bftd-purple-mid)}
+.bftd-pick-x{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:20px;height:20px;
+  border:0;border-radius:50%;background:transparent;color:var(--bftd-muted);cursor:pointer;
+  font-size:15px;line-height:1;padding:0}
+.bftd-pick-x:hover{background:var(--bftd-clay-pale);color:var(--bftd-clay)}
+
+.bftd-pick-list{position:absolute;z-index:30;left:0;right:0;top:calc(100% + 3px);max-height:260px;
+  overflow-y:auto;background:#fff;border:1px solid var(--bftd-line);border-radius:5px;
+  box-shadow:0 8px 22px rgba(36,30,42,.14)}
+.bftd-pick-opt{display:block;width:100%;text-align:left;background:none;border:0;cursor:pointer;
+  padding:8px 11px;border-top:1px solid var(--bftd-line-soft)}
+.bftd-pick-list .bftd-pick-opt:first-child{border-top:0}
+.bftd-pick-opt:hover,.bftd-pick-opt.is-on{background:var(--bftd-purple-wash)}
+.bftd-pick-name{display:block;font-size:13.5px;font-weight:600;color:var(--bftd-purple-deep)}
+.bftd-pick-meta{display:block;font-size:11.5px;color:var(--bftd-muted);margin-top:1px}
+.bftd-pick-none{padding:9px 11px;margin:0}
+
+/* A subheading sits under the title and should look like one: smaller than
+   the title, larger than a field label, and clearly part of the same block.
+   It is read only, so it is drawn as text and not as a box — a box invites
+   a correction that would only ever disagree with the assignment. */
+.bftd-subtitle{margin:4px 0 14px}
+.bftd-subtitle.is-empty{display:none}
+.bftd-subtitle-line{margin:0;font-size:16px;line-height:1.4;font-weight:600;
+  color:var(--bftd-purple-deep)}
+
+/* Said once, when fields fill themselves in. */
+.bftd-prefilled{margin:6px 2px 14px;padding:8px 11px;border-left:3px solid var(--bftd-sage);
+  background:var(--bftd-sage-pale);color:var(--bftd-body);font-style:normal}
+.bftd-pulled{margin-top:10px}
+.bftd-pulled summary{cursor:pointer;font-size:12.5px;color:var(--bftd-purple-deep)}
+.bftd-pulled-list{margin:6px 0 0 18px;list-style:disc;font-size:12.5px;color:var(--bftd-muted)}
+
+/* Dropping a file into a report.
+   The overlay has to sit above the visual editor's iframe, which is why the
+   wrapper is the positioned element rather than the editor box itself. */
+.bftd-field-rich .wp-editor-wrap{position:relative}
+.bftd-drop{position:absolute;inset:0;z-index:10;display:none;align-items:center;justify-content:center;
+  background:rgba(93,58,110,.06);border:2px dashed var(--bftd-purple);border-radius:6px;pointer-events:none}
+.bftd-field-rich .wp-editor-wrap.is-dropping .bftd-drop{display:flex}
+.bftd-drop-in{background:#fff;border:1px solid var(--bftd-line);border-radius:6px;padding:14px 18px;
+  text-align:center;box-shadow:0 6px 20px rgba(40,30,50,.14);max-width:340px}
+.bftd-drop-in b{display:block;font-family:var(--bftd-d);font-size:15px;color:var(--bftd-ink);margin-bottom:3px}
+.bftd-drop-in span{display:block;font-size:12.5px;line-height:1.5;color:var(--bftd-muted)}
+.bftd-drop-note{display:none;margin-top:7px;font-size:12.5px;line-height:1.5;padding:7px 10px;border-radius:5px;
+  background:var(--bftd-line-soft);color:var(--bftd-body)}
+.bftd-drop-note.is-good{background:var(--bftd-sage-pale);color:var(--bftd-sage-deep)}
+.bftd-drop-note.is-bad{background:var(--bftd-clay-pale);color:var(--bftd-clay)}
+.bftd-drop-hint{margin:6px 2px 0;font-size:12.5px;line-height:1.5;color:var(--bftd-muted)}
+.bftd-gallery-box{cursor:default}
+.bftd-gallery-box:focus{outline:2px solid var(--bftd-purple);outline-offset:2px;border-color:var(--bftd-purple)}
+.bftd-gallery-box:focus:not(:focus-visible){outline:none}
+
+/* Pasting into the media window, which has no idea it can now take one. */
+/* The media window's upload tab.
+   Core draws the instructions in the middle of an empty white pane, which
+   reads as a page that has not finished loading rather than as somewhere to
+   put a file. A dashed outline makes the target the shape it actually is. */
+.media-modal .uploader-inline{margin:0;padding:20px;border:0;height:100%;box-sizing:border-box}
+.media-modal .uploader-inline-content{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  height:100%;min-height:300px;box-sizing:border-box;
+  padding:34px 24px;border:2px dashed var(--bftd-line);border-radius:10px;
+  background:var(--bftd-purple-wash);transition:border-color .12s,background .12s}
+.media-modal .uploader-inline-content:hover{border-color:var(--bftd-purple-mid)}
+.media-modal .uploader-inline .upload-instructions{
+  margin:0;font-family:var(--bftd-d);font-weight:700;font-size:19px;color:var(--bftd-ink)}
+.media-modal .uploader-inline .upload-instructions + .upload-instructions{
+  font-family:var(--bftd-b);font-weight:400;font-size:13.5px;color:var(--bftd-muted)}
+.media-modal .uploader-inline .max-upload-size{margin:2px 0 0;font-size:12.5px;color:var(--bftd-muted)}
+
+/* While a file is over the window, core adds .drag-over to the frame. */
+.media-modal.drag-over .uploader-inline-content,
+.uploader-window.visible + .media-modal .uploader-inline-content{
+  border-color:var(--bftd-purple);border-style:solid;background:#fff;
+  box-shadow:inset 0 0 0 3px rgba(112,86,127,.10)}
+
+.bftd-paste-status{position:absolute;left:0;right:0;bottom:0;z-index:20;margin:0;padding:11px 20px;
+  background:var(--bftd-purple-deep);color:#fff;font-size:13.5px;line-height:1.5;text-align:center}
+.media-frame-content{position:relative}
+.media-modal .media-frame-content .uploader-inline{display:flex;align-items:stretch}
+.media-modal .media-frame-content .uploader-inline > .uploader-inline-content{flex:1}
+
+/* Back to the top of a very long screen. */
+.bftd-top{position:fixed;right:26px;bottom:26px;z-index:9999;display:inline-flex;align-items:center;gap:8px;
+  padding:11px 16px 11px 13px;border:1px solid var(--bftd-purple-deep);border-radius:24px;cursor:pointer;
+  background:var(--bftd-purple);color:#fff;font-family:var(--bftd-d);font-size:13.5px;font-weight:700;
+  box-shadow:0 5px 18px rgba(40,30,50,.26);
+  opacity:0;transform:translateY(10px);transition:opacity .2s ease,transform .2s ease,background .15s}
+.bftd-top.is-in{opacity:1;transform:none}
+.bftd-top:hover{background:var(--bftd-purple-deep)}
+.bftd-top:focus-visible{outline:2px solid #fff;outline-offset:-4px}
+.bftd-top svg{width:15px;height:15px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:782px){.bftd-top{right:14px;bottom:14px;padding:11px 13px}.bftd-top span{display:none}}
+@media (prefers-reduced-motion:reduce){.bftd-top{transition:none}}
+
+/* Two numbers that are one answer. */
+.bftd-pair{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bftd-pair-n{width:88px!important;text-align:center;font-size:16px!important;padding:7px 8px!important}
+.bftd-pair-sep{font-family:var(--bftd-d);font-size:22px;font-weight:700;color:var(--bftd-muted);line-height:1}
+.bftd-pair-goal{margin-left:6px;padding:5px 11px;border-radius:14px;background:var(--bftd-purple-wash);
+  border:1px solid var(--bftd-line);font-size:12.5px;color:var(--bftd-purple-deep);white-space:nowrap}
+.bftd-field-pair .description{margin-top:7px}
+
+/* A table drawn from figures entered elsewhere. Read only on purpose. */
+.bftd-derived-box{border:1px solid var(--bftd-line);border-radius:6px;padding:14px 16px;background:var(--bftd-purple-wash)}
+.bftd-derived-box table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--bftd-line);border-radius:4px}
+.bftd-derived-box th,.bftd-derived-box td{padding:8px 11px;border-bottom:1px solid var(--bftd-line-soft);
+  text-align:left;font-size:13px;color:var(--bftd-body)}
+.bftd-derived-box thead th{background:var(--bftd-purple-wash);color:var(--bftd-ink);font-weight:600}
+.bftd-derived-box tr:last-child td{border-bottom:0}
+.bftd-derived-box .description{margin:9px 0 0}
+
+/* The marking rules, with room to say something about any of them. */
+.bftd-crit{border:1px solid var(--bftd-line);border-radius:6px;overflow:hidden}
+.bftd-crit-head{padding:9px 14px;font-family:var(--bftd-d);font-weight:700;font-size:13.5px;color:#fff}
+.bftd-crit-head.bftd-crit-sage{background:var(--bftd-sage-deep)}
+.bftd-crit-head.bftd-crit-clay{background:var(--bftd-clay)}
+.bftd-crit-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;
+  padding:11px 14px;border-bottom:1px solid var(--bftd-line-soft);align-items:center}
+.bftd-crit-row:last-of-type{border-bottom:0}
+.bftd-crit-rule{font-size:13.5px;line-height:1.5;color:var(--bftd-ink);margin:0}
+.bftd-crit-row input[type=text]{width:100%;box-sizing:border-box;max-width:100%}
+.bftd-crit-foot{padding:12px 14px;background:var(--bftd-purple-wash);border-top:1px solid var(--bftd-line-soft)}
+.bftd-crit-foot b{display:block;font-size:13px;color:var(--bftd-ink);margin-bottom:4px}
+.bftd-crit-foot span{font-family:var(--bftd-abc);font-size:20px;line-height:1.6;letter-spacing:.14em;color:var(--bftd-ink)}
+@media (max-width:782px){.bftd-crit-row{grid-template-columns:1fr;gap:7px}}
+
+/* Autosave, for drafts. The status sits with the publish buttons, because
+   that is where somebody looks when they are wondering if it saved. */
+.bftd-autosave-status{display:block;padding:8px 10px 0;font-size:12.5px;line-height:1.5;color:var(--bftd-muted)}
+.bftd-autosave-status.is-good{color:var(--bftd-sage-deep)}
+.bftd-autosave-status.is-bad{color:var(--bftd-clay)}
+
+/* Work that was never saved, offered back. */
+.bftd-restore{background:#fff;border:1px solid var(--bftd-clay);border-left:4px solid var(--bftd-clay);
+  border-radius:6px;padding:14px 16px;margin:14px 0}
+.bftd-restore p{margin:0;font-size:13.5px;line-height:1.6;color:var(--bftd-body)}
+.bftd-restore strong{color:var(--bftd-ink)}
+.bftd-restore .bftd-restore-do{margin-top:11px;display:flex;align-items:center;gap:14px}
+.bftd-restore-busy{font-size:12.5px;color:var(--bftd-muted)}
+
+/* Standing wording, shown but not offered. A tutor still has to read what the
+   family will see above their own notes. */
+.bftd-locked-tag{margin-left:9px;padding:3px 9px;border-radius:12px;background:var(--bftd-purple-wash);
+  border:1px solid var(--bftd-line);font-size:11.5px;font-weight:400;color:var(--bftd-purple-deep);
+  vertical-align:1px;letter-spacing:0}
+.bftd-locked-box{border:1px solid var(--bftd-line);border-left:3px solid var(--bftd-purple-mid);
+  border-radius:6px;padding:4px 16px 6px;background:var(--bftd-purple-wash)}
+.bftd-locked-box p{font-size:13.5px;line-height:1.65;color:var(--bftd-body)}
+.bftd-locked-box a{color:var(--bftd-purple-deep)}
+.bftd-reset-row{display:flex;align-items:center;gap:12px;margin:7px 2px 0;flex-wrap:wrap}
+.bftd-reset-note{font-size:12.5px;color:var(--bftd-muted)}
+.bftd-reset[disabled]{color:var(--bftd-muted);cursor:default;text-decoration:none}
+
+/* The practice's standing report wording, under Settings. */
+.bftd-text-block{margin-bottom:22px}
+.bftd-text-block h3{margin:0 0 4px;font-family:var(--bftd-d);font-size:15px;color:var(--bftd-ink)}
+.bftd-text-block > .description{margin:0 0 10px}
+.bftd-text-state{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:9px 0 0}
+.bftd-text-state label{font-size:13px}
+
+/* --------------------------------------------------------------------------
+   Folding a report section away
+   -------------------------------------------------------------------------- */
+
+.bftd-secall{margin:0 0 14px; display:flex; gap:8px; align-items:center; color:var(--bftd-muted)}
+.bftd-secall .button-link{color:var(--bftd-purple); text-decoration:underline; font-size:13px}
+.bftd-secall .button-link:hover{color:var(--bftd-purple-deep)}
+
+/* The whole header row is the control, so it says so on hover. The right hand
+   side is not, because the visibility checkbox lives there. */
+.bftd-section-head{cursor:pointer}
+.bftd-section-head .bftd-section-meta{cursor:auto}
+.bftd-section-head:hover .bftd-section-toggle{color:var(--bftd-purple-deep)}
+
+.bftd-section-title h3{margin:2px 0 0}
+.bftd-section-toggle{
+	display:inline-flex; align-items:center; gap:9px;
+	background:none; border:0; padding:0; margin:0; cursor:pointer;
+	font:inherit; color:inherit; text-align:left;
+}
+.bftd-section-toggle:focus-visible{outline:2px solid var(--bftd-purple); outline-offset:3px; border-radius:3px}
+
+.bftd-chev{display:inline-flex; width:16px; height:16px; color:var(--bftd-muted); transition:transform .18s ease}
+.bftd-chev svg{width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round}
+.bftd-section.is-shut .bftd-chev{transform:rotate(-90deg)}
+
+.bftd-section.is-shut .bftd-section-body{display:none}
+
+/* A folded panel is a header on its own, so it loses the gap that separated
+   the header from the fields under it. */
+.bftd-section.is-shut .bftd-section-head{border-bottom:0; margin-bottom:0; padding-bottom:4px}
+
+@media (prefers-reduced-motion:reduce){ .bftd-chev{transition:none} }
+
+/* The fixed half of a fraction: stated, not asked for. */
+.bftd-pair-fixed{
+	display:inline-flex; align-items:center; justify-content:center;
+	min-width:64px; height:30px; padding:0 10px;
+	border:1px solid var(--bftd-line); border-radius:3px;
+	background:var(--bftd-purple-wash); color:var(--bftd-ink); font-weight:600;
+}
+
+/* wp-admin defines this, but our panels are the only thing that would break
+   if a context ever did not, and a label meant for a screen reader appearing
+   in the middle of a fraction is a confusing way to find that out. */
+.bftd-box .screen-reader-text{
+	position:absolute; width:1px; height:1px; margin:-1px; padding:0;
+	overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+}
+
+/* --------------------------------------------------------------------------
+   A figure the screen works out
+   -------------------------------------------------------------------------- */
+
+.bftd-field-calc .bftd-label{display:block; margin-bottom:5px}
+.bftd-calc{
+	display:inline-flex; align-items:center; justify-content:center;
+	min-width:86px; height:32px; padding:0 12px;
+	border:1px solid var(--bftd-line); border-radius:3px;
+	background:var(--bftd-purple-wash); color:var(--bftd-ink);
+	font-weight:700; font-size:15px;
+}
+.bftd-calc[data-empty]{color:var(--bftd-muted); font-weight:500}
+.bftd-calc-warn{
+	margin:6px 0 0; color:var(--bftd-clay); font-weight:600; font-size:12.5px;
+}
+
+/* A pill that is describing the last save rather than the screen. */
+.bftd-pill.is-stale{font-style:italic}
+
+/* --------------------------------------------------------------------------
+   A fixed checklist: the schema's rows, the tutor's answers
+   -------------------------------------------------------------------------- */
+
+.bftd-cl{border:1px solid var(--bftd-line); border-radius:4px; overflow:hidden}
+.bftd-cl-head, .bftd-cl-row{
+	display:grid; grid-template-columns:minmax(200px,1.5fr) 150px minmax(160px,1.4fr);
+	gap:12px; align-items:center; padding:9px 12px;
+}
+.bftd-cl-head{
+	background:var(--bftd-purple-wash); color:var(--bftd-ink);
+	font-weight:600; border-bottom:1px solid var(--bftd-line);
+}
+.bftd-cl-row{border-bottom:1px solid var(--bftd-line-soft)}
+.bftd-cl-row:last-child{border-bottom:0}
+.bftd-cl-item{color:var(--bftd-body); font-weight:500}
+.bftd-cl-row select, .bftd-cl-row input[type=text]{width:100%}
+
+@media (max-width:782px){
+	.bftd-cl-head{display:none}
+	.bftd-cl-row{grid-template-columns:1fr; gap:5px; align-items:start; padding:12px}
+}
+
+/* ==========================================================================
+   The students screen
+
+   A section per tutor, because that is the unit of the practice: a tutor
+   opens it and reads their own list, a manager reads down the sections and
+   sees the shape of the caseload. The table inside a section is quiet on
+   purpose — the headings are what the eye travels down, and a table with a
+   strong frame of its own competes with them.
+   ========================================================================== */
+.bftd-stu-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  background:var(--bftd-card);border:1px solid var(--bftd-line);border-radius:7px;
+  padding:11px 13px;margin:14px 0 20px}
+.bftd-stu-find{flex:1 1 300px;min-width:220px}
+.bftd-stu-find input[type="search"]{width:100%}
+.bftd-stu-bar select{max-width:190px}
+.bftd-stu-clear{color:var(--bftd-muted);text-decoration:underline}
+.bftd-stu-count{margin-left:auto;font:600 12.5px/1 var(--bftd-b);color:var(--bftd-muted);white-space:nowrap}
+
+.bftd-stu-sec{margin-bottom:26px}
+/* The tutor's name carries the section, so it is the one heavy thing on the
+   screen. Everything under it is set back from it. */
+.bftd-stu-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+  padding:9px 14px;border-radius:7px 7px 0 0;
+  background:var(--bftd-purple);color:#fff}
+.bftd-stu-h h2{margin:0;font:700 16px/1.3 var(--bftd-d);color:#fff}
+/* .82 measured 4.04:1 on the purple, which is under the floor for text this
+   size. .88 clears it at 5.34:1 and still reads as the quieter of the two. */
+.bftd-stu-n{font:600 12px/1 var(--bftd-b);color:rgba(255,255,255,.88)}
+.bftd-stu-only{margin-left:auto;font:600 12px/1 var(--bftd-b);color:#fff;text-decoration:underline}
+.bftd-stu-only:hover,.bftd-stu-only:focus{color:#fff}
+/* Nobody assigned is a list of things to fix, not somebody's caseload, so it
+   wears the colour this admin uses for "needs attention" rather than the
+   one it uses for a person. */
+.bftd-stu-sec.is-none .bftd-stu-h{background:var(--bftd-clay)}
+
+.bftd-stu-t{width:100%;border-collapse:collapse;background:var(--bftd-card);
+  border:1px solid var(--bftd-line);border-top:0;border-radius:0 0 7px 7px}
+/* Sentence case. All caps is not a convention this business uses anywhere,
+   and a column heading is not where to start. */
+.bftd-stu-t th{text-align:left;font:600 12px/1 var(--bftd-b);letter-spacing:.02em;
+  color:var(--bftd-muted);padding:9px 14px;
+  border-bottom:1px solid var(--bftd-line);background:var(--bftd-sunk)}
+.bftd-stu-t td{padding:8px 14px;font:400 13.5px/1.45 var(--bftd-b);color:var(--bftd-body);
+  border-bottom:1px solid var(--bftd-line-soft);vertical-align:top}
+.bftd-stu-t tr:last-child td{border-bottom:0}
+.bftd-stu-t tbody tr:nth-child(even) td{background:var(--bftd-sunk)}
+.bftd-stu-t tbody tr:hover td{background:var(--bftd-purple-wash)}
+.bftd-stu-t th.num,.bftd-stu-t td.num{text-align:right;white-space:nowrap}
+
+.bftd-stu-name a{font:600 14px/1.35 var(--bftd-b);text-decoration:none}
+.bftd-stu-draft{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:3px;
+  background:var(--bftd-stone-pale);border:1px solid var(--bftd-stone-line);
+  font:600 10.5px/1.5 var(--bftd-b);color:var(--bftd-stone-deep)}
+/* The row actions, the way WordPress hides its own: there on hover and on
+   keyboard focus, so they are reachable without a mouse.
+   OPACITY, NOT VISIBILITY. A visibility:hidden link cannot be focused at
+   all, so :focus-within can never match and the screen has no Edit link for
+   anybody working by keyboard — which looks identical to working, because
+   the mouse still finds it. Opacity keeps them focusable and keeps the row
+   the same height either way, so a list of a hundred names does not move
+   under the pointer. */
+.bftd-stu-acts{display:block;margin-top:3px;font-size:12px;opacity:0;transition:opacity .1s}
+.bftd-stu-acts a{color:var(--bftd-muted);text-decoration:none}
+.bftd-stu-acts a:not(:last-child):after{content:" | ";color:var(--bftd-line)}
+.bftd-stu-t tr:hover .bftd-stu-acts,
+.bftd-stu-acts:focus-within{opacity:1}
+@media (prefers-reduced-motion:reduce){ .bftd-stu-acts{transition:none} }
+
+/* On one line. Stacked, the block figure was the tallest thing in the row and
+   set the height of every row on the screen — a hundred students became a
+   page twice as long for a number that reads perfectly well beside its own
+   total. */
+.bftd-stu-left{font:700 15px/1 var(--bftd-d);color:var(--bftd-ink)}
+/* A deeper clay than the one used for a border or a fill. This is a number
+   read against three different row backgrounds — plain, striped and hovered
+   — and the brand clay measures 4.32:1 on the striped one and 3.82:1 under
+   the pointer. The figure that exists to catch the eye must not be the one
+   that cannot be read. */
+.bftd-stu-left.is-low{color:#9A4A1C}
+.bftd-stu-of{font-size:11.5px;color:var(--bftd-muted);margin-left:4px}
+
+.bftd-pill{display:inline-block;padding:2px 9px;border-radius:11px;
+  font:600 11.5px/1.6 var(--bftd-b);white-space:nowrap}
+.bftd-pill.is-active{background:var(--bftd-sage-pale);color:var(--bftd-sage-deep);border:1px solid rgba(90,107,44,.28)}
+.bftd-pill.is-prospect{background:var(--bftd-clay-pale);color:#8A431F;border:1px solid rgba(184,92,46,.3)}
+.bftd-pill.is-past{background:var(--bftd-stone-pale);color:var(--bftd-stone-deep);border:1px solid var(--bftd-stone-line)}
+
+/* The caregiver who is also the client. Quiet, because the column beside it
+   already answers "who pays" — this only says the two names are the same
+   person on purpose. */
+.bftd-is-client{display:inline-block;padding:0 5px;border-radius:3px;
+  background:var(--bftd-stone-pale);border:1px solid var(--bftd-stone-line);
+  color:var(--bftd-stone-deep);font:600 10.5px/1.6 var(--bftd-b);vertical-align:1px}
+.bftd-stu-more{margin:8px 0 0;font-size:13px}
+.bftd-stu-empty{padding:26px;background:var(--bftd-sunk);border:1px dashed var(--bftd-line);border-radius:7px}
+.bftd-stu-foot{margin-top:26px}
+
+/* A phone, or a narrow window beside something else. The table becomes a
+   stack of labelled lines rather than six columns squeezed to nothing. */
+@media (max-width:782px){
+  .bftd-stu-t thead{display:none}
+  .bftd-stu-t,.bftd-stu-t tbody,.bftd-stu-t tr,.bftd-stu-t td{display:block;width:auto}
+  .bftd-stu-t tr{border-bottom:1px solid var(--bftd-line);padding:6px 0}
+  .bftd-stu-t td{border:0;padding:3px 14px}
+  .bftd-stu-t td.num{text-align:left}
+  .bftd-stu-t td:before{content:attr(data-l) ": ";font-weight:600;color:var(--bftd-muted)}
+  .bftd-stu-t td.bftd-stu-name:before{content:""}
+  /* The row actions come out of hiding in the phone block below, said once
+     rather than here as well. */
+  .bftd-stu-count{margin-left:0}
+}
+
+/* ==========================================================================
+   The sessions screen
+
+   The same sections as the students screen, but a row is a student and the
+   sessions are behind it. Every figure a flat list repeated twenty times
+   over — the child, the client, the tutor — is written once, and what stands
+   in the row instead is the shape of their attendance.
+   ========================================================================== */
+.bftd-ses-t td{vertical-align:middle}
+/* Given widths, or the browser hands the student column half the screen
+   because the names are the longest thing in it and the record — which is
+   what this screen exists to show — gets squeezed to the right edge. */
+.bftd-ses-t th:nth-child(1),.bftd-ses-t td:nth-child(1){width:32%}
+.bftd-ses-t th:nth-child(2),.bftd-ses-t td:nth-child(2){width:24%}
+.bftd-ses-inner th:nth-child(1),.bftd-ses-inner td:nth-child(1){width:16%}
+.bftd-ses-inner th:nth-child(2),.bftd-ses-inner td:nth-child(2){width:26%}
+.bftd-ses-inner th:nth-child(3),.bftd-ses-inner td:nth-child(3){width:20%}
+.bftd-ses-inner th:nth-child(4),.bftd-ses-inner td:nth-child(4){width:18%}
+@media (max-width:782px){
+  .bftd-ses-t th,.bftd-ses-t td,.bftd-ses-inner th,.bftd-ses-inner td{width:auto}
+}
+/* The whole name is the control. A chevron on its own is a target the width
+   of a full stop, and the thing people actually aim at is the name. */
+.bftd-ses-open{display:inline-flex;align-items:center;gap:8px;
+  background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:left}
+.bftd-ses-who{font:600 14px/1.35 var(--bftd-b);color:var(--bftd-purple-deep);text-decoration:none}
+.bftd-ses-open:hover .bftd-ses-who,
+.bftd-ses-open:focus-visible .bftd-ses-who{text-decoration:underline}
+.bftd-ses-open:focus-visible{outline:2px solid var(--bftd-purple);outline-offset:3px;border-radius:3px}
+.bftd-ses-chev{width:9px;height:9px;flex:none;border-right:2px solid var(--bftd-purple);
+  border-bottom:2px solid var(--bftd-purple);transform:rotate(-45deg);transition:transform .12s}
+.bftd-ses-open[aria-expanded="true"] .bftd-ses-chev{transform:rotate(45deg)}
+@media (prefers-reduced-motion:reduce){ .bftd-ses-chev{transition:none} }
+
+.bftd-ses-drawer > td{padding:0;background:var(--bftd-purple-wash);
+  border-bottom:1px solid var(--bftd-line)}
+.bftd-ses-body{padding:12px 14px 14px}
+.bftd-ses-empty{margin:0;color:var(--bftd-muted);font-size:13px}
+.bftd-ses-load{margin:0;color:var(--bftd-muted);font-size:13px}
+
+.bftd-ses-inner{width:100%;border-collapse:collapse;background:var(--bftd-card);
+  border:1px solid var(--bftd-line);border-radius:6px}
+.bftd-ses-inner th{text-align:left;font:600 11.5px/1 var(--bftd-b);color:var(--bftd-muted);
+  padding:8px 12px;border-bottom:1px solid var(--bftd-line)}
+.bftd-ses-inner td{padding:8px 12px;font:400 13px/1.4 var(--bftd-b);color:var(--bftd-body);
+  border-bottom:1px solid var(--bftd-line-soft);vertical-align:middle}
+.bftd-ses-inner tr:last-child td{border-bottom:0}
+.bftd-ses-num{font:600 13px/1.4 var(--bftd-b);color:var(--bftd-ink);white-space:nowrap}
+.bftd-ses-t2,.bftd-ses-t{white-space:normal}
+.bftd-ses-inner .bftd-ses-t{display:block;font-size:11.5px;color:var(--bftd-muted);margin-top:1px}
+.bftd-ses-go{text-align:right;white-space:nowrap}
+
+.bftd-ses-pages{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:10px}
+.bftd-ses-of{font:400 12px/1 var(--bftd-b);color:var(--bftd-muted);margin-right:6px}
+.bftd-ses-p{min-width:28px;padding:4px 8px;border:1px solid var(--bftd-line);border-radius:4px;
+  background:var(--bftd-card);color:var(--bftd-body);font:600 12px/1.4 var(--bftd-b);cursor:pointer}
+.bftd-ses-p:hover{border-color:var(--bftd-purple-mid)}
+.bftd-ses-p.is-on{background:var(--bftd-purple);border-color:var(--bftd-purple);color:#fff}
+
+/* The attendance record: three figures with their words beside them, never a
+   percentage. Ninety per cent with one missed session is a different
+   conversation from ninety per cent with six, and the percentage hides
+   which. The words are there so it is not read by colour alone. */
+.bftd-att{display:inline-flex;flex-wrap:wrap;gap:6px}
+.bftd-att-b{display:inline-block;padding:2px 9px;border-radius:11px;
+  font:400 12px/1.6 var(--bftd-b);white-space:nowrap}
+.bftd-att-b b{font-weight:700}
+.bftd-att-b.is-held{background:var(--bftd-sage-pale);color:var(--bftd-sage-deep);border:1px solid rgba(90,107,44,.28)}
+.bftd-att-b.is-moved{background:var(--bftd-purple-pale);color:var(--bftd-purple-deep);border:1px solid rgba(112,86,127,.3)}
+.bftd-att-b.is-missed{background:var(--bftd-clay-pale);color:#8A431F;border:1px solid rgba(184,92,46,.3)}
+.bftd-att-b.is-draft{background:var(--bftd-stone-pale);color:var(--bftd-stone-deep);border:1px solid var(--bftd-stone-line)}
+
+@media (max-width:782px){
+  .bftd-ses-inner thead{display:none}
+  .bftd-ses-inner,.bftd-ses-inner tbody,.bftd-ses-inner tr,.bftd-ses-inner td{display:block;width:auto}
+  .bftd-ses-inner tr{border-bottom:1px solid var(--bftd-line);padding:6px 0}
+  .bftd-ses-inner td{border:0;padding:3px 12px}
+  .bftd-ses-inner td[data-l]:before{content:attr(data-l) ": ";font-weight:600;color:var(--bftd-muted)}
+  .bftd-ses-go{text-align:left}
+}
+
+/* ==========================================================================
+   The oversight report
+
+   Managers only. Its job is to be read quickly and then acted on, so what it
+   shows is dates: a manager does not want a percentage, they want the hour
+   to go and look at.
+   ========================================================================== */
+.bftd-ov .bftd-stu-bar{margin-top:6px}
+.bftd-ov-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+  background:var(--bftd-line);border:1px solid var(--bftd-line);border-top:0}
+.bftd-ov-tile{background:var(--bftd-card);padding:11px 14px;display:flex;align-items:baseline;gap:7px}
+.bftd-ov-tile b{font:700 20px/1 var(--bftd-d);color:var(--bftd-ink)}
+.bftd-ov-tile span{font:400 12.5px/1.35 var(--bftd-b);color:var(--bftd-muted)}
+/* A count of nought is not news. It is the same figure as a clean week and
+   should not draw the eye away from the one that is not. */
+.bftd-ov-tile.is-quiet b{color:var(--bftd-muted);font-weight:400}
+.bftd-ov-tile.is-bad{background:var(--bftd-clay-pale)}
+.bftd-ov-tile.is-bad b{color:#9A4A1C}
+.bftd-ov-tile.is-warn b{color:#8F4419}
+
+.bftd-ov-t{border-top:0;border-radius:0 0 7px 7px}
+.bftd-ov-clear{margin:0;padding:12px 14px;background:var(--bftd-card);
+  border:1px solid var(--bftd-line);border-top:0;border-radius:0 0 7px 7px;
+  font:400 13px/1.5 var(--bftd-b);color:var(--bftd-sage-deep)}
+
+.bftd-ov-dates{display:inline-flex;flex-wrap:wrap;gap:4px}
+.bftd-ov-d{display:inline-block;padding:1px 7px;border-radius:4px;
+  font:600 12px/1.6 var(--bftd-b);text-decoration:none;white-space:nowrap}
+.bftd-ov-d b{font-weight:700;margin-left:3px}
+.bftd-ov-d.is-bad{background:var(--bftd-clay-pale);border:1px solid rgba(184,92,46,.35);color:#8A431F}
+.bftd-ov-d.is-warn{background:#FDF3E6;border:1px solid rgba(184,92,46,.25);color:#8A431F}
+.bftd-ov-d.is-plain{background:var(--bftd-stone-pale);border:1px solid var(--bftd-stone-line);color:var(--bftd-stone-deep)}
+a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
+
+.bftd-ov-flag{display:block;margin-top:3px;font:600 11.5px/1.5 var(--bftd-b);color:#9A4A1C}
+
+@media (max-width:782px){
+  .bftd-ov-tiles{grid-template-columns:repeat(2,1fr)}
+}
+
+/* ==========================================================================
+   A phone, or a tablet between two lessons
+
+   WordPress sizes its own controls for touch under 782px — inputs, selects
+   and buttons all get 40px of height. What it cannot size is the controls
+   this plugin invented, and those were all built at pointer scale: a chip's
+   remove button eighteen pixels across, a track tab twenty-one high, a
+   student name nineteen.
+
+   So this raises what we own, and leaves what WordPress owns alone. Nothing
+   here changes the desktop, where a pointer lands where it is aimed.
+   ========================================================================== */
+@media (max-width:782px){
+
+  /* Every target we drew ourselves. 44px is the figure a thumb needs. */
+  .bftd-actpick-t,
+  .bftd-actpick-s,
+  .bftd-actpick-q,
+  .bftd-row-add,
+  .bftd-row-rm,
+  .bftd-chip-x,
+  .bftd-assign-in,
+  .bftd-assign-hit,
+  .bftd-ses-open,
+  .bftd-ses-p,
+  .bftd-stu-only,
+  .bftd-ov-d,
+  .bftd-stu-acts a,
+  .bftd-stu-name a,
+  .bftd-actpick-change,
+  .bftd-rowpanel-t,
+  .bftd-gallery-pick{min-height:44px}
+
+  /* The ones that are square, or nearly: a cross on its own needs width as
+     well as height or it is a 44px line. */
+  .bftd-chip-x,
+  .bftd-row-rm{min-width:44px; border-radius:6px}
+  .bftd-chip-x{width:auto; height:auto}
+
+  /* Links inside a table cell are inline, so a min-height does nothing to
+     them until they are told to be a box. */
+  .bftd-stu-only,
+  .bftd-ov-d,
+  .bftd-stu-acts a,
+  .bftd-stu-name a,
+  .bftd-ses-open,
+  .bftd-actpick-change,
+  .bftd-rowpanel-t{display:inline-flex; align-items:center}
+
+  /* Row actions are always out on a phone: there is no hover to reveal them
+     with, so hiding them hides them for good. */
+  .bftd-stu-acts{opacity:1}
+  /* The pipes between them were separating inline links. As inline-flex
+     boxes with height, the pipe lands on the baseline of a 44px box and
+     reads as a stray mark. Space does the separating instead. */
+  .bftd-stu-acts a{margin-right:16px}
+  .bftd-stu-acts a:not(:last-child):after{content:none}
+
+  /* The floor. Each of these is a word somebody has to read at arm's length
+     — which client, how many sessions are left, whether a record is a draft. */
+  .bftd-is-client,
+  .bftd-stu-of,
+  .bftd-stu-draft,
+  .bftd-pill,
+  .bftd-att-b,
+  .bftd-ov-flag,
+  .bftd-ov-tile span,
+  .bftd-stu-n,
+  .bftd-chip-role,
+  .bftd-actpick-n,
+  .bftd-ses-t,
+  .bftd-ses-of,
+  .bftd-hit-meta{font-size:12px}
+  /* Said again at the weight the drawer says it, which is one class heavier
+     than the line above and so wins without this. */
+  .bftd-ses-inner .bftd-ses-t{font-size:12px}
+
+  /* A tab strip of tracks wrapped to three lines of thin buttons. Given
+     height they are three rows of something that can be pressed. */
+  .bftd-actpick-t{padding:10px 14px}
+  .bftd-row-add,
+  .bftd-assign-hit{padding-top:11px; padding-bottom:11px}
+}
+
+/* ==========================================================================
+   Time cards
+
+   The same shape as the students and sessions screens: a tutor's name
+   carrying a section, and rows under it. What is different is that the rows
+   are money, so two things are stricter than they are anywhere else.
+
+   Amounts are right aligned and tabular, because a column of money that is
+   not aligned on its decimal point cannot be read down and has to be read
+   one row at a time.
+
+   And state is on the row, not only in a column. An approver is scanning for
+   the things that still need them, and a pill at the end of a line is not
+   what they scan.
+   ========================================================================== */
+.bftd-tc-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;
+  margin:14px 0 18px;padding:10px 14px;background:var(--bftd-card);
+  border:1px solid var(--bftd-line);border-radius:7px}
+.bftd-tc-when{display:flex;align-items:center;gap:6px}
+.bftd-tc-pick{margin:0}
+.bftd-tc-step{text-decoration:none}
+.bftd-tc-paid{margin:0}
+.bftd-tc-all{margin-left:auto}
+
+.bftd-tc-sec{margin-bottom:26px}
+.bftd-tc-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+  padding:9px 14px;border-radius:7px 7px 0 0;
+  background:var(--bftd-purple);color:#fff}
+.bftd-tc-h h2{margin:0;font:700 16px/1.3 var(--bftd-d);color:#fff}
+.bftd-tc-sum{font:400 13px/1 var(--bftd-b);color:rgba(255,255,255,.88)}
+.bftd-tc-sum b{font:800 15px/1 var(--bftd-d);color:#fff;font-variant-numeric:tabular-nums}
+/* What is still owed a decision is the reason somebody opened this screen,
+   so it is not left to read as another quiet aside on the same line. */
+.bftd-tc-wait{display:inline-block;margin-left:10px;padding:2px 8px;border-radius:11px;
+  background:rgba(255,255,255,.18);color:#fff;font-weight:600}
+.bftd-tc-only{margin-left:auto;font:600 12px/1 var(--bftd-b);color:#fff;text-decoration:underline}
+.bftd-tc-only:hover,.bftd-tc-only:focus{color:#fff}
+
+/* Fixed, so every tutor's card lines up with every other one. Left to size
+   itself, a card with one long student name puts its Amount column somewhere
+   different from the card above it, and a column of money that moves between
+   sections cannot be read down the page. */
+.bftd-tc-t{width:100%;table-layout:fixed;border-collapse:collapse;background:var(--bftd-card);
+  border:1px solid var(--bftd-line);border-top:0}
+.bftd-tc-t col.w-tick{width:34px}
+.bftd-tc-t col.w-when{width:16%}
+.bftd-tc-t col.w-what{width:36%}
+.bftd-tc-t col.w-who{width:22%}
+.bftd-tc-t col.w-amt{width:13%}
+.bftd-tc-t col.w-st{width:13%}
+/* With no buttons under it — a tutor's own card — the table is the bottom of
+   the section and has to close it. */
+.bftd-tc-t:last-child{border-radius:0 0 7px 7px}
+.bftd-tc-t th{text-align:left;font:600 12px/1 var(--bftd-b);letter-spacing:.02em;
+  color:var(--bftd-muted);padding:9px 14px;border-bottom:1px solid var(--bftd-line)}
+.bftd-tc-t td{padding:9px 14px;font:400 13.5px/1.45 var(--bftd-b);color:var(--bftd-body);
+  border-bottom:1px solid var(--bftd-line-soft);vertical-align:top}
+.bftd-tc-t tr:last-child td{border-bottom:0}
+.bftd-tc-t th.bftd-tc-r,.bftd-tc-t td.bftd-tc-r{text-align:right;white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.bftd-tc-t th.bftd-tc-c,.bftd-tc-t td.bftd-tc-c{width:28px;padding-right:0}
+.bftd-tc-at{display:block;font-size:12px;color:var(--bftd-muted)}
+/* A cancelled or moved lesson is the row an approver is here for. The mark is
+   on the edge of the row rather than in a cell, so it is found by scanning
+   down one line rather than by reading across every row. */
+.bftd-tc-row.is-flagged{box-shadow:inset 3px 0 0 var(--bftd-clay)}
+.bftd-tc-row.is-declined td{color:var(--bftd-muted);text-decoration:line-through;
+  text-decoration-color:var(--bftd-line)}
+.bftd-tc-flag{display:inline-block;margin-left:7px;padding:1px 7px;border-radius:3px;
+  background:var(--bftd-clay-pale);color:var(--bftd-clay);font:600 11.5px/1.5 var(--bftd-b)}
+.bftd-tc-acts{margin:0;padding:11px 14px;background:var(--bftd-card);
+  border:1px solid var(--bftd-line);border-top:0;border-radius:0 0 7px 7px}
+.bftd-tc-none{margin:0;padding:12px 14px;color:var(--bftd-muted);
+  background:var(--bftd-card);border:1px solid var(--bftd-line);border-top:0;border-radius:0 0 7px 7px}
+.bftd-tc-empty{padding:20px;background:var(--bftd-card);border:1px solid var(--bftd-line);border-radius:7px}
+
+/* Statutory holidays in this period.
+   A separate block above the cards rather than rows inside them, because
+   until somebody presses the button these are not entries yet: they are a
+   calculation being shown for checking. The working is on the screen for
+   everybody, including those who did not qualify, since the first question
+   anybody asks about a stat that was not paid is why not. */
+.bftd-tc-stat{margin:0 0 26px}
+.bftd-tc-stat-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+  padding:9px 14px;border-radius:7px 7px 0 0;
+  background:var(--bftd-sage-deep);color:#fff}
+.bftd-tc-stat-h h2{margin:0;font:700 16px/1.3 var(--bftd-d);color:#fff}
+.bftd-tc-stat-d{font:600 12px/1 var(--bftd-b);color:rgba(255,255,255,.88)}
+.bftd-tc-stat-t{table-layout:auto}
+.bftd-tc-stat-t + .bftd-tc-stat-h{margin-top:18px;border-radius:7px 7px 0 0}
+/* Who is owed one and who is not, on the edge of the row, so the answer is
+   found by scanning rather than by reading each line of arithmetic. */
+.bftd-tc-stat-t tr.is-yes{box-shadow:inset 3px 0 0 var(--bftd-sage-deep)}
+.bftd-tc-stat-t tr.is-no td{color:var(--bftd-muted)}
+
+/* The worked example.
+   The banner is the first thing on the page and does not scroll away from
+   the rows it is about, because a screenshot of a sample time card with the
+   word "sample" cropped off is a screenshot somebody will eventually act
+   on. */
+.bftd-tc-sample-note{margin:14px 0 18px;padding:12px 16px;border-radius:7px;
+  background:var(--bftd-clay-pale);border-left:4px solid var(--bftd-clay)}
+.bftd-tc-sample-note p{margin:0;color:var(--bftd-body)}
+.bftd-tc-sample-note strong{color:var(--bftd-clay)}
+.bftd-tc-key{margin-top:24px;padding:18px 20px;background:var(--bftd-card);
+  border:1px solid var(--bftd-line);border-radius:7px}
+.bftd-tc-key h2{margin:0 0 10px;font:700 15px/1.3 var(--bftd-d);color:var(--bftd-ink)}
+.bftd-tc-key dl{margin:0;display:grid;grid-template-columns:minmax(140px,220px) 1fr;
+  gap:8px 20px;align-items:baseline}
+.bftd-tc-key dt{font:700 13.5px/1.45 var(--bftd-d);color:var(--bftd-ink)}
+.bftd-tc-key dd{margin:0;font:400 13.5px/1.55 var(--bftd-b);color:var(--bftd-body)}
+@media (max-width:640px){
+  .bftd-tc-key dl{grid-template-columns:1fr;gap:2px}
+  .bftd-tc-key dd{margin-bottom:10px}
+}
+.bftd-tc-foot{margin-top:20px}
+
+.bftd-pill.is-pending{background:var(--bftd-clay-pale);color:var(--bftd-clay)}
+.bftd-pill.is-approved{background:var(--bftd-sage-pale);color:var(--bftd-sage-deep)}
+.bftd-pill.is-declined{background:var(--bftd-line);color:var(--bftd-muted)}
+.bftd-pill.is-paid{background:var(--bftd-purple-pale);color:var(--bftd-purple-deep)}
+.bftd-pill.is-employee{background:var(--bftd-purple-pale);color:var(--bftd-purple-deep)}
+.bftd-pill.is-contractor{background:var(--bftd-line);color:var(--bftd-body)}
+
+@media (max-width:782px){
+  /* The mark on a row that needs a decision is the one word on a time card
+     an approver is looking for. Below the floor at the size it was set. */
+  .bftd-tc-flag{font-size:12px}
+  /* Stepping a fortnight at a time, and jumping to one tutor. Both were the
+     size of the glyph inside them. */
+  .bftd-tc-step{min-width:44px;min-height:44px;display:inline-flex;
+    align-items:center;justify-content:center}
+  .bftd-tc-only{display:inline-flex;align-items:center;min-height:44px}
+  .bftd-tc-t thead{display:none}
+  .bftd-tc-t,.bftd-tc-t tbody,.bftd-tc-t tr,.bftd-tc-t td{display:block;width:auto}
+  .bftd-tc-t tr{padding:8px 0;border-bottom:1px solid var(--bftd-line-soft)}
+  .bftd-tc-t td{border:0;padding:3px 14px}
+  .bftd-tc-t td.bftd-tc-r{text-align:left}
+  .bftd-tc-all{margin-left:0}
+}
+
+/* ---- skills completed, on the student record ------------------------- */
+/* A list of a hundred and forty is read by scanning, so the rows are tight
+   and the number leads. Two columns on a wide screen, one on a phone, in
+   this section's own media block for the reason every other section keeps
+   its own: overrides at the end of the file beat a media query higher up. */
+.bftd-done-list { margin: 8px 0 0; padding: 0; list-style: none; columns: 2; column-gap: 28px; }
+.bftd-done-row { break-inside: avoid; margin: 0 0 2px; }
+.bftd-done-row label { display: flex; align-items: baseline; gap: 7px; line-height: 1.45; }
+.bftd-done-row strong { min-width: 2.2em; text-align: right; color: #50575e; font-variant-numeric: tabular-nums; }
+.bftd-done-row em { color: #646970; font-style: normal; font-size: 12px; }
+.bftd-done-row.is-earned label { color: #1d2327; }
+.bftd-done-why { color: #646970; font-size: 12px; }
+.bftd-track-box .bftd-field-number { max-width: 22em; }
+
+@media (max-width: 782px) {
+	.bftd-done-list { columns: 1; }
+	.bftd-done-row label { gap: 9px; }
+	.bftd-done-row input[type="checkbox"] { width: 22px; height: 22px; }
+}

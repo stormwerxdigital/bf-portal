@@ -1,0 +1,1710 @@
+/* ==========================================================================
+   The report, exactly as designed in the prototype.
+
+   This is the prototype's own stylesheet, lifted whole and scoped under
+   .bf-report rather than re-interpreted. Everything in it was written and
+   signed off in the design; hand-porting a piece at a time is how details go
+   missing, so nothing here is retyped. Only the prototype's own chrome was
+   dropped: the device frame, the app bar and the tab bars, none of which are
+   part of a report.
+
+   The class names are the prototype's, not the plugin's bf- ones, because the
+   renderer emits the prototype's markup. That is the point: the two cannot
+   drift apart, because they are the same thing.
+
+   Scoping. Every selector is prefixed with .bf-report so nothing here touches
+   the surrounding theme, and :root, html and body collapse onto that wrapper,
+   which is where the custom properties now live. The wrapper also declares a
+   container, because the design's breakpoints are container queries: a report
+   laid out in a narrow column should behave as though the window were narrow.
+   ========================================================================== */
+
+.bf-report{container-type:inline-size;container-name:bfreport}
+
+.bf-report{color-scheme:light}
+.bf-report{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}
+.bf-report img{max-width:100%}
+.bf-report [hidden]:not([hidden=until-found i]){display:none!important}
+
+/* Holding the theme at the wrapper.
+   -------------------------------------------------------------------------
+   bftutoring.com runs a block theme, and a block theme styles bare elements:
+   p, h1..h6, a, button, table, li and the rest all carry its own font, line
+   height and letter spacing. Those rules are element selectors, so they beat
+   plain inheritance from .bf-report and land inside the report — measured on
+   the live site, they changed 1,633 computed properties across a single
+   diagnostic, including replacing the design's typeface with Helvetica and
+   adding 1.6px of letter spacing to every paragraph and every table.
+
+   This puts the inheritance back. :where() contributes no specificity, so the
+   whole rule weighs exactly as much as .bf-report on its own: heavier than the
+   theme's bare element selectors, and lighter than every real rule in this
+   stylesheet, which all carry a class of their own. So it displaces the theme
+   and never the design.
+
+   These four properties are the entire measured footprint. Nothing is added
+   speculatively: a reset for a rule that was not there is just a second theme.
+
+   The portal's own chrome has the same problem and carries its own copy of
+   this block, at the top of bftd-portal.css. It cannot be folded in here: a
+   .bf-portal rule written in this file would load after bftd-portal.css and so
+   win every tie against that stylesheet's own single-class rules, which is not
+   a reset but a takeover. It cost the brand mark its typeface when tried. */
+.bf-report :where(p, h1, h2, h3, h4, h5, h6, a, button, table, thead, tbody, tfoot,
+  tr, th, td, ul, ol, li, figure, figcaption, blockquote, strong, b, em, i, small,
+  span, div, section, article, header, footer, time, br, label, svg, path, circle,
+  rect, line, g, text){
+  font-family:inherit;
+  line-height:inherit;
+  letter-spacing:inherit;
+  max-width:none;
+}
+
+/* Replaced elements carry type too, for their alt text and their fallbacks, but
+   they must keep the width rules the design gives them, so they are set apart
+   from the block above rather than folded into it. */
+.bf-report :where(img, picture, video, canvas, iframe, object){
+  font-family:inherit;
+  line-height:inherit;
+  letter-spacing:inherit;
+}
+
+/* Form controls do not inherit type from their surroundings by default, which
+   is why a theme's rule for them reaches the message box a parent types into. */
+.bf-report :where(input, textarea, select, option){
+  font-family:inherit;
+  font-size:inherit;
+  line-height:inherit;
+  letter-spacing:inherit;
+}
+.bf-report{
+  
+  --bf-purple:#70567F;
+  --bf-purple-deep:#513C5D;
+  --bf-purple-mid:#8A6F99;
+  --bf-purple-pale:#EFE9F2;
+  --bf-purple-wash:#F7F3F9;
+  --bf-sage:#A2A55A;
+  --bf-sage-deep:#5A6B2C;
+  --bf-sage-pale:#F0F2E1;
+  --bf-clay:#B85C2E;
+  --bf-meter-met:#A2A55A;
+  /* Century Gothic where it is installed, and a webfont built for teaching
+     children to read where it is not. Both have the single-storey a and g. */
+  --font-abc:'Century Gothic','Didact Gothic','URW Gothic','Questrial','Avant Garde',sans-serif;
+  --bf-clay-pale:#FAEDE3;
+
+  
+  --ground:#F9F4F2;
+  --card:#FFFFFF;
+  --card-sunk:#FBF8F9;
+  --ink:#241E2A;
+  --body:#4B4351;
+  --muted:#7D7488;
+  --line:#E7DFEA;
+  --line-soft:#F1ECF3;
+
+  
+  --row-zebra:#FBF9FC;
+  --row-hover:#F4EFF7;
+
+  --chart-series:#70567F;
+  --chart-band:#EFE9F2;
+  --chart-goal:#8B8F3E;
+  --chart-grid:#EAE3ED;
+  --chart-ink:#7D7488;
+
+  
+  --proto-bg:#1E1922;
+  --proto-panel:#2A2331;
+  --proto-line:#3D3446;
+  --proto-text:#CFC6D6;
+  --proto-dim:#8C8296;
+
+  --r:6px;
+  --shadow:0 1px 2px rgba(36,30,42,.05), 0 6px 18px -10px rgba(36,30,42,.18);
+  --font-d:'Raleway','Trebuchet MS',sans-serif;
+  --font-b:'Source Sans 3','Segoe UI',system-ui,sans-serif;
+  --font-m:'IBM Plex Mono','SF Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+.bf-report:not([data-theme="light"]){
+    --bf-purple:#A98CBB;
+    --bf-purple-deep:#C0A8CE;
+    --bf-purple-mid:#8E75A0;
+    --bf-purple-pale:#332A3C;
+    --bf-purple-wash:#2A2432;
+    --bf-sage:#B9BE72;
+    --bf-sage-deep:#C6CB84;
+    --bf-sage-pale:#2E3122;
+    --bf-clay:#DD9060;
+    --bf-clay-pale:#3A2A20;
+
+    --ground:#171320;
+    --card:#211B2B;
+    --card-sunk:#1C1725;
+    --ink:#F4F0F7;
+    --body:#C7BFD1;
+    --muted:#948BA1;
+    --line:#372F44;
+    --line-soft:#2B2436;
+
+    --row-zebra:#1E1828;
+    --row-hover:#272033;
+
+    --chart-series:#B394C6;
+    --chart-band:#2E2739;
+    --chart-goal:#B9BE72;
+    --chart-grid:#2F2839;
+    --chart-ink:#948BA1;
+
+    --proto-bg:#0F0C14;
+    --proto-panel:#1A1522;
+    --proto-line:#2C2438;
+    --proto-text:#C7BFD1;
+    --proto-dim:#7E7590;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+}
+.bf-report[data-theme="dark"]{
+  --bf-purple:#A98CBB; --bf-purple-deep:#C0A8CE; --bf-purple-mid:#8E75A0;
+  --bf-purple-pale:#332A3C; --bf-purple-wash:#2A2432;
+  --bf-sage:#B9BE72; --bf-sage-deep:#C6CB84; --bf-sage-pale:#2E3122;
+  --bf-clay:#DD9060; --bf-clay-pale:#3A2A20;
+  --ground:#171320; --card:#211B2B; --card-sunk:#1C1725;
+  --ink:#F4F0F7; --body:#C7BFD1; --muted:#948BA1;
+  --line:#372F44; --line-soft:#2B2436;
+  --row-zebra:#1E1828; --row-hover:#272033;
+  --chart-series:#B394C6; --chart-band:#2E2739; --chart-goal:#B9BE72;
+  --chart-grid:#2F2839; --chart-ink:#948BA1;
+  --proto-bg:#0F0C14; --proto-panel:#1A1522; --proto-line:#2C2438;
+  --proto-text:#C7BFD1; --proto-dim:#7E7590;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+.bf-report *{box-sizing:border-box}
+.bf-report{
+  margin:0; background:var(--proto-bg); color:var(--proto-text);
+  font-family:var(--font-b); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.bf-report :focus-visible{outline:2px solid var(--bf-sage); outline-offset:2px; border-radius:3px}
+@media (prefers-reduced-motion:reduce){
+.bf-report *{animation:none!important;transition:none!important}
+
+}
+.bf-report .proto-bar{
+  position:sticky; top:0; z-index:50;
+  background:var(--proto-panel); border-bottom:1px solid var(--proto-line);
+  padding:14px 20px; display:flex; flex-wrap:wrap; gap:14px 22px; align-items:center;
+}
+.bf-report .proto-id{display:flex; flex-direction:column; gap:2px; margin-right:auto}
+.bf-report .proto-id b{font-family:var(--font-d); font-weight:800; font-size:15px; color:#fff; letter-spacing:.01em}
+.bf-report .proto-id span{font-size:12px; color:var(--proto-dim)}
+.bf-report .seg-lbl{font-size:11px; letter-spacing:.09em; text-transform:none; color:var(--proto-dim); margin-right:2px; align-self:center}
+.bf-report .proto-note{max-width:1120px; margin:22px auto 0; font-size:13px; color:var(--proto-dim); line-height:1.7}
+.bf-report .proto-note b{color:var(--proto-text); font-weight:600}
+.bf-report[data-theme="dark"] .appbar, .bf-report:not([data-theme="light"]) .appbar{}
+@media (prefers-color-scheme: dark){
+.bf-report:not([data-theme="light"]) .appbar{background:#3B2F47}
+
+}
+.bf-report[data-theme="dark"] .appbar{background:#3B2F47}
+@container (min-width:700px){
+@media (prefers-color-scheme: dark){
+.bf-report:not([data-theme="light"]) .topnav{background:#3B2F47}
+
+}
+
+}
+.bf-report[data-theme="dark"] .topnav{background:#3B2F47}
+.bf-report .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:16px}
+.bf-report .card.flush{padding:0; overflow:hidden}
+.bf-report .eyebrow{
+  font-family:var(--font-d); font-weight:700; font-size:10.5px; letter-spacing:.16em;
+  text-transform:none; color:var(--bf-purple); margin:0 0 6px;
+}
+.bf-report .eyebrow.sage{color:var(--bf-sage-deep)}
+.bf-report .eyebrow.clay{color:var(--bf-clay)}
+.bf-report h1, .bf-report h2, .bf-report h3, .bf-report h4{font-family:var(--font-d); color:var(--ink); margin:0; text-wrap:balance}
+.bf-report h1{font-size:24px; font-weight:800; letter-spacing:-.01em}
+.bf-report h2{font-size:18px; font-weight:700}
+.bf-report h3{font-size:15.5px; font-weight:700}
+.bf-report h4{font-size:13.5px; font-weight:700}
+.bf-report p{margin:0 0 10px}
+.bf-report p:last-child{margin-bottom:0}
+.bf-report .lede{color:var(--body); font-size:14.5px}
+.bf-report .meta{font-family:var(--font-m); font-size:11.5px; color:var(--muted); letter-spacing:.01em}
+.bf-report .dim{color:var(--muted)}
+.bf-report .num{font-family:var(--font-d); font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums; letter-spacing:-.02em}
+.bf-report .btn{
+  font:600 13px/1 var(--font-b); letter-spacing:.03em; cursor:pointer;
+  border:1px solid transparent; border-radius:3px; padding:11px 18px; text-decoration:none; display:inline-block;
+}
+.bf-report .btn-primary{background:var(--bf-sage); color:#22260B; border-color:var(--bf-sage)}
+.bf-report .btn-primary:hover{background:var(--bf-sage-deep); color:#fff; border-color:var(--bf-sage-deep)}
+.bf-report[data-theme="dark"] .btn-primary{color:#1E2109}
+.bf-report .btn-ghost{background:transparent; color:var(--bf-purple); border-color:var(--bf-purple)}
+.bf-report .btn-ghost:hover{background:var(--bf-purple); color:#fff}
+.bf-report .btn-sm{padding:8px 13px; font-size:12.5px}
+.bf-report .pill{
+  display:inline-flex; align-items:center; gap:5px; border-radius:20px;
+  font:600 11px/1 var(--font-b); letter-spacing:.04em; padding:5px 10px; white-space:nowrap;
+}
+.bf-report .pill-sage{background:var(--bf-sage-pale); color:var(--bf-sage-deep)}
+.bf-report .pill-clay{background:var(--bf-clay-pale); color:var(--bf-clay)}
+.bf-report .pill-purple{background:var(--bf-purple-pale); color:var(--bf-purple-deep)}
+.bf-report .pill-quiet{background:var(--line-soft); color:var(--muted)}
+.bf-report .pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:0 0 auto}
+.bf-report .rows{display:flex; flex-direction:column; gap:1px; background:var(--line-soft)}
+.bf-report .rows>*{background:var(--card)}
+.bf-report .accent{border-left:3px solid var(--bf-sage)}
+.bf-report .accent-clay{border-left:3px solid var(--bf-clay)}
+.bf-report .check{display:flex; gap:11px; align-items:flex-start; padding:11px 0; border-top:1px solid var(--line-soft); cursor:pointer}
+.bf-report .check:first-of-type{border-top:0}
+.bf-report .box{
+  width:19px;height:19px;flex:0 0 auto;margin-top:1px;border-radius:3px;
+  border:1.5px solid var(--bf-sage-deep); background:var(--card);
+  display:flex;align-items:center;justify-content:center;
+}
+.bf-report .accent-clay .box{border-color:var(--bf-clay)}
+.bf-report .box svg{width:12px;height:12px;stroke:#fff;stroke-width:2.6;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.bf-report .check.is-checked .box{background:var(--bf-sage-deep); border-color:var(--bf-sage-deep)}
+.bf-report .accent-clay .check.is-checked .box{background:var(--bf-clay); border-color:var(--bf-clay)}
+.bf-report .check.is-checked .box svg{opacity:1}
+.bf-report .check.is-checked .check-t{color:var(--muted); text-decoration:line-through; text-decoration-color:var(--line)}
+.bf-report .check-t{display:block; font-size:14px; color:var(--ink); line-height:1.45}
+.bf-report .check-sub{display:block; font-size:12.5px; color:var(--muted); margin-top:2px}
+.bf-report .check-sub a{color:var(--bf-purple); font-weight:600}
+.bf-report .meter-row{padding:13px 0; border-top:1px solid var(--line-soft)}
+.bf-report .meter-row:first-child{border-top:0; padding-top:0}
+.bf-report .meter-head{display:flex; align-items:baseline; gap:10px; margin-bottom:7px; flex-wrap:wrap}
+.bf-report .meter-head .name{font-size:13.5px; font-weight:600; color:var(--ink); flex:1; min-width:0}
+.bf-report .meter-head .val{font-family:var(--font-m); font-size:12px; color:var(--body); font-variant-numeric:tabular-nums}
+.bf-report .track{position:relative; height:9px; border-radius:5px; background:var(--line-soft); overflow:visible}
+.bf-report .fill{position:absolute; inset:0 auto 0 0; border-radius:5px; background:var(--bf-purple)}
+/* A meter's three bands, and the only place these exact values are used.
+   Reaching the benchmark is the green; halfway and climbing is the purple;
+   below half is the clay. Colour is never the only signal, because the
+   fraction and the goal are printed either side of the bar. */
+.bf-report .fill.sage{background:var(--bf-meter-met)}
+.bf-report .fill.clay{background:var(--bf-clay)}
+.bf-report .fill.purple{background:var(--bf-purple)}
+.bf-report .base-tick{position:absolute; top:-4px; bottom:-4px; width:2px; background:var(--muted); border-radius:1px}
+.bf-report .meter-foot{display:flex; justify-content:space-between; gap:10px; margin-top:6px; font-size:11.5px; color:var(--muted)}
+/* Two charts in one card, a tab each.
+ *
+ * Both panels ship visible: with scripts blocked, or on paper, this is two
+ * charts down the page under two headings, which is exactly what it was
+ * before the tabs. The script adds .is-tabbed, and only then does the strip
+ * become a control and the panel headings give way to the tab labels. */
+/* The switch has to read as a switch.
+ *
+ * It was a white pill on a near-white track with grey labels: three shades of
+ * almost nothing, and a reader had no reason to think the second chart
+ * existed. The chosen one is filled now — white on purple, which is the
+ * strongest pair this palette has — and the other is in full ink rather than
+ * muted, because it is a thing you can press, not a caption. */
+.bf-report .tabstrip{display:flex; gap:3px; margin:16px 0 6px; padding:4px;
+  background:var(--card-sunk); border:1.5px solid var(--bf-purple-pale); border-radius:999px;
+  width:fit-content; max-width:100%; flex-wrap:wrap}
+.bf-report .tabbtn{border:0; background:none; cursor:pointer; border-radius:999px; padding:9px 18px;
+  font-family:var(--font-d); font-weight:700; font-size:13.5px; color:var(--ink); white-space:nowrap;
+  transition:background .12s ease, color .12s ease}
+.bf-report .tabbtn:hover{background:var(--bf-purple-pale); color:var(--bf-purple-deep)}
+.bf-report .tabbtn.is-on, .bf-report .tabbtn.is-on:hover{
+  background:var(--bf-purple); color:#fff; box-shadow:0 1px 2px rgba(36,30,42,.18)}
+/* In dark mode the fill is the pale lilac, so the text on it has to flip to
+   the dark surface rather than staying white on a light chip. */
+.bf-report[data-theme="dark"] .tabbtn.is-on, .bf-report[data-theme="dark"] .tabbtn.is-on:hover{color:var(--ground)}
+@media (prefers-color-scheme: dark) {
+  .bf-report:not([data-theme="light"]) .tabbtn.is-on,
+  .bf-report:not([data-theme="light"]) .tabbtn.is-on:hover{color:var(--ground)}
+}
+.bf-report .chart-tabs .tabpanel + .tabpanel{margin-top:22px; padding-top:18px; border-top:1px solid var(--line-soft)}
+.bf-report .chart-tabs .tabpanel-h{font-family:var(--font-d); font-weight:700; font-size:15px; color:var(--ink); margin:0 0 4px}
+.bf-report .chart-tabs .tabpanel-l{font-size:13px; color:var(--muted); margin:0 0 4px; max-width:64ch}
+
+/* With the script in, the tab strip says which one is showing, so the panel
+   need not say it again. */
+.bf-report .chart-tabs:not(.is-tabbed) .tabstrip{display:none}
+.bf-report .chart-tabs.is-tabbed .tabpanel-h{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap}
+.bf-report .chart-tabs.is-tabbed .tabpanel + .tabpanel{margin-top:0; padding-top:0; border-top:0}
+
+/* Tables.
+ *
+ * A row of figures with a hairline under it is a list that happens to be in
+ * columns: the eye loses its place crossing from the name on the left to the
+ * number on the right, which is the only journey anybody makes across a table.
+ *
+ * So: the table is an object with an edge, the head sits on a band of its own,
+ * every other row is tinted, and the row under the pointer lifts. Three cues
+ * for the same job, because the tint is invisible in high contrast mode, the
+ * hover does not exist on a phone, and the rule is there for both. */
+.bf-report .tablewrap{overflow-x:auto; -webkit-overflow-scrolling:touch; margin:16px 0;
+  border:1px solid var(--line); border-radius:7px; background:var(--card)}
+.bf-report .tablewrap + .tablewrap{margin-top:22px}
+.bf-report table{border-collapse:collapse; width:100%; min-width:520px; font-size:13.5px}
+.bf-report th, .bf-report td{text-align:left; padding:11px 15px; border-bottom:1px solid var(--line-soft); vertical-align:top}
+
+.bf-report thead th{
+  font-family:var(--font-d); font-weight:700; font-size:11px; letter-spacing:.06em;
+  text-transform:none; color:var(--muted); background:var(--card-sunk);
+  border-bottom:1px solid var(--line); white-space:nowrap;
+}
+.bf-report thead th:first-child{border-top-left-radius:6px}
+.bf-report thead th:last-child{border-top-right-radius:6px}
+
+/* Every other row, quietly. Pale enough that it reads as a texture rather
+   than as a second kind of row. */
+.bf-report tbody tr:nth-child(even){background:var(--row-zebra)}
+.bf-report tbody tr:hover{background:var(--row-hover)}
+
+/* The row's subject carries the weight; the figures stay monospaced so the
+   digits line up down the column and a reader can compare them without
+   counting places. */
+.bf-report tbody th{font-weight:700; color:var(--ink); font-size:13.5px; font-family:var(--font-b)}
+.bf-report tbody td:first-child, .bf-report tbody th:first-child{color:var(--ink); font-weight:600}
+.bf-report td{font-family:var(--font-m); font-size:12.5px; color:var(--body); font-variant-numeric:tabular-nums}
+.bf-report td.now{color:var(--ink); font-weight:500}
+.bf-report tbody tr:last-child td, .bf-report tbody tr:last-child th{border-bottom:0}
+
+/* A figure a reader is meant to compare belongs under its own heading, on the
+   same edge as the heading. Right-aligning only the number, and not the word
+   above it, is the one thing that makes a column harder to read rather than
+   easier. */
+.bf-report th.num, .bf-report td.num{text-align:right; font-variant-numeric:tabular-nums}
+
+/* The figures behind a chart, folded away. The summary is the control, so it
+   looks like one; the table under it is three narrow columns and has no
+   business forcing a phone to scroll sideways. */
+.bf-report .chart-data{margin-top:14px}
+.bf-report .chart-data > summary{display:inline-flex; align-items:center; gap:7px; cursor:pointer;
+  font-family:var(--font-d); font-weight:600; font-size:12.5px; color:var(--bf-purple-deep);
+  background:var(--card-sunk); border:1px solid var(--line); border-radius:999px; padding:6px 13px;
+  list-style:none}
+.bf-report .chart-data > summary::-webkit-details-marker{display:none}
+.bf-report .chart-data > summary::before{content:"\203A"; font-size:15px; line-height:1;
+  transform:rotate(90deg); transition:transform .15s ease}
+.bf-report .chart-data[open] > summary::before{transform:rotate(-90deg)}
+.bf-report .chart-data > summary:hover{border-color:var(--bf-purple-mid)}
+.bf-report .chart-data table{min-width:0}
+.bf-report .chart-data .tablewrap{margin-bottom:0}
+
+/* The destination row, in the tone the chart gives the target, so a reader
+   scanning the column does not take it for one more measurement. Beats the
+   zebra, which is why it is written after it. */
+.bf-report tbody tr.row-goal, .bf-report tbody tr.row-goal:nth-child(even){background:var(--bf-sage-pale)}
+.bf-report tbody tr.row-goal td:first-child{color:var(--bf-sage-deep); font-weight:700}
+.bf-report .chart{width:100%; height:auto; display:block; overflow:visible}
+.bf-report .chart text{font-family:var(--font-m); font-size:10.5px; fill:var(--chart-ink)}
+.bf-report .chart .axis-t{font-size:10px; letter-spacing:.06em}
+.bf-report .legend{display:flex; flex-wrap:wrap; gap:14px; margin-top:12px; font-size:12px; color:var(--muted)}
+.bf-report .legend i{display:inline-flex; align-items:center; gap:6px; font-style:normal}
+.bf-report .key{width:16px;height:3px;border-radius:2px;background:var(--chart-series);flex:0 0 auto}
+.bf-report .key.goal{background:none; border-top:2px dashed var(--chart-goal); height:0}
+.bf-report .key.band{height:11px; background:var(--chart-band); border:1px solid var(--line); border-radius:2px}
+.bf-report .tip{
+  position:absolute; pointer-events:none; opacity:0; transform:translate(-50%,-118%);
+  background:var(--ink); color:var(--ground); padding:7px 10px; border-radius:4px;
+  font:500 11.5px/1.45 var(--font-b); white-space:nowrap; z-index:6; transition:opacity .12s;
+}
+.bf-report .tip b{font-family:var(--font-m); font-weight:500}
+.bf-report .chartwrap{position:relative}
+
+/* The three milestones of a programme, above the chart. Done, or still to
+   come: the one not yet done is the half of the picture that says where the
+   family is heading, so it is shown rather than left out. */
+.bf-report .miles{
+  display:grid; gap:10px; margin:0 0 20px; padding:0; list-style:none;
+  grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
+}
+.bf-report .mile{
+  border:1px solid var(--line); border-radius:8px; padding:11px 13px;
+  background:var(--card-sunk);
+}
+.bf-report .mile-n{display:block; font:700 14px/1.35 var(--font-b); color:var(--muted)}
+.bf-report .mile-w{display:block; font-family:var(--font-m); font-size:12px; color:var(--muted); margin-top:2px}
+.bf-report .mile.is-done{border-color:var(--bf-purple); background:var(--bf-purple-wash)}
+.bf-report .mile.is-done .mile-n{color:var(--ink)}
+.bf-report .mile.is-done .mile-w{color:var(--bf-purple-deep)}
+
+/* The journey chart. Taller than the old panels because the distance between
+   two points is the subject, and a flat box makes any distance look small. */
+.bf-report .chart.journey text{font-size:12px}
+/* The target and the level it is, said together and said loudly: it is the
+   thing the whole chart is pointing at. */
+.bf-report .chart.journey .journey-t{font-size:11.5px; letter-spacing:.03em; font-weight:600}
+.bf-report .chart.journey .journey-g{font-size:17px; font-weight:800}
+/* The two ends of the journey, named in the card colours: where they started
+   in the focus tone, where they are going in the strength tone. Bold, because
+   at this size colour alone is not enough to carry the difference — and the
+   readings in between stay ordinary ink, or the axis becomes a traffic light. */
+.bf-report .chart.journey .jt-start{fill:var(--bf-clay); font-weight:700}
+.bf-report .chart.journey .jt-goal{fill:var(--bf-sage-deep); font-weight:700}
+@media print{ .bf-report .miles{grid-template-columns:repeat(3, 1fr)} }
+
+.bf-report .ladder{display:flex; flex-direction:column; gap:3px}
+.bf-report .rung{
+  display:flex; align-items:center; gap:10px; padding:5px 9px; border-radius:3px;
+  font-size:12.5px; color:var(--muted); background:var(--card-sunk);
+}
+.bf-report .rung .g{font-family:var(--font-m); font-size:11px; width:26px; flex:0 0 auto}
+.bf-report .rung.passed{background:var(--bf-purple-pale); color:var(--bf-purple-deep)}
+.bf-report .rung.now{background:var(--bf-purple); color:#fff; font-weight:600}
+.bf-report[data-theme="dark"] .rung.now{color:#1E1826}
+.bf-report .rung.now .tag{margin-left:auto; font:700 10px/1 var(--font-d); letter-spacing:.1em; text-transform:none}
+.bf-report .rung.base{background:transparent; border:1px dashed var(--line); color:var(--body)}
+.bf-report .rung.base .tag{margin-left:auto; font:600 10px/1 var(--font-b); letter-spacing:.06em; color:var(--muted)}
+.bf-report .filters{display:flex; gap:7px; flex-wrap:wrap; margin-bottom:14px}
+.bf-report .chip{
+  font:600 12.5px/1 var(--font-b); padding:8px 13px; border-radius:18px; cursor:pointer;
+  background:var(--card); border:1px solid var(--line); color:var(--body);
+}
+.bf-report .chip:hover{border-color:var(--bf-purple-mid)}
+.bf-report .chip[aria-pressed="true"]{background:var(--bf-purple); border-color:var(--bf-purple); color:#fff}
+.bf-report[data-theme="dark"] .chip[aria-pressed="true"]{color:#1E1826}
+.bf-report .session{background:var(--card); border:1px solid var(--line); border-radius:var(--r); margin-bottom:14px; overflow:hidden}
+.bf-report .session-head{display:flex; gap:12px; align-items:flex-start; padding:15px 16px; cursor:pointer; width:100%; text-align:left; background:none; border:0; font:inherit}
+.bf-report .session-date{flex:0 0 auto; text-align:center; min-width:46px}
+.bf-report .session-date .d{display:block; font-family:var(--font-d); font-weight:800; font-size:20px; color:var(--ink); line-height:1.05}
+.bf-report .session-date .m{display:block; font-family:var(--font-m); font-size:10px; color:var(--muted); text-transform:none; letter-spacing:.08em}
+.bf-report .session-body{flex:1; min-width:0}
+.bf-report .session-title{display:block; font-family:var(--font-d); font-weight:700; font-size:15px; color:var(--ink); margin-bottom:3px}
+.bf-report .session-head .meta{display:block}
+.bf-report .tags{display:flex; flex-wrap:wrap; gap:5px; margin-top:8px}
+.bf-report .tag-act{
+  font:500 11.5px/1 var(--font-b); padding:5px 9px; border-radius:3px;
+  background:var(--bf-purple-wash); color:var(--bf-purple-deep); border:1px solid var(--bf-purple-pale);
+}
+.bf-report .tag-act .new{font-family:var(--font-d); font-weight:800; font-size:9px; letter-spacing:.1em; color:var(--bf-clay); margin-right:5px}
+.bf-report .chev{flex:0 0 auto; margin-top:4px; transition:transform .2s; color:var(--muted)}
+.bf-report .chev svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bf-report .session.is-open .chev{transform:rotate(180deg)}
+.bf-report .acc{display:grid; grid-template-rows:0fr; transition:grid-template-rows .28s ease}
+.bf-report .session.is-open .acc, .bf-report .skill.is-open .acc{grid-template-rows:1fr}
+.bf-report .acc-in{overflow:hidden; min-height:0}
+.bf-report .acc-pad{padding:0 16px 16px; border-top:1px solid var(--line-soft); margin-top:2px; padding-top:15px}
+.bf-report .block{margin-bottom:16px}
+.bf-report .block:last-child{margin-bottom:0}
+.bf-report .block-h{font-family:var(--font-d); font-weight:700; font-size:11px; letter-spacing:.14em; text-transform:none; color:var(--muted); margin-bottom:7px}
+.bf-report .explainer{background:var(--bf-purple-wash); border:1px solid var(--bf-purple-pale); border-radius:4px; padding:13px 14px; font-size:13.5px; line-height:1.6}
+.bf-report .explainer h4{margin-bottom:6px; font-size:13.5px}
+.bf-report .note{font-size:14px; line-height:1.62; color:var(--body)}
+.bf-report .rec{display:flex; gap:12px; align-items:center; background:var(--card-sunk); border:1px solid var(--line); border-radius:4px; padding:12px}
+.bf-report .rec-thumb{width:76px;height:48px;flex:0 0 auto;border-radius:3px;background:var(--bf-purple-deep);display:flex;align-items:center;justify-content:center}
+.bf-report .rec-thumb svg{width:20px;height:20px;fill:#fff}
+.bf-report .rec-meta{flex:1; min-width:0}
+.bf-report .rec-thumb{display:flex}
+.bf-report .samples{display:flex; gap:8px; flex-wrap:wrap}
+.bf-report .sample{width:74px;height:88px;border-radius:3px;border:1px solid var(--line);background:var(--card-sunk);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  font:500 9.5px/1.3 var(--font-b); color:var(--muted); text-align:center; padding:6px}
+.bf-report .sample svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.6}
+.bf-report .thread{border-top:1px solid var(--line-soft); margin-top:14px; padding-top:13px}
+.bf-report .msg{display:flex; gap:10px; margin-bottom:12px}
+.bf-report .msg:last-of-type{margin-bottom:10px}
+.bf-report .msg .who{
+  width:28px;height:28px;flex:0 0 auto;border-radius:50%;
+  font:700 10px/28px var(--font-d); text-align:center; color:#fff; background:var(--bf-purple-mid);
+}
+.bf-report .msg.mine .who{background:var(--bf-sage-deep)}
+.bf-report .msg-b{flex:1; min-width:0}
+.bf-report .msg-t{display:block}
+.bf-report .msg-h{display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; margin-bottom:2px}
+.bf-report .msg-h b{font-size:12.5px; color:var(--ink); font-weight:600}
+.bf-report .msg-h time{font-family:var(--font-m); font-size:10.5px; color:var(--muted); cursor:help; border-bottom:1px dotted currentColor}
+.bf-report .msg-t{font-size:13.5px; line-height:1.55}
+.bf-report .reply-box{display:flex; gap:8px; align-items:center}
+.bf-report .reply-box input{
+  flex:1; min-width:0; font:400 13.5px/1 var(--font-b); color:var(--ink);
+  background:var(--card-sunk); border:1px solid var(--line); border-radius:3px; padding:11px 12px;
+}
+.bf-report .reply-box input::placeholder{color:var(--muted)}
+.bf-report .skills{display:grid; grid-template-columns:1fr; gap:11px}
+@container (min-width:560px){
+.bf-report .skills{grid-template-columns:1fr 1fr}
+
+}
+@container (min-width:900px){
+.bf-report .skills{grid-template-columns:repeat(3,1fr)}
+
+}
+.bf-report .skill{background:var(--card); border:1px solid var(--line); border-radius:var(--r); overflow:hidden}
+.bf-report .skill.is-open{border-color:var(--bf-purple-mid); grid-column:1/-1}
+.bf-report .skill-head{width:100%; text-align:left; background:none; border:0; font:inherit; cursor:pointer; padding:15px; display:block}
+.bf-report .skill-name{display:block; font-family:var(--font-d); font-weight:700; font-size:14.5px; color:var(--ink); margin-bottom:2px}
+.bf-report .skill-sub{display:block; font-size:12px; color:var(--muted); margin-bottom:12px; min-height:2.6em}
+.bf-report .skill-fig{display:flex; align-items:baseline; gap:8px; margin-bottom:9px}
+.bf-report .skill-fig .num{font-size:27px; line-height:1}
+.bf-report .skill-fig .of{font-family:var(--font-m); font-size:12px; color:var(--muted)}
+.bf-report .skill-status{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:11px}
+.bf-report .skill-head .track{display:block}
+.bf-report .hero-report{background:var(--bf-purple); color:#fff; border-radius:var(--r); padding:20px}
+.bf-report[data-theme="dark"] .hero-report{background:#3B2F47}
+@media (prefers-color-scheme: dark){
+.bf-report:not([data-theme="light"]) .hero-report{background:#3B2F47}
+
+}
+.bf-report .hero-report h1{color:#fff; margin-bottom:4px}
+.bf-report .hero-report .sub{font-family:var(--font-m); font-size:12px; color:rgba(255,255,255,.75); letter-spacing:.02em}
+.bf-report .hero-report .lede{color:rgba(255,255,255,.92); font-size:14.5px; margin-top:12px; max-width:62ch}
+.bf-report .hero-actions{display:flex; gap:9px; flex-wrap:wrap; margin-top:15px}
+.bf-report .hero-report .btn-ghost{color:#fff; border-color:rgba(255,255,255,.5)}
+.bf-report .hero-report .btn-ghost:hover{background:#fff; color:var(--bf-purple-deep)}
+.bf-report .next-lesson{background:var(--bf-purple); color:#fff; border-radius:var(--r); padding:17px}
+.bf-report[data-theme="dark"] .next-lesson{background:#3B2F47}
+@media (prefers-color-scheme: dark){
+.bf-report:not([data-theme="light"]) .next-lesson{background:#3B2F47}
+
+}
+.bf-report .next-lesson .eyebrow{color:rgba(255,255,255,.72)}
+.bf-report .next-lesson .when{font-family:var(--font-d); font-weight:800; font-size:21px; color:#fff; line-height:1.2}
+.bf-report .next-lesson .where{font-size:13px; color:rgba(255,255,255,.8); margin-top:3px}
+.bf-report .next-lesson .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:14px}
+.bf-report .bank{font-family:var(--font-m); font-size:11.5px; color:rgba(255,255,255,.75)}
+.bf-report .kpi{display:flex; gap:14px; align-items:flex-end}
+.bf-report .kpi .num{font-size:38px; line-height:.9}
+.bf-report .kpi-side{font-size:12.5px; color:var(--muted); line-height:1.45; padding-bottom:3px}
+.bf-report .delta{font-family:var(--font-m); font-size:12px; color:var(--bf-sage-deep); font-weight:500}
+.bf-report .steps{display:flex; align-items:center; gap:0; margin:14px 0 8px}
+.bf-report .step-seg{flex:1; height:7px; background:var(--line-soft)}
+.bf-report .step-seg:first-child{border-radius:4px 0 0 4px}
+.bf-report .step-seg:last-child{border-radius:0 4px 4px 0}
+.bf-report .step-seg.done{background:var(--bf-purple)}
+.bf-report .step-flag{position:relative}
+.bf-report .step-marks{display:flex; justify-content:space-between; font-family:var(--font-m); font-size:10.5px; color:var(--muted); margin-top:2px}
+.bf-report .banner{
+  display:flex; gap:11px; align-items:flex-start; background:var(--bf-clay-pale);
+  border:1px solid rgba(184,92,46,.25); border-radius:var(--r); padding:13px 14px; font-size:13.5px; color:var(--ink);
+}
+.bf-report .banner svg{width:17px;height:17px;flex:0 0 auto;margin-top:2px;stroke:var(--bf-clay);fill:none;stroke-width:1.9;stroke-linecap:round}
+.bf-report .banner b{font-weight:600}
+.bf-report .n-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--bf-sage);margin-left:6px;vertical-align:2px}
+.bf-report .linkish{background:none;border:0;padding:0;font:inherit;color:var(--bf-purple);font-weight:600;cursor:pointer;text-decoration:underline}
+.bf-report .doc-body{font-size:14px; line-height:1.68; color:var(--body)}
+.bf-report .doc-body p{margin:0 0 11px}
+.bf-report .doc-body h1, .bf-report .doc-body h2{font-size:15.5px; font-weight:700; color:var(--ink); margin:18px 0 8px}
+.bf-report .doc-body h3, .bf-report .doc-body h4{font-size:13.5px; font-weight:700; color:var(--ink); margin:15px 0 6px}
+.bf-report .doc-body strong{color:var(--ink); font-weight:600}
+.bf-report .doc-body em{font-style:italic}
+.bf-report .doc-body ul, .bf-report .doc-body ol{margin:0 0 12px; padding-left:20px}
+.bf-report .doc-body li{margin-bottom:6px}
+.bf-report .doc-body blockquote{margin:0 0 11px; padding-left:13px; border-left:2px solid var(--bf-purple-pale); color:var(--body)}
+.bf-report .doc-body a{color:var(--bf-purple); font-weight:600}
+.bf-report .doc-body table.doc{min-width:420px; font-size:13px; border:1px solid var(--line); border-radius:4px; overflow:hidden}
+.bf-report .doc-body table.doc th, .bf-report .doc-body table.doc td{border-bottom:1px solid var(--line-soft); border-right:1px solid var(--line-soft); font-family:var(--font-b); font-size:13px; color:var(--body); vertical-align:top; padding:9px 11px}
+.bf-report .doc-body table.doc tr:first-child th, .bf-report .doc-body table.doc tr:first-child td{background:var(--bf-purple-wash); color:var(--ink); font-weight:600}
+.bf-report .doc-body figure.shot{margin:12px 0}
+.bf-report .doc-body figure.shot img{width:100%; border-radius:5px; border:1px solid var(--line); display:block; cursor:zoom-in; background:var(--card)}
+.bf-report .doc-body>*:first-child{margin-top:0}
+.bf-report .doc-body>*:last-child{margin-bottom:0}
+.bf-report .docsec{background:var(--card); border:1px solid var(--line); border-radius:var(--r); margin-bottom:11px; overflow:hidden}
+.bf-report .docsec-h{display:flex; width:100%; gap:12px; align-items:center; padding:14px 16px; background:none; border:0; font:inherit; text-align:left; cursor:pointer}
+.bf-report .docsec-h:hover{background:var(--card-sunk)}
+.bf-report .docsec-t{flex:1; min-width:0}
+.bf-report .docsec-t .eyebrow{display:block; margin-bottom:3px}
+.bf-report .docsec-t{font-family:var(--font-d); font-weight:700; font-size:15.5px; color:var(--ink)}
+.bf-report .docsec.is-open .acc{grid-template-rows:1fr}
+.bf-report .docsec.is-open .chev{transform:rotate(180deg)}
+.bf-report .docsec-b{padding:2px 16px 18px; border-top:1px solid var(--line-soft)}
+.bf-report .docsec-b>.doc-body, .bf-report .docsec-b{padding-top:14px}
+.bf-report .blk{margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid var(--line-soft)}
+.bf-report .blk:last-child{margin-bottom:0; padding-bottom:0; border-bottom:0}
+.bf-report .blk-h{font-family:var(--font-d); font-weight:700; font-size:15px; color:var(--ink); margin-bottom:8px}
+/* "Activity:" in front of the name, set back so the name still reads as
+   the heading and the label only says what kind of thing it is. */
+.bf-report .blk-k{color:var(--muted); font-weight:600}
+.bf-report .newpill{display:inline-block; font:800 9px/1 var(--font-d); letter-spacing:.12em; color:#fff; background:var(--bf-clay); padding:4px 6px; border-radius:3px; margin-right:8px; vertical-align:2px}
+.bf-report .blk-new{background:var(--bf-purple-wash); border:1px solid var(--bf-purple-pale); border-radius:5px; padding:15px; border-bottom:1px solid var(--bf-purple-pale)}
+.bf-report .blk-notes{border-left:3px solid var(--bf-sage); padding-left:13px}
+.bf-report .blk-hw{background:var(--bf-sage-pale); border:1px solid rgba(90,107,44,.2); border-radius:5px; padding:14px; border-bottom:1px solid rgba(90,107,44,.2)}
+.bf-report .blk-home{background:var(--card-sunk); border:1px solid var(--line); border-radius:5px; padding:14px; border-bottom:1px solid var(--line)}
+.bf-report .blk-work{border-left:3px solid var(--bf-clay); padding-left:13px}
+/* What a session reached and what was read in it. Two short lists rather than
+   prose, because they are the two things a parent scans for. */
+.bf-report .blk-skills{background:var(--bf-purple-wash); border:1px solid var(--bf-purple-pale); border-radius:5px; padding:14px; border-bottom:1px solid var(--bf-purple-pale)}
+.bf-report .blk-read{background:var(--card-sunk); border:1px solid var(--line); border-radius:5px; padding:14px; border-bottom:1px solid var(--line)}
+.bf-report .skill-list, .bf-report .text-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px}
+.bf-report .skill-list li, .bf-report .text-list li{display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; padding-left:16px; position:relative; font-size:13.5px; color:var(--ink)}
+.bf-report .skill-list li::before{content:""; position:absolute; left:0; top:6px; width:8px; height:8px; border-radius:2px; background:var(--bf-purple)}
+.bf-report .text-list li::before{content:""; position:absolute; left:0; top:5px; width:8px; height:10px; border-radius:1px 2px 2px 1px; border:1.5px solid var(--bf-clay); border-left-width:3px}
+.bf-report .skill-list .s-note, .bf-report .text-list .t-l{font-size:12.5px; color:var(--muted)}
+.bf-report .text-list .t-l{font-family:var(--font-m); white-space:nowrap}
+/* The report's icons. Stroked line drawings that take the colour of whatever
+   they sit in, so one set works on a pale tile, a clay warning and a purple
+   header without a second copy of each. */
+.bf-report .bfic{width:100%; height:100%; display:block; fill:none;
+  stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round}
+
+/* Schedule and attendance. Four figures, and a line that is a fact about how
+   reading is learned rather than a telling-off — so it is set quietly, and
+   only the gap above it is allowed to raise its voice. */
+.bf-report .attend{display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); gap:10px}
+.bf-report .attend-t{background:var(--card-sunk); border:1px solid var(--line); border-radius:6px; padding:15px 14px; text-align:center}
+.bf-report .attend-t.is-warn{background:var(--bf-clay-pale); border-color:rgba(184,92,46,.28)}
+.bf-report .attend-n{display:block; font-family:var(--font-d); font-weight:800; font-size:24px; line-height:1.1; color:var(--ink)}
+.bf-report .attend-t.is-warn .attend-n{color:var(--bf-clay)}
+.bf-report .attend-l{display:block; font-size:12px; color:var(--muted); margin-top:4px}
+.bf-report .attend-i{display:block; width:18px; height:18px; color:var(--bf-purple); margin:0 auto 8px}
+.bf-report .attend-t.is-warn .attend-i{color:var(--bf-clay)}
+
+/* The sessions that did not go ahead. A row each, because a family reads one
+   of these — the day they remember — rather than comparing a column. */
+.bf-report .miss{list-style:none; margin:14px 0 0; padding:0; display:flex; flex-direction:column; gap:1px;
+  border:1px solid var(--line); border-radius:6px; overflow:hidden; background:var(--line)}
+.bf-report .miss-r{display:flex; gap:11px; padding:12px 14px; background:var(--card)}
+.bf-report .miss-ic{width:19px; height:19px; flex:0 0 auto; margin-top:1px; color:var(--bf-clay)}
+.bf-report .miss-ic.moved{color:var(--bf-purple)}
+.bf-report .miss-b{min-width:0; display:flex; flex-direction:column; gap:3px}
+.bf-report .miss-h{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:13.5px; color:var(--ink)}
+.bf-report .miss-tag{font:600 10.5px/1 var(--font-d); letter-spacing:.02em; color:var(--bf-clay);
+  background:var(--bf-clay-pale); border-radius:3px; padding:4px 6px}
+.bf-report .miss-tag.moved{color:var(--bf-purple-deep); background:var(--bf-purple-pale)}
+.bf-report .miss-n{font-family:var(--font-m); font-size:11.5px; color:var(--muted)}
+.bf-report .miss-why{font-size:13.5px; color:var(--ink)}
+.bf-report .miss-meta{font-size:11.5px; color:var(--muted)}
+
+/* What has been read. A shelf: a spine down the side of each card, the level
+   on the spine, because that is where a reader's eye already is. */
+.bf-report .shelf{list-style:none; margin:0; padding:0;
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(238px,1fr)); gap:10px}
+.bf-report .bk{display:flex; gap:11px; align-items:flex-start;
+  background:var(--card-sunk); border:1px solid var(--line); border-radius:6px; padding:12px 13px}
+.bf-report .bk-ic{width:20px; height:20px; flex:0 0 auto; color:var(--bf-purple); margin-top:1px}
+.bf-report .bk-b{min-width:0; display:flex; flex-direction:column; gap:5px}
+.bf-report .bk-t{font-family:var(--font-d); font-weight:700; font-size:13.5px; color:var(--ink); line-height:1.35}
+.bf-report .bk-m{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.bf-report .bk-lv{font:600 11px/1 var(--font-d); color:var(--bf-purple-deep);
+  background:var(--bf-purple-pale); border-radius:3px; padding:4px 7px}
+.bf-report .bk-d{font-family:var(--font-m); font-size:11px; color:var(--muted)}
+.bf-report .attend-gap{margin:13px 0 0; padding:12px 14px; border-left:3px solid var(--bf-clay);
+  background:var(--bf-clay-pale); border-radius:0 5px 5px 0; font-size:13.5px; color:var(--ink)}
+.bf-report .attend-rule{margin:13px 0 0; font-size:12.5px; color:var(--muted)}
+
+/* The skills, as rows over the whole library.
+ *
+ * Cards in a grid said "here are five things", and five things is not an
+ * answer to "how is my child doing". Rows against the full list are: the ones
+ * being built carry a filled mark and their own dates, the ones still ahead
+ * sit quiet underneath, and the distance between them is the progress.
+ *
+ * Every row ships visible and the script folds the tail away, so a printed
+ * report is the whole library rather than ten rows and a dead button. */
+.bf-report .skl-lede{font-size:13.5px; color:var(--ink); margin:0 0 13px}
+.bf-report .skl{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px;
+  border:1px solid var(--line); border-radius:7px; overflow:hidden; background:var(--line)}
+.bf-report .skl-r{display:flex; align-items:center; gap:11px; flex-wrap:wrap;
+  padding:11px 15px; background:var(--card)}
+.bf-report .skl-mark{flex:0 0 auto; width:9px; height:9px; border-radius:50%;
+  border:1.5px solid var(--line); background:var(--card)}
+.bf-report .skl-r.is-on{background:var(--bf-purple-wash)}
+.bf-report .skl-r.is-on .skl-mark{border-color:var(--bf-purple); background:var(--bf-purple)}
+.bf-report .skl-n{font-family:var(--font-d); font-weight:700; font-size:13.5px; color:var(--ink); line-height:1.35}
+.bf-report .skl-r.is-ahead .skl-n{font-weight:600; color:var(--muted)}
+.bf-report .skl-m{font-family:var(--font-m); font-size:11px; color:var(--muted); margin-left:auto; white-space:nowrap}
+.bf-report .skl-r.is-ahead .skl-m{font-family:var(--font-b); font-style:italic}
+.bf-report .skl-p{display:flex; gap:3px; flex-wrap:wrap; flex:0 0 auto}
+.bf-report .skl-p .p{width:7px; height:7px; border-radius:2px; background:var(--line)}
+.bf-report .skl-p .p.new{background:var(--bf-clay)}
+.bf-report .skl-p .p.again{background:var(--bf-purple-pale)}
+.bf-report .skl-t{font-size:11.5px; color:var(--muted); flex:0 0 auto; min-width:64px}
+
+/* The control is only drawn once the script can make it do something. */
+.bf-report .skl-all{display:none; margin:12px 0 0; cursor:pointer;
+  border:1px solid var(--line); background:var(--card-sunk); border-radius:999px; padding:7px 15px;
+  font-family:var(--font-d); font-weight:600; font-size:12.5px; color:var(--bf-purple-deep)}
+.bf-report .skl-all:hover{border-color:var(--bf-purple-mid)}
+.bf-report .has-js .skl-all, .bf-report.has-js .skl-all{display:inline-block}
+
+.bf-report .cov-scroll{overflow-x:auto}
+.bf-report .covtab{border-collapse:separate; border-spacing:3px; min-width:auto; width:auto}
+.bf-report .covtab th.cn{text-align:left; font:600 12px/1.3 var(--font-b); color:var(--ink); text-transform:none; letter-spacing:0; padding:0 12px 0 0; white-space:nowrap; border:0; background:none}
+.bf-report .covtab thead th{font-family:var(--font-m); font-size:9.5px; color:var(--muted); padding:0 0 5px; text-align:center; border:0; letter-spacing:0; text-transform:none; min-width:20px}
+.bf-report .covtab td{padding:0; border:0; text-align:center}
+.bf-report .cell{display:block; width:20px; height:20px; border-radius:3px; background:var(--bf-purple-pale); font-style:normal}
+.bf-report .cell.new{background:var(--bf-clay); color:#fff; font:800 9px/20px var(--font-d); letter-spacing:.04em; text-align:center}
+/* The key under the grid. The swatch and its words are one pair, so each pair
+   is its own flex line-up: a 20px square next to 12px text sat on the text
+   baseline and overhung it, and nudging it with vertical-align only moved the
+   overlap around. The gap between the two pairs is the wide one; the gap
+   inside a pair is the narrow one. */
+.bf-report .cov-key{display:flex; align-items:center; gap:18px; font-size:12px; color:var(--muted); margin-top:14px; flex-wrap:wrap}
+.bf-report .cov-key span{display:inline-flex; align-items:center; gap:8px}
+.bf-report .cov-key .cell{flex:0 0 auto}
+.bf-report .ovt{min-width:660px}
+.bf-report .ovt thead th{font-family:var(--font-d); font-size:10.5px; letter-spacing:.1em; color:var(--muted); vertical-align:bottom}
+.bf-report .ovt thead th .d{display:block; font-family:var(--font-m); font-size:10px; letter-spacing:0; text-transform:none; font-weight:400; margin-top:3px}
+.bf-report .ovt tbody th{width:27%; font-size:13.5px}
+.bf-report .ovt tbody th .sub{display:block; font-weight:400; font-size:11.5px; color:var(--muted); margin-top:2px}
+.bf-report .ovt td.v{color:var(--ink); font-size:12.5px}
+.bf-report .ovt td.w{color:var(--muted); opacity:.62; font-size:12px; background:var(--card-sunk)}
+.bf-report .mtr{display:block; height:5px; border-radius:3px; background:var(--line-soft); margin-top:7px; max-width:130px}
+.bf-report .mtr i{display:block; height:100%; border-radius:3px; background:var(--bf-purple)}
+.bf-report .ovt-note{font-size:12.5px; color:var(--muted); margin-top:11px}
+.bf-report .trow .tnote{display:block; font-size:11.5px; color:var(--muted); margin-top:1px}
+.bf-report .kpis{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
+@container (min-width:640px){
+.bf-report .kpis{grid-template-columns:repeat(4,1fr)}
+
+}
+.bf-report .kpit{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:14px}
+.bf-report .kpit .n{font-family:var(--font-d); font-weight:800; font-size:26px; color:var(--ink); line-height:1; letter-spacing:-.02em}
+.bf-report .kpit .l{font-size:12px; color:var(--muted); margin-top:5px; line-height:1.4}
+.bf-report .jump{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px}
+.bf-report .jump button{font:600 12px/1 var(--font-b); background:var(--card); border:1px solid var(--line); color:var(--body); padding:7px 11px; border-radius:16px; cursor:pointer}
+.bf-report .jump button:hover{border-color:var(--bf-purple-mid); color:var(--bf-purple)}
+.bf-report{ --body:#39323F; --muted:#5F5769; --line:#E2D9E6; --line-soft:#EFE9F2; }
+@media (prefers-color-scheme: dark){
+.bf-report:not([data-theme="light"]){ --body:#D8D1DF; --muted:#A79EB3; }
+
+}
+.bf-report[data-theme="dark"]{ --body:#D8D1DF; --muted:#A79EB3; }
+.bf-report{font-size:15.5px}
+.bf-report .lede{font-size:16px; line-height:1.62}
+.bf-report .note{font-size:15.5px; line-height:1.7}
+.bf-report .doc-body{font-size:15.5px; line-height:1.72; color:var(--body)}
+.bf-report .doc-body p{margin:0 0 13px}
+.bf-report .doc-body h1, .bf-report .doc-body h2{font-size:17px; margin:22px 0 9px}
+.bf-report .doc-body h3, .bf-report .doc-body h4{font-size:15px; margin:18px 0 7px}
+.bf-report .doc-body li{margin-bottom:8px}
+.bf-report .doc-body table.doc th, .bf-report .doc-body table.doc td{font-size:14.5px; line-height:1.6; padding:11px 13px}
+.bf-report .doc-body table.doc tr:first-child th, .bf-report .doc-body table.doc tr:first-child td{background:var(--bf-purple-pale); color:var(--ink)}
+.bf-report .doc-body blockquote{border-left-width:3px; padding-left:15px}
+.bf-report .explainer{font-size:15px; line-height:1.7}
+.bf-report .blk{margin-bottom:22px; padding-bottom:20px}
+.bf-report .blk-h{font-size:16.5px; margin-bottom:10px}
+.bf-report .blk-new, .bf-report .blk-hw, .bf-report .blk-home{padding:17px}
+.bf-report .block-h{font-size:11.5px; letter-spacing:.13em; color:var(--muted)}
+.bf-report .docsec-t{font-size:17px}
+.bf-report .docsec-h{padding:16px}
+.bf-report .docsec-b{padding:16px 18px 20px}
+.bf-report .session-title{font-size:16px}
+.bf-report .session-head .meta, .bf-report .meta{font-size:12px}
+.bf-report .tag-act{font-size:12.5px; padding:6px 10px}
+.bf-report .check-t{font-size:15px}
+.bf-report .check-sub{font-size:13.5px}
+.bf-report .meter-head .name{font-size:14.5px}
+.bf-report .msg-t{font-size:14.5px; line-height:1.6}
+.bf-report .grow .t{font-size:13.5px}
+.bf-report .grow .dfn{font-size:14.5px; line-height:1.62}
+.bf-report .rlink b{font-size:14.5px}
+.bf-report .rlink span.d{font-size:13.5px}
+.bf-report .trow .ttl{font-size:14.5px}
+.bf-report .trow .tnote{font-size:12.5px}
+.bf-report .vtile b{font-size:14.5px}
+.bf-report .vtile span.d{font-size:13px}
+.bf-report .setup-body b{font-size:16px}
+.bf-report .pref .lbl{font-size:14.5px}
+.bf-report .kpit .l{font-size:12.5px}
+.bf-report .tl-title{font-size:14px}
+.bf-report .tl-prev{font-size:13px}
+.bf-report h2{font-size:19px}
+.bf-report h3{font-size:16px}
+.bf-report .ckpt{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px}
+.bf-report .ckpt-item{display:flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:5px;
+  padding:9px 13px; font-size:13px; color:var(--muted); background:var(--card-sunk)}
+.bf-report .ckpt-item b{font-family:var(--font-d); font-weight:700; font-size:13px; color:var(--ink); letter-spacing:.01em}
+.bf-report .ckpt-item.done{background:var(--bf-purple); border-color:var(--bf-purple); color:rgba(255,255,255,.85)}
+.bf-report .ckpt-item.done b{color:#fff}
+.bf-report[data-theme="dark"] .ckpt-item.done{color:rgba(30,24,38,.8)}
+.bf-report[data-theme="dark"] .ckpt-item.done b{color:#1E1826}
+.bf-report .ckpt-item .tick{width:15px;height:15px;flex:0 0 auto}
+.bf-report .ovt{min-width:520px; border-collapse:collapse}
+.bf-report .ovt thead th{font-family:var(--font-d); font-weight:700; font-size:11px; letter-spacing:.12em;
+  text-transform:none; color:var(--muted); border-bottom:2px solid var(--bf-purple-pale); padding-bottom:9px}
+.bf-report .ovt tbody tr{border-bottom:1px solid var(--line-soft)}
+.bf-report .ovt tbody tr:last-child{border-bottom:0}
+.bf-report .ovt tbody th{font-family:var(--font-b); font-weight:600; font-size:15px; color:var(--ink);
+  width:38%; padding:15px 16px 15px 0; vertical-align:top}
+.bf-report .ovt tbody th .sub{display:block; font-weight:400; font-size:12.5px; color:var(--muted); margin-top:3px}
+.bf-report .ovt td{padding:15px 0; vertical-align:top; font-family:var(--font-b)}
+.bf-report .ovv{font-family:var(--font-d); font-weight:800; font-size:20px; color:var(--ink); letter-spacing:-.01em; line-height:1.1}
+.bf-report .ovu{font-size:13px; color:var(--muted); margin-top:3px}
+.bf-report .ovx{font-size:13.5px; color:var(--body); margin-top:5px}
+.bf-report .ovsub{display:grid; grid-template-columns:auto auto auto; gap:5px 12px; align-items:baseline; font-size:14.5px}
+.bf-report .ovsub b{font-family:var(--font-d); font-weight:700; color:var(--ink); font-size:13px; letter-spacing:.02em}
+.bf-report .ovsub span{color:var(--body)}
+.bf-report .ovsub i{font-style:normal; font-family:var(--font-d); font-weight:800; color:var(--ink)}
+.bf-report .mtr2{display:block; height:7px; border-radius:4px; background:var(--line-soft); margin-top:10px; max-width:190px; overflow:hidden}
+.bf-report .mtr2 i{display:block; height:100%; border-radius:4px; background:var(--bf-purple)}
+.bf-report .ovt-note{font-size:13.5px; color:var(--muted); margin-top:16px; padding-top:14px; border-top:1px solid var(--line-soft)}
+.bf-report .ovt-hidden{margin-top:9px}
+.bf-report .ovrow.is-empty{display:none}
+.bf-report .ovrow.is-empty.show{display:table-row}
+.bf-report .ovempty{font-size:14px; color:var(--muted); font-style:italic}
+.bf-report .eyebrow, .bf-report .block-h, .bf-report thead th, .bf-report .ovt thead th, .bf-report .covtab thead th, .bf-report .step-marks, .bf-report .rung.now .tag, .bf-report .rung.base .tag, .bf-report .newpill, .bf-report .src, .bf-report .seg-lbl, .bf-report .ab-scope, .bf-report .chart text, .bf-report .session-date .m, .bf-report .docsec-t .eyebrow{ text-transform:none !important; }
+.bf-report .eyebrow{font-size:12px; letter-spacing:.04em; font-weight:700}
+.bf-report .block-h{font-size:12.5px; letter-spacing:.02em; font-weight:700; color:var(--muted)}
+.bf-report thead th{font-size:12.5px; letter-spacing:.02em}
+.bf-report .ovt thead th{font-size:12.5px; letter-spacing:.02em; color:var(--muted)}
+.bf-report .newpill{font-size:10.5px; letter-spacing:.02em; padding:4px 7px}
+.bf-report .src{font-size:10.5px; letter-spacing:.02em}
+.bf-report .rung.now .tag, .bf-report .rung.base .tag{font-size:11.5px; letter-spacing:.02em}
+.bf-report .session-date .m{font-size:11px; letter-spacing:.02em}
+.bf-report .ab-scope{font-size:12px; letter-spacing:.02em}
+.bf-report .tag-act .new{font-size:10px; letter-spacing:.02em}
+.bf-report .chart .axis-t{font-size:11px; letter-spacing:.01em}
+.bf-report .doc-body table.doc thead th{
+  font-family:var(--font-b); font-weight:400; font-size:15px; line-height:1.65;
+  color:var(--body); letter-spacing:0; text-transform:none;
+  border-bottom:1px solid var(--line-soft); vertical-align:top; padding:16px;
+}
+.bf-report .doc-body table.doc thead th strong{font-weight:600; color:var(--ink)}
+.bf-report .doc-body table.doc thead tr:first-child th{background:transparent}
+.bf-report .doc-body table.doc thead th:first-child{
+  width:26%; background:var(--card-sunk); font-weight:600; color:var(--ink);
+}
+.bf-report .doc-body table.doc thead th img{border-radius:5px; border:1px solid var(--line); margin-top:9px; max-width:130px}
+.bf-report .doc-body table.doc{border-radius:6px}
+.bf-report .doc-body table.doc ul{margin:9px 0 0; padding-left:19px}
+.bf-report .doc-body table.doc blockquote{border:0; padding:0; margin:0}
+.bf-report .doc-body figure.shot img{max-width:520px}
+.bf-report .chart-card{padding:0; overflow:hidden}
+.bf-report .chart-head{background:var(--bf-purple); color:#fff; padding:18px 20px}
+.bf-report[data-theme="dark"] .chart-head{background:#3B2F47}
+@media (prefers-color-scheme: dark){
+.bf-report:not([data-theme="light"]) .chart-head{background:#3B2F47}
+
+}
+.bf-report .chart-head h2{color:#fff; font-size:21px; margin-bottom:5px}
+.bf-report .chart-head p{color:rgba(255,255,255,.86); font-size:14.5px; margin:0; max-width:64ch}
+.bf-report .chart-body{padding:20px}
+/* A heading band with nothing under it: the Sessions list is a run of cards
+   of its own, so this one is the head without the body. */
+.bf-report .stream-band{margin:26px 0 14px}
+.bf-report .stream-band .chart-head h2{margin-bottom:0}
+.bf-report .bench{background:var(--card-sunk); border:1px solid var(--line); border-radius:6px; padding:15px 17px; margin-bottom:18px}
+.bf-report .bench-t{font-family:var(--font-d); font-weight:700; font-size:15px; color:var(--ink); margin-bottom:3px}
+.bf-report .bench-s{font-size:13.5px; color:var(--muted); margin-bottom:12px}
+.bf-report .bench-row{display:flex; gap:10px; flex-wrap:wrap}
+.bf-report .bench-i{flex:1; min-width:104px; background:var(--card); border:1px solid var(--line); border-radius:5px; padding:11px 13px}
+.bf-report .bench-i b{display:block; font-size:13px; color:var(--muted); font-weight:600; margin-bottom:3px}
+.bf-report .bench-i span{font-family:var(--font-d); font-weight:800; font-size:21px; color:var(--ink); letter-spacing:-.01em}
+.bf-report .bench-i span i{font-style:normal; font-size:12.5px; color:var(--muted); font-weight:600; margin-left:4px; font-family:var(--font-b)}
+.bf-report .bench-i.now{border-color:var(--bf-purple); box-shadow:inset 0 0 0 1px var(--bf-purple)}
+.bf-report .howto{display:flex; gap:9px; align-items:flex-start; background:var(--bf-purple-wash);
+  border:1px solid var(--bf-purple-pale); border-radius:5px; padding:12px 14px; font-size:14px;
+  color:var(--body); margin-bottom:16px}
+.bf-report .howto b{color:var(--ink); font-weight:600}
+.bf-report .page-head{margin:8px 0 30px}
+.bf-report .page-head h1{font-size:34px; line-height:1.1; margin:10px 0 12px; letter-spacing:-.015em}
+.bf-report .page-head .lede{font-size:17px; line-height:1.6; max-width:60ch}
+.bf-report .page-head .eyebrow{margin-bottom:0}
+.bf-report .kpis{margin-bottom:26px !important}
+.bf-report .jump{margin-bottom:24px !important}
+@container (min-width:700px){
+.bf-report .page-head{margin:14px 0 34px}
+
+.bf-report .page-head h1{font-size:38px}
+
+}
+.bf-report .tlog .trow{padding:14px 0; gap:16px}
+.bf-report .trow[data-more]{display:none}
+.bf-report .tlog.show-all .trow[data-more]{display:flex}
+.bf-report .trow .dt{text-align:right; display:flex; flex-direction:column; gap:2px; min-width:64px}
+.bf-report .trow .ts{font-family:var(--font-b); font-size:11.5px; color:var(--muted)}
+.bf-report .trow .tx{display:block; font-size:12.5px; color:var(--bf-purple); font-weight:600; margin-top:3px}
+.bf-report .lvl.none{background:var(--line-soft); color:var(--muted); font-weight:500}
+.bf-report .showmore{margin-top:14px; background:none; border:1px solid var(--line); border-radius:20px;
+  padding:9px 16px; font:600 13.5px/1 var(--font-b); color:var(--bf-purple); cursor:pointer}
+.bf-report .showmore:hover{border-color:var(--bf-purple); background:var(--bf-purple-wash)}
+.bf-report .sh-list{display:flex; flex-direction:column}
+.bf-report .sh-item{display:flex; gap:15px; padding:20px 0; border-top:1px solid var(--line-soft)}
+.bf-report .sh-list .sh-item:first-child{border-top:0; padding-top:4px}
+.bf-report .sh-n{flex:0 0 auto; width:30px; height:30px; border-radius:50%; background:var(--bf-purple);
+  color:#fff; font:800 14px/30px var(--font-d); text-align:center}
+.bf-report[data-theme="dark"] .sh-n{color:#1E1826}
+.bf-report .sh-b{flex:1; min-width:0}
+.bf-report .sh-lead{font-size:16px; line-height:1.6; color:var(--body); margin-bottom:4px}
+.bf-report .sh-lead strong{color:var(--ink); font-weight:700}
+.bf-report .sh-lead a, .bf-report .sh-rest a{color:var(--bf-purple); font-weight:600}
+.bf-report .sh-rest{margin-top:9px}
+.bf-report .sh-rest ul{margin:0; padding-left:19px}
+.bf-report .sh-rest li{margin-bottom:9px}
+.bf-report .sh-rest blockquote{border:0; padding:0; margin:0}
+.bf-report .sh-meta{display:flex; gap:8px; flex-wrap:wrap; margin-top:11px}
+.bf-report .sh-meta:empty{display:none}
+.bf-report .sh-for{font:700 11.5px/1 var(--font-d); letter-spacing:.02em; background:var(--bf-clay-pale);
+  color:var(--bf-clay); padding:6px 10px; border-radius:14px}
+.bf-report .sh-tag{font:600 11.5px/1 var(--font-b); background:var(--bf-purple-pale); color:var(--bf-purple-deep);
+  padding:6px 10px; border-radius:14px}
+.bf-report .switch-card .chart-head{background:var(--bf-sage-deep)}
+.bf-report[data-theme="dark"] .switch-card .chart-head{background:#3F4A1E}
+@media (prefers-color-scheme: dark){
+.bf-report:not([data-theme="light"]) .switch-card .chart-head{background:#3F4A1E}
+
+}
+.bf-report .ai{border-top:1px solid var(--line-soft)}
+.bf-report .ab-col .ai:first-of-type{border-top:0}
+.bf-report .ai .check{border-top:0; padding:13px 0 11px}
+.bf-report .ai-foot{display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:9px}
+.bf-report .ai-thr{background:none; border:1px solid var(--line); border-radius:14px; cursor:pointer;
+  font:600 12.5px/1 var(--font-b); color:var(--bf-purple); padding:6px 11px;
+  display:inline-flex; align-items:center; gap:6px}
+.bf-report .ai-thr:hover{border-color:var(--bf-purple); background:var(--bf-purple-wash)}
+.bf-report .ai-thr svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.bf-report .ai-thr.none{color:var(--muted)}
+.bf-report .ai-thr.none:hover{color:var(--bf-purple)}
+.bf-report .ai-when{font-family:var(--font-m); font-size:11.5px; color:var(--muted)}
+.bf-report .ai.is-open .acc{grid-template-rows:1fr}
+.bf-report .ai.is-open .ai-thr{background:var(--bf-purple-pale); border-color:var(--bf-purple-mid); color:var(--bf-purple-deep)}
+.bf-report .ai-thread{padding:2px 0 16px 30px}
+.bf-report .ai-thread .thread{border-top:0; margin-top:0; padding-top:0}
+.bf-report .ai-empty{font-size:13.5px; color:var(--muted); margin-bottom:11px}
+.bf-report .pi-card{background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+  border-top:3px solid var(--bf-clay); padding:20px; margin-bottom:18px}
+.bf-report .pi-card.sage{border-top-color:var(--bf-sage-deep)}
+.bf-report .pi-head{display:flex; align-items:flex-start; gap:14px; margin-bottom:14px}
+.bf-report .pi-head>div{flex:1; min-width:0}
+.bf-report .pi-head h2{font-size:21px; margin-top:2px}
+.bf-report .pi-count{flex:0 0 auto; font:800 13px/1 var(--font-d); letter-spacing:.01em;
+  background:var(--bf-clay); color:#fff; border-radius:16px; padding:8px 14px}
+.bf-report .pi-card.sage .pi-count{background:transparent; color:var(--bf-sage-deep);
+  box-shadow:inset 0 0 0 1.5px var(--bf-sage-deep)}
+.bf-report[data-theme="dark"] .pi-count{color:#1E1826}
+.bf-report .pi-banner{background:var(--bf-clay-pale); border:1px solid rgba(184,92,46,.3); border-radius:5px;
+  padding:12px 14px; font-size:14.5px; font-weight:600; color:var(--bf-clay); margin-bottom:14px}
+.bf-report .pi-card.sage .pi-banner{background:var(--bf-sage-pale); border-color:rgba(90,107,44,.3); color:var(--bf-sage-deep)}
+.bf-report .pi-item{border:1px solid var(--line); border-radius:5px; padding:15px 16px; margin-bottom:11px; background:var(--card)}
+.bf-report .pi-item.is-done{background:var(--card-sunk)}
+.bf-report .pi-list .pi-item:last-child{margin-bottom:0}
+.bf-report .pi-row{display:flex; gap:13px; align-items:flex-start; cursor:pointer}
+.bf-report .pi-check{flex:0 0 auto; width:26px; height:26px; border-radius:50%; border:2px solid var(--bf-clay);
+  background:var(--card); display:flex; align-items:center; justify-content:center; margin-top:1px}
+.bf-report .pi-card.sage .pi-check{border-color:var(--bf-sage-deep)}
+.bf-report .pi-check svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.bf-report .pi-item.is-done .pi-check{background:var(--bf-clay); border-color:var(--bf-clay)}
+.bf-report .pi-card.sage .pi-item.is-done .pi-check{background:var(--bf-sage-deep); border-color:var(--bf-sage-deep)}
+.bf-report .pi-item.is-done .pi-check svg{opacity:1}
+.bf-report .pi-main{flex:1; min-width:0}
+.bf-report .pi-text{font-size:15.5px; line-height:1.55; color:var(--ink)}
+.bf-report .pi-item.is-done .pi-text{color:var(--muted); text-decoration:line-through; text-decoration-color:var(--line)}
+.bf-report .pi-meta{font-size:13px; color:var(--muted); margin-top:7px}
+.bf-report .pi-meta time{border-bottom:1px dotted currentColor; cursor:help}
+.bf-report .pi-det{display:inline-flex; align-items:center; gap:7px; background:none; border:0; cursor:pointer;
+  padding:8px 0 0; font:400 13.5px/1.4 var(--font-b); color:var(--muted); text-align:left}
+.bf-report .pi-det:hover{color:var(--bf-purple)}
+.bf-report .pi-det .fbc{width:11px;height:11px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+.bf-report .pi-det.is-open .fbc{transform:rotate(90deg)}
+.bf-report .pi-det-b{padding:11px 0 2px}
+.bf-report .pi-link{display:inline-flex; align-items:center; gap:6px; margin-top:9px; font-size:13.5px;
+  font-weight:600; color:var(--bf-purple); text-decoration:none; word-break:break-all}
+.bf-report .pi-link svg{width:11px;height:11px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.bf-report .pi-link:hover{text-decoration:underline}
+.bf-report .fb{margin:11px 0 0 39px}
+.bf-report .fb-sum{display:flex; align-items:center; gap:9px; width:100%; text-align:left; cursor:pointer;
+  background:var(--card-sunk); border:1px solid var(--line); border-radius:5px; padding:11px 13px; font:inherit}
+.bf-report .fb-sum:hover{border-color:var(--bf-purple-mid)}
+.bf-report .fb-sum .fbc{width:11px;height:11px;flex:0 0 auto;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+.bf-report .fb.is-open .fbc{transform:rotate(90deg)}
+.bf-report .fb-a{font-size:13.5px; font-weight:700; color:var(--ink); flex:0 0 auto}
+.bf-report .fb-prev{font-size:13.5px; color:var(--muted); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.bf-report .fb-meta{font-family:var(--font-m); font-size:11.5px; color:var(--muted); flex:0 0 auto}
+.bf-report .fb-meta time{border-bottom:1px dotted currentColor; cursor:help}
+.bf-report .fb.is-open .acc{grid-template-rows:1fr}
+.bf-report .fb-body{padding:14px 2px 4px}
+.bf-report .pi-add{display:block; margin:10px 0 0 39px; background:none; border:0; cursor:pointer; padding:2px 0;
+  font:600 13.5px/1 var(--font-b); color:var(--bf-clay)}
+.bf-report .pi-card.sage .pi-add{color:var(--bf-sage-deep)}
+.bf-report .pi-add:hover{text-decoration:underline}
+.bf-report .pi-feedback{display:block; margin-top:14px; background:none; border:0; cursor:pointer; padding:2px 0;
+  font:600 14px/1 var(--font-b); color:var(--bf-clay)}
+.bf-report .pi-card.sage .pi-feedback{color:var(--bf-sage-deep)}
+.bf-report .pi-feedback:hover{text-decoration:underline}
+.bf-report .pi-item .acc{grid-template-rows:0fr}
+.bf-report .pi-item .pi-det.is-open + .acc{grid-template-rows:1fr}
+.bf-report .pi-card{padding:0; overflow:hidden}
+.bf-report .pi-head{align-items:center; gap:16px; margin:0; padding:18px 22px; border-bottom:1px solid var(--line-soft);
+  background:var(--bf-clay-pale)}
+.bf-report .pi-card.sage .pi-head{background:var(--bf-sage-pale)}
+.bf-report .pi-head .eyebrow{margin-bottom:2px}
+.bf-report .pi-head h2{font-size:22px}
+.bf-report .pi-banner{margin:0; border:0; border-bottom:1px solid var(--line-soft); border-radius:0; padding:13px 22px;
+  display:flex; align-items:center; gap:9px}
+.bf-report .pi-banner::before{content:""; width:8px; height:8px; border-radius:50%; background:currentColor; flex:0 0 auto}
+.bf-report .pi-list{padding:18px 22px 4px}
+.bf-report .pi-item{border-left:3px solid var(--bf-clay); border-radius:4px; padding:16px 18px}
+.bf-report .pi-card.sage .pi-item{border-left-color:var(--bf-sage-deep)}
+.bf-report .pi-item.is-done{border-left-color:var(--line)}
+.bf-report .pi-feedback{margin:0; padding:14px 22px 20px}
+.bf-report .pi-item .pi-main{display:flex; flex-direction:column}
+@container (min-width:820px){
+.bf-report .pi-item.has-meta .pi-row{align-items:center}
+
+.bf-report .pi-text{max-width:78ch}
+
+}
+.bf-report .pi-head{display:flex; align-items:center; gap:14px; width:100%; text-align:left; border:0; cursor:pointer;
+  font:inherit; padding:16px 22px; background:var(--bf-clay-pale); border-bottom:1px solid transparent}
+.bf-report .pi-card.sage .pi-head{background:var(--bf-sage-pale)}
+.bf-report .pi-head:hover{filter:brightness(.985)}
+.bf-report .pi-card.is-open .pi-head{border-bottom-color:var(--line-soft)}
+.bf-report .pi-h-t{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px}
+.bf-report .pi-title{font-family:var(--font-d); font-weight:700; font-size:21px; color:var(--ink); letter-spacing:-.01em}
+.bf-report .pi-badge{flex:0 0 auto; display:inline-flex; align-items:center; gap:7px; border-radius:16px;
+  padding:8px 13px; font:600 13px/1 var(--font-b); background:var(--bf-clay); color:#fff}
+.bf-report .pi-card.sage .pi-badge{background:var(--bf-sage-deep)}
+.bf-report .pi-badge b{font-family:var(--font-d); font-weight:800; font-size:14px}
+.bf-report .pi-badge svg{width:15px;height:15px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bf-report .pi-badge.is-clear{background:transparent; color:var(--bf-clay); box-shadow:inset 0 0 0 1.5px currentColor}
+.bf-report .pi-card.sage .pi-badge.is-clear{color:var(--bf-sage-deep)}
+.bf-report[data-theme="dark"] .pi-badge{color:#1E1826}
+.bf-report[data-theme="dark"] .pi-badge.is-clear{color:var(--bf-clay)}
+.bf-report .pi-count{background:transparent !important; color:var(--muted) !important; box-shadow:none !important;
+  font-family:var(--font-m); font-weight:400; font-size:12.5px; padding:0}
+.bf-report .pi-chev{flex:0 0 auto; color:var(--muted); display:flex; transition:transform .22s}
+.bf-report .pi-chev svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bf-report .pi-card.is-open .pi-chev{transform:rotate(180deg)}
+.bf-report .pi-card > .acc{grid-template-rows:0fr}
+.bf-report .pi-card.is-open > .acc{grid-template-rows:1fr}
+.bf-report .pi-body{padding-top:2px}
+.bf-report .pi-banner{margin:0; border:0; border-bottom:1px solid var(--line-soft); border-radius:0; padding:13px 22px}
+.bf-report .hero-report{background:var(--card); color:var(--body); border:1px solid var(--line);
+  border-top:3px solid var(--bf-purple); border-radius:var(--r); padding:24px}
+.bf-report[data-theme="dark"] .hero-report{background:var(--card)}
+@media (prefers-color-scheme: dark){
+.bf-report:not([data-theme="light"]) .hero-report{background:var(--card)}
+
+}
+.bf-report .hero-report .eyebrow{color:var(--bf-purple) !important; margin-bottom:6px}
+.bf-report .hero-report h1{color:var(--ink); font-size:32px; margin-bottom:7px}
+.bf-report .hero-report .sub{font-family:var(--font-m); font-size:12.5px; color:var(--muted); letter-spacing:.01em; line-height:1.7}
+.bf-report .hero-report .lede{color:var(--body); font-size:16px; margin-top:14px; max-width:64ch}
+.bf-report .hero-report .hero-actions{margin-top:18px}
+.bf-report .hero-report .btn-ghost{color:var(--bf-purple); border-color:var(--bf-purple)}
+.bf-report .hero-report .btn-ghost:hover{background:var(--bf-purple); color:#fff}
+.bf-report[data-theme="dark"] .hero-report .btn-ghost:hover{color:#1E1826}
+.bf-report .skill{transition:border-color .15s, box-shadow .15s}
+.bf-report .skill:hover{border-color:var(--bf-purple-mid); box-shadow:0 4px 16px -8px rgba(36,30,42,.25)}
+.bf-report .skill.is-open{grid-column:auto; border-color:var(--line)}
+.bf-report .skill.is-open:hover{border-color:var(--bf-purple-mid)}
+.bf-report .skill > .acc{display:none}
+.bf-report .skill-head{cursor:pointer}
+.bf-report .mdl{position:fixed; inset:0; z-index:300; display:none; align-items:center; justify-content:center;
+  padding:22px; background:rgba(28,22,36,.58); backdrop-filter:blur(2px)}
+.bf-report .mdl.is-open{display:flex}
+.bf-report .mdl-box{background:var(--card); border:1px solid var(--line); border-top:3px solid var(--bf-purple);
+  border-radius:8px; width:100%; max-width:720px; max-height:88vh; display:flex; flex-direction:column;
+  box-shadow:0 30px 70px -20px rgba(20,14,28,.55);
+  opacity:0; transform:translateY(10px) scale(.975); transition:opacity .2s ease, transform .2s ease}
+.bf-report .mdl.is-open .mdl-box{opacity:1; transform:none}
+.bf-report .mdl-head{display:flex; gap:16px; align-items:flex-start; padding:20px 22px 16px; border-bottom:1px solid var(--line-soft)}
+.bf-report .mdl-t{flex:1; min-width:0}
+.bf-report .mdl-t h3{font-size:20px; margin-bottom:3px}
+.bf-report .mdl-t .sub{font-size:13.5px; color:var(--muted)}
+.bf-report .mdl-fig{display:flex; align-items:baseline; gap:8px; margin-top:12px}
+.bf-report .mdl-fig .num{font-size:30px; line-height:1}
+.bf-report .mdl-fig .of{font-family:var(--font-m); font-size:13px; color:var(--muted)}
+.bf-report .mdl-status{margin-top:11px}
+.bf-report .mdl-x{flex:0 0 auto; width:34px; height:34px; border-radius:50%; border:1px solid var(--line);
+  background:var(--card); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted)}
+.bf-report .mdl-x:hover{border-color:var(--bf-purple); color:var(--bf-purple)}
+.bf-report .mdl-x svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.bf-report .mdl-body{padding:18px 22px 24px; overflow-y:auto; -webkit-overflow-scrolling:touch}
+.bf-report .mdl-body .block:first-child{margin-top:0}
+@container (max-width:560px){
+.bf-report .mdl-box{max-height:92vh}
+
+}
+.bf-report .mdl-foot{display:flex; align-items:center; gap:13px; flex-wrap:wrap;
+  padding:15px 22px; border-top:1px solid var(--line-soft); background:var(--card-sunk)}
+.bf-report .mdl-hint{font-size:12.5px; color:var(--muted)}
+.bf-report .mdl-foot[hidden]{display:none}
+.bf-report .skill-fig .num.is-word{font-size:20px; line-height:1.15}
+.bf-report .mdl-fig .num.is-word{font-size:23px}
+.bf-report .kpi .num.is-word{font-size:30px}
+.bf-report .conv{border:1px solid var(--line); border-radius:6px; overflow:hidden; margin:14px 0}
+.bf-report .conv-head{display:grid; grid-template-columns:150px 1fr; gap:16px; padding:12px 16px;
+  background:var(--card-sunk); border-bottom:1px solid var(--line);
+  font-family:var(--font-d); font-weight:700; font-size:12.5px; color:var(--muted); letter-spacing:.02em}
+.bf-report .conv-row{display:grid; grid-template-columns:150px 1fr; gap:16px; padding:14px 16px;
+  border-bottom:1px solid var(--line-soft); align-items:start}
+.bf-report .conv-row:last-child{border-bottom:0}
+.bf-report .conv-v{display:inline-flex; align-items:center; justify-content:center; align-self:start;
+  font:600 13px/1 var(--font-b); padding:7px 12px; border-radius:14px; white-space:nowrap}
+.bf-report .conv-v.yes{background:var(--bf-sage-pale); color:var(--bf-sage-deep); box-shadow:inset 0 0 0 1px rgba(90,107,44,.28)}
+.bf-report .conv-v.no{background:var(--bf-clay-pale); color:var(--bf-clay); box-shadow:inset 0 0 0 1px rgba(184,92,46,.28)}
+.bf-report .conv-v.na{background:var(--line-soft); color:var(--muted); box-shadow:inset 0 0 0 1px var(--line)}
+.bf-report .conv-t{font-size:15px; line-height:1.55; color:var(--ink)}
+.bf-report .conv-t b{font-weight:700}
+.bf-report .conv-n{font-size:13.5px; line-height:1.6; color:var(--muted); margin-top:5px; font-style:italic}
+.bf-report .conv-group{padding:14px 16px 12px; background:var(--bf-purple-wash); border-bottom:1px solid var(--line-soft);
+  font-family:var(--font-d); font-weight:700; font-size:15px; color:var(--ink)}
+@container (max-width:620px){
+.bf-report .conv-head{display:none}
+
+.bf-report .conv-row{grid-template-columns:1fr; gap:9px}
+
+}
+.bf-report .sec-thread{border-top:1px solid var(--line-soft); margin-top:20px; padding-top:16px}
+.bf-report .sec-thread .block-h{margin-bottom:12px}
+.bf-report .sec-thread .msg-t{font-size:14.5px; line-height:1.62}
+.bf-report .sec-thread .msg-t p{margin:0 0 8px}
+.bf-report .sec-thread .msg-t p:last-child{margin-bottom:0}
+.bf-report .st-head{display:flex; align-items:center; gap:11px; margin:0 0 14px; padding:12px 15px; background:var(--bf-purple-pale); border-left:3px solid var(--bf-purple); border-radius:5px}
+.bf-report .st-head h3{flex:1; min-width:0; font-family:var(--font-d); font-weight:700; font-size:16.5px; color:var(--bf-purple-deep); letter-spacing:-.005em; margin:0}
+.bf-report .st-ico{flex:0 0 auto; display:flex; width:26px; height:26px; align-items:center; justify-content:center; border-radius:50%; background:var(--bf-purple); color:#fff}
+.bf-report[data-theme="dark"] .st-ico{color:#1E1826}
+.bf-report .st-ico svg{width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round}
+.bf-report .st-n{flex:0 0 auto; font:600 12.5px/1 var(--font-b); color:var(--bf-purple-deep); background:var(--card); border:1px solid var(--bf-purple-mid); border-radius:14px; padding:6px 11px}
+.bf-report .sec-thread{margin-top:24px; padding-top:20px}
+.bf-report .rt{border:1px solid var(--line); border-radius:6px; overflow:hidden; background:var(--card); margin-top:6px}
+.bf-report .rt-bar{display:flex; gap:2px; padding:7px 8px; background:var(--card-sunk); border-bottom:1px solid var(--line-soft)}
+.bf-report .rt-bar button{min-width:30px; height:28px; padding:0 8px; background:none; border:1px solid transparent;
+  border-radius:4px; cursor:pointer; font:600 13px/1 var(--font-b); color:var(--muted)}
+.bf-report .rt-bar button:hover{background:var(--card); border-color:var(--line); color:var(--ink)}
+.bf-report .rt-bar button.is-on{background:var(--bf-purple-pale); border-color:var(--bf-purple-mid); color:var(--bf-purple-deep)}
+.bf-report .rt-in{min-height:76px; padding:12px 14px; font:400 14.5px/1.62 var(--font-b); color:var(--ink); outline:0}
+.bf-report .rt-in:empty::before{content:attr(data-ph); color:var(--muted)}
+.bf-report .rt-in:focus{box-shadow:inset 0 0 0 2px var(--bf-purple-pale)}
+.bf-report .rt-in p{margin:0 0 8px}
+.bf-report .rt-in ul{margin:0 0 8px; padding-left:20px}
+.bf-report .rt-in a{color:var(--bf-purple); font-weight:600}
+.bf-report .rt-foot{display:flex; justify-content:flex-end; padding:9px 10px; border-top:1px solid var(--line-soft); background:var(--card-sunk)}
+.bf-report .pane-thread[hidden]{display:none}
+.bf-report .pane-body .ctx a{cursor:pointer}
+.bf-report .tl-item[hidden]{display:none}
+.bf-report .pane-head h3{font-size:17px}
+.bf-report .rt-sep{width:1px; align-self:stretch; margin:2px 6px; background:var(--line)}
+.bf-report .rt-attach{display:inline-flex; align-items:center; gap:6px}
+.bf-report .rt-attach svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.bf-report .rt.is-drop{box-shadow:inset 0 0 0 2px var(--bf-purple)}
+.bf-report .rt.is-drop .rt-in::after{content:"Drop to attach"; display:block; margin-top:8px; font-weight:600; color:var(--bf-purple)}
+.bf-report .rt-files{display:flex; flex-wrap:wrap; gap:8px; padding:11px 14px; border-top:1px solid var(--line-soft); background:var(--card-sunk)}
+.bf-report .rt-files[hidden]{display:none}
+.bf-report .rt-foot{display:flex; align-items:center; gap:12px; justify-content:space-between}
+.bf-report .rt-hint{font-size:12px; color:var(--muted)}
+@container (max-width:560px){
+.bf-report .rt-hint{font-size:11.5px; line-height:1.4}
+
+}
+.bf-report .att{display:inline-flex; align-items:center; gap:9px; background:var(--card); border:1px solid var(--line);
+  border-radius:6px; padding:7px 10px 7px 7px; text-decoration:none; max-width:330px}
+.bf-report .att:hover{border-color:var(--bf-purple-mid)}
+.bf-report .att img{width:34px; height:34px; object-fit:cover; border-radius:4px; flex:0 0 auto; background:var(--line-soft)}
+.bf-report .att-ic{width:34px; height:34px; flex:0 0 auto; border-radius:4px; background:var(--bf-purple-pale);
+  color:var(--bf-purple-deep); font:700 10px/34px var(--font-d); text-align:center}
+.bf-report .att-n{flex:1; min-width:0; font-size:13px; font-weight:600; color:var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.bf-report .att-s{font-family:var(--font-m); font-size:11px; color:var(--muted); flex:0 0 auto}
+.bf-report .att-x{width:22px; height:22px; flex:0 0 auto; border-radius:50%; border:0; background:var(--line-soft);
+  color:var(--muted); cursor:pointer; font:400 15px/1 var(--font-b); padding:0}
+.bf-report .att-x:hover{background:var(--bf-clay-pale); color:var(--bf-clay)}
+.bf-report .msg-att{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+.bf-report .att-full{position:relative}
+.bf-report .glossary{border-bottom:1px dotted var(--muted); cursor:help}
+.bf-report .actionbar{background:var(--card); border-bottom:1px solid var(--line)}
+.bf-report .ab-strip{display:flex; align-items:center; gap:8px; padding:9px 16px; flex-wrap:wrap}
+@container (min-width:700px){
+.bf-report .ab-strip{padding:10px 30px}
+
+}
+.bf-report .ab-btn{
+  display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+  background:var(--card-sunk); border:1px solid var(--line); border-radius:20px;
+  font:600 12.5px/1 var(--font-b); color:var(--body); padding:8px 13px;
+}
+.bf-report .ab-btn:hover{border-color:var(--bf-purple-mid)}
+.bf-report .ab-btn[aria-expanded="true"]{background:var(--bf-purple-pale); border-color:var(--bf-purple-mid); color:var(--bf-purple-deep)}
+.bf-report .ab-btn .n{
+  font-family:var(--font-d); font-weight:800; font-size:11px; min-width:19px; height:19px;
+  border-radius:10px; display:inline-flex; align-items:center; justify-content:center; padding:0 5px;
+}
+.bf-report .ab-btn.clay .n{background:var(--bf-clay); color:#fff}
+.bf-report .ab-btn.sage .n{background:var(--bf-sage-deep); color:#fff}
+.bf-report .ab-scope{margin-left:auto; font-family:var(--font-m); font-size:11px; color:var(--muted); letter-spacing:.02em}
+.bf-report .ab-panel{display:grid; grid-template-rows:0fr; transition:grid-template-rows .26s ease; background:var(--card-sunk); border-top:1px solid var(--line-soft)}
+.bf-report .actionbar.is-open .ab-panel{grid-template-rows:1fr}
+.bf-report .ab-in{overflow:hidden; min-height:0}
+.bf-report .ab-pad{padding:14px 16px 16px; display:grid; grid-template-columns:1fr; gap:18px}
+@container (min-width:700px){
+.bf-report .ab-pad{padding:16px 30px 20px; grid-template-columns:1fr 1fr; gap:30px}
+
+}
+.bf-report .ab-col h4{font-family:var(--font-d); font-weight:700; font-size:11px; letter-spacing:.14em; text-transform:none; margin-bottom:4px}
+.bf-report .ab-col.clay h4{color:var(--bf-clay)}
+.bf-report .ab-col.sage h4{color:var(--bf-sage-deep)}
+.bf-report .ab-col .hint{font-size:12px; color:var(--muted); margin-bottom:6px}
+.bf-report .scope-chip{
+  display:inline-block; font:600 11.5px/1 var(--font-d); letter-spacing:.02em; text-transform:none;
+  background:var(--bf-purple-pale); color:var(--bf-purple-deep); padding:4px 7px; border-radius:3px; margin-left:7px; vertical-align:1px;
+}
+.bf-report .check[hidden]{display:none}
+.bf-report .ab-empty{font-size:13px; color:var(--muted); padding:10px 0}
+.bf-report .msgs{border:1px solid var(--line); border-radius:var(--r); overflow:hidden; background:var(--card); display:grid; grid-template-columns:1fr}
+@container (min-width:760px){
+.bf-report .msgs{grid-template-columns:308px 1fr}
+
+}
+.bf-report .thread-list{border-right:1px solid var(--line); display:flex; flex-direction:column; min-width:0}
+.bf-report .tl-filters{display:flex; gap:5px; padding:11px; border-bottom:1px solid var(--line-soft); overflow-x:auto; scrollbar-width:none}
+.bf-report .tl-filters::-webkit-scrollbar{display:none}
+.bf-report .tl-filters .chip{font-size:11.5px; padding:6px 10px; white-space:nowrap}
+.bf-report .tl-item{
+  display:block; width:100%; text-align:left; background:none; border:0; font:inherit; cursor:pointer;
+  padding:12px 13px; border-bottom:1px solid var(--line-soft);
+}
+.bf-report .tl-item:hover{background:var(--card-sunk)}
+.bf-report .tl-item[aria-current="true"]{background:var(--bf-purple-wash); box-shadow:inset 3px 0 0 var(--bf-purple)}
+.bf-report .tl-top{display:flex; align-items:center; gap:7px; margin-bottom:4px}
+.bf-report .src{font:700 9px/1 var(--font-d); letter-spacing:.1em; text-transform:none; padding:4px 6px; border-radius:3px; white-space:nowrap}
+.bf-report .src-session{background:var(--bf-purple-pale); color:var(--bf-purple-deep)}
+.bf-report .src-report{background:var(--bf-clay-pale); color:var(--bf-clay)}
+.bf-report .src-home{background:var(--bf-sage-pale); color:var(--bf-sage-deep)}
+.bf-report .src-general{background:var(--line-soft); color:var(--muted)}
+.bf-report .tl-time{margin-left:auto; font-family:var(--font-m); font-size:10px; color:var(--muted)}
+.bf-report .unread{width:7px;height:7px;border-radius:50%;background:var(--bf-clay);flex:0 0 auto}
+.bf-report .tl-title{font-size:13.5px; font-weight:600; color:var(--ink); line-height:1.35; margin-bottom:2px}
+.bf-report .tl-prev{font-size:12.5px; color:var(--muted); line-height:1.4;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+.bf-report .tl-item[aria-current="true"] .tl-title{color:var(--bf-purple-deep)}
+.bf-report .pane{display:flex; flex-direction:column; min-width:0}
+.bf-report .pane-head{padding:14px 16px; border-bottom:1px solid var(--line-soft); display:flex; gap:10px; align-items:flex-start}
+.bf-report .pane-head .back{display:none; background:none;border:0;cursor:pointer;color:var(--bf-purple);padding:2px 6px 2px 0}
+.bf-report .pane-head .back svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bf-report .pane-body{padding:16px; flex:1}
+.bf-report .pane-foot{padding:12px 16px; border-top:1px solid var(--line-soft); background:var(--card-sunk)}
+.bf-report .ctx{display:flex;gap:9px;align-items:center;background:var(--bf-purple-wash);border:1px solid var(--bf-purple-pale);
+  border-radius:4px;padding:9px 11px;font-size:12.5px;color:var(--body);margin-bottom:14px}
+.bf-report .ctx a{color:var(--bf-purple);font-weight:600;margin-left:auto;white-space:nowrap;text-decoration:none}
+@container (max-width:759px){
+.bf-report .msgs[data-view="list"] .pane{display:none}
+
+.bf-report .msgs[data-view="thread"] .thread-list{display:none}
+
+.bf-report .msgs[data-view="thread"] .pane-head .back{display:block}
+
+}
+.bf-report .chat{display:flex; flex-direction:column; max-height:min(58vh,430px)}
+.bf-report .chat-scroll{overflow-y:auto; padding-right:3px; flex:1}
+.bf-report .chat-day{text-align:center; font-family:var(--font-m); font-size:10px; color:var(--muted);
+  letter-spacing:.08em; text-transform:none; margin:4px 0 12px}
+.bf-report .more-sheet{
+  position:absolute; inset:0; z-index:20; background:rgba(23,19,32,.5);
+  display:none; align-items:flex-end;
+}
+.bf-report .more-sheet.is-open{display:flex}
+.bf-report .more-in{width:100%; background:var(--card); border-radius:12px 12px 0 0; padding:8px 0 14px; border-top:1px solid var(--line)}
+.bf-report .more-in button{
+  display:flex; gap:12px; align-items:center; width:100%; background:none; border:0; cursor:pointer;
+  font:600 15px/1 var(--font-b); color:var(--ink); padding:15px 20px; text-align:left;
+}
+.bf-report .more-in button:hover{background:var(--card-sunk)}
+.bf-report .more-grip{width:38px;height:4px;border-radius:2px;background:var(--line);margin:6px auto 10px}
+.bf-report .setup-item{background:var(--card); border:1px solid var(--line); border-radius:var(--r); margin-bottom:12px; overflow:hidden}
+.bf-report .setup-item.done{border-color:rgba(90,107,44,.3)}
+.bf-report .setup-head{display:flex; gap:13px; align-items:flex-start; padding:15px 16px}
+.bf-report .setup-body{flex:1; min-width:0}
+.bf-report .setup-body b{display:block; font-family:var(--font-d); font-weight:700; font-size:15px; color:var(--ink); margin-bottom:3px}
+.bf-report .vgrid{display:grid; grid-template-columns:1fr; gap:10px}
+@container (min-width:520px){
+.bf-report .vgrid{grid-template-columns:1fr 1fr}
+
+}
+.bf-report .vtile{display:flex; gap:12px; align-items:flex-start; background:var(--card-sunk); border:1px solid var(--line); border-radius:4px; padding:12px}
+.bf-report .vtile.done{background:var(--bf-sage-pale); border-color:rgba(90,107,44,.28)}
+.bf-report .vthumb{width:60px;height:44px;flex:0 0 auto;border-radius:3px;background:var(--bf-purple-deep);display:flex;align-items:center;justify-content:center}
+.bf-report .vthumb svg{width:17px;height:17px;fill:#fff}
+.bf-report .vtile.done .vthumb{background:var(--bf-sage-deep)}
+.bf-report .vtile b{display:block; font-size:13.5px; color:var(--ink); font-weight:600; margin-bottom:3px}
+.bf-report .vtile span.d{display:block; font-size:12px; color:var(--muted); line-height:1.45}
+.bf-report .rlist{display:flex; flex-direction:column}
+.bf-report .rlink{display:flex; gap:11px; align-items:flex-start; padding:11px 0; border-top:1px solid var(--line-soft); text-decoration:none; color:inherit}
+.bf-report .rlist .rlink:first-child{border-top:0}
+.bf-report .rlink:hover b{color:var(--bf-purple)}
+.bf-report .rlink .ic{width:26px;height:26px;flex:0 0 auto;border-radius:4px;background:var(--bf-purple-pale);color:var(--bf-purple-deep);
+  display:flex;align-items:center;justify-content:center;font:700 10px/1 var(--font-d);letter-spacing:.02em}
+.bf-report .rlink b{display:block;font-size:13.5px;color:var(--ink);font-weight:600}
+.bf-report .rlink span.d{display:block;font-size:12.5px;color:var(--muted);line-height:1.45;margin-top:1px}
+.bf-report .gsearch{width:100%; font:400 13.5px/1 var(--font-b); color:var(--ink); background:var(--card-sunk);
+  border:1px solid var(--line); border-radius:3px; padding:11px 12px; margin-bottom:2px}
+.bf-report .gsearch::placeholder{color:var(--muted)}
+.bf-report .grow{display:flex; gap:14px; padding:11px 0; border-top:1px solid var(--line-soft); align-items:baseline}
+.bf-report .grow .t{flex:0 0 34%; font-family:var(--font-m); font-size:12.5px; color:var(--ink); font-weight:500}
+.bf-report .grow .dfn{flex:1; font-size:13.5px; line-height:1.5}
+.bf-report .grow[hidden]{display:none}
+.bf-report .pref{display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--line-soft)}
+.bf-report .pref:first-of-type{border-top:0}
+.bf-report .pref .lbl{flex:1; font-size:13.5px; color:var(--ink)}
+.bf-report .sw{width:38px;height:21px;flex:0 0 auto;border-radius:12px;background:var(--line);position:relative;cursor:pointer;border:0;padding:0}
+.bf-report .sw::after{content:"";position:absolute;top:2.5px;left:2.5px;width:16px;height:16px;border-radius:50%;background:var(--card);transition:transform .18s}
+.bf-report .sw[aria-checked="true"]{background:var(--bf-sage-deep)}
+.bf-report .sw[aria-checked="true"]::after{transform:translateX(17px)}
+.bf-report .tlog{display:flex; flex-direction:column}
+.bf-report .trow{display:flex; gap:12px; align-items:baseline; padding:10px 0; border-top:1px solid var(--line-soft)}
+.bf-report .tlog .trow:first-child{border-top:0}
+.bf-report .trow .ttl{flex:1; font-size:13.5px; color:var(--ink)}
+.bf-report .trow .lvl{font-family:var(--font-m); font-size:11.5px; color:var(--bf-purple-deep); background:var(--bf-purple-pale); padding:3px 7px; border-radius:3px; white-space:nowrap}
+.bf-report .trow .dt{font-family:var(--font-m); font-size:11px; color:var(--muted); white-space:nowrap}
+.bf-report .tag-act .focus{font-family:var(--font-m); font-size:10.5px; color:var(--bf-clay); margin-left:5px}
+.bf-report .twocol{display:grid; grid-template-columns:1fr; gap:14px}
+@container (min-width:640px){
+.bf-report .twocol{grid-template-columns:1fr 1fr}
+
+}
+.bf-report .listy{margin:0; padding-left:18px; font-size:13.5px; line-height:1.62}
+.bf-report .listy li{margin-bottom:7px}
+.bf-report .listy li:last-child{margin-bottom:0}
+.bf-report .letter{background:var(--bf-purple-wash); border:1px solid var(--bf-purple-pale); border-left:3px solid var(--bf-purple); border-radius:4px; padding:18px}
+.bf-report .letter p{font-size:14.5px; line-height:1.68}
+.bf-report .sig{display:flex; flex-wrap:wrap; gap:22px; border-top:1px solid var(--line-soft); padding-top:14px; margin-top:16px}
+.bf-report .sig div{font-size:12.5px; color:var(--muted); line-height:1.5}
+.bf-report .sig b{display:block; font-family:var(--font-d); font-size:13.5px; color:var(--ink); font-weight:700}
+
+/* ==========================================================================
+   Additions the prototype did not need and a real report does.
+
+   The prototype was a single page with scripts guaranteed. A report is read
+   in a browser with scripts off, printed, and saved as PDF, so everything
+   ships open and the script closes what should start closed. Without that,
+   a printed report would be a list of headings.
+   ========================================================================== */
+.bf-report:not(.has-js) .acc{grid-template-rows:1fr}
+.bf-report .pi-card.is-open > .acc{grid-template-rows:1fr}
+
+@media print{
+  .bf-report .acc{grid-template-rows:1fr !important}
+  .bf-report .chev,.bf-report .pi-chev,.bf-report .hero-actions,.bf-report .jump{display:none}
+  .bf-report .docsec,.bf-report .skill,.bf-report .card{break-inside:avoid}
+}
+
+/* ==========================================================================
+   Wrapper corrections.
+
+   Scoping collapsed the prototype's :root, html and body rules onto this one
+   element, which is right for the custom properties and wrong for two of
+   them: body carried the prototype's own dark chrome colour, which is the
+   page the design sat ON, not the design. The report's ground is the warm
+   cream the brand uses.
+   ========================================================================== */
+.bf-report{
+  background:var(--ground);
+  color:var(--body);
+  font-family:var(--font-b);
+  font-size:15.5px;
+  line-height:1.55;
+  padding:24px 26px 40px;
+  border-radius:8px;
+}
+.bf-report h1,.bf-report h2,.bf-report h3,.bf-report h4{font-family:var(--font-d);color:var(--ink)}
+
+/* Label and value pairs. The prototype's sections are written prose, so it
+   never needed these; a plugin field that is one line of fact still does. */
+.bf-report .kv{display:flex;gap:14px;align-items:baseline;padding:10px 0;border-top:1px solid var(--line-soft);margin:0}
+.bf-report .kv:first-child{border-top:0;padding-top:0}
+.bf-report .k{flex:0 0 190px;font-size:13.5px;font-weight:600;color:var(--muted)}
+.bf-report .v{flex:1;min-width:0;color:var(--ink);font-size:15.5px}
+@container (max-width:560px){
+  .bf-report .kv{display:block}
+  .bf-report .k{margin-bottom:2px}
+}
+
+/* The headline finding leads its section, in the design's lede voice. */
+.bf-report .headline{font-family:var(--font-d);font-weight:700;font-size:19px;line-height:1.45;
+  color:var(--ink);margin:0 0 14px;padding-left:14px;border-left:3px solid var(--bf-purple)}
+
+/* The overview cell stacks: figure, unit, meter, note. The design's markup
+   used block elements; these are spans, so they are told to behave. */
+.bf-report .ovv,.bf-report .ovu,.bf-report .ovx{display:block}
+.bf-report .ovempty{display:block;color:var(--muted)}
+.bf-report .to-top{position:fixed;right:24px;bottom:24px;z-index:60;display:inline-flex;align-items:center;gap:8px;
+  padding:11px 16px 11px 13px;border:1px solid var(--bf-purple-deep);border-radius:24px;cursor:pointer;
+  background:var(--bf-purple);color:#fff;font-family:var(--font-d);font-size:13.5px;font-weight:700;
+  box-shadow:0 5px 18px rgba(40,30,50,.26);
+  opacity:0;transform:translateY(10px);transition:opacity .2s ease,transform .2s ease,background .15s}
+.bf-report .to-top.is-in{opacity:1;transform:none}
+.bf-report .to-top:hover{background:var(--bf-purple-deep)}
+.bf-report .to-top:focus-visible{outline:2px solid #fff;outline-offset:-4px}
+.bf-report .to-top svg{width:15px;height:15px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.bf-report .to-top[hidden]{display:none}
+@media (max-width:620px){.bf-report .to-top{right:14px;bottom:14px;padding:11px 13px}.bf-report .to-top span{display:none}}
+@media (prefers-reduced-motion:reduce){.bf-report .to-top{transition:none}}
+@media print{.bf-report .to-top{display:none}}
+
+/* How the task was marked. Two banded groups, a rule on the left and either
+   what happened or a tick on the right. Borrows the checklist's shape, which
+   is already what this report uses for a list of findings. */
+.bf-report .crit{border:1px solid var(--line); border-radius:6px; overflow:hidden; margin:16px 0}
+.bf-report .crit-head{padding:12px 16px; font-family:var(--font-d); font-weight:700; font-size:14px; color:#fff}
+.bf-report .crit-head.crit-sage{background:var(--bf-sage-deep)}
+.bf-report .crit-head.crit-clay{background:var(--bf-clay)}
+.bf-report .crit-row{display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:14px 16px;
+  border-bottom:1px solid var(--line-soft); align-items:start}
+.bf-report .crit-row:last-of-type{border-bottom:0}
+.bf-report .crit-rule{font-size:15px; line-height:1.55; color:var(--ink)}
+.bf-report .crit-note{font-size:14.5px; line-height:1.6; color:var(--body)}
+.bf-report .crit-note.is-clear svg{width:17px; height:17px; display:block; fill:none;
+  stroke:var(--bf-sage-deep); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round}
+
+/* The tick says it on the page. The words are still there for a screen
+   reader, because an unlabelled tick read aloud is silence. */
+.bf-report .crit-said{position:absolute; width:1px; height:1px; margin:-1px; padding:0;
+  overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0}
+
+.bf-report .crit-foot{padding:14px 16px; background:var(--bf-purple-wash); border-top:1px solid var(--line-soft)}
+.bf-report .crit-foot b{display:block; font-family:var(--font-d); font-size:14px; color:var(--ink); margin-bottom:7px}
+
+/* The alphabet a child is measured on printing, set in the letterforms they
+   are taught to print. What matters is the single-storey a and g: a circle
+   and a stick, the way a hand makes them, rather than the two-storey shapes
+   most typefaces use and no child ever writes. */
+.bf-report .crit-foot .abc{display:block; font-family:var(--font-abc); font-size:23px;
+  line-height:1.6; letter-spacing:.16em; color:var(--ink)}
+@container (max-width:620px){
+  .bf-report .crit-row{grid-template-columns:1fr; gap:8px}
+  .bf-report .crit-foot .abc{font-size:19px; letter-spacing:.1em}
+}
+
+/* Figure tiles in a section body.
+   -------------------------------------------------------------------------
+   The design's tile grid is written for the four figures across the top of a
+   progress report. A section body shows one, two or three of them, and a
+   single tile stretched across a four column grid looks like a mistake, so the
+   count says how many columns to use. Container queries, like the rest. */
+.bf-report .figs-t{font-family:var(--font-d); font-weight:700; font-size:15px; color:var(--ink); margin:18px 0 0}
+/* Which assessment it was, on its own line and in the accent the rest of the
+   report uses for that job, so it is not read as part of the title. */
+.bf-report .figs-s{font-family:var(--font-b); font-size:13px; color:var(--bf-purple); margin:3px 0 0}
+.bf-report .kpis.n1{grid-template-columns:1fr}
+.bf-report .kpis.n2{grid-template-columns:repeat(2,1fr)}
+.bf-report .kpis.n3{grid-template-columns:repeat(2,1fr)}
+@container (min-width:700px){
+  .bf-report .kpis.n3{grid-template-columns:repeat(3,1fr)}
+}
+
+/* ==========================================================================
+   A phone
+
+   This report is read in a car park, five minutes before somebody collects
+   their child. Not on the screen it was designed on.
+
+   Two things change, and only these two. Anything a thumb has to hit gets
+   big enough to hit, and nothing is set below twelve pixels, which is where
+   text stops being read at arm's length and starts being squinted at. The
+   layout itself already stacks; what it did not do was survive being
+   touched.
+   ========================================================================== */
+@media (max-width:640px){
+
+  /* A table with a 520px floor on a 390px screen pushes the whole page
+     sideways, and a page that scrolls sideways is one where half of every
+     line is off the edge. The floor goes, and a table that genuinely needs
+     the width scrolls inside its own box instead of dragging the report
+     with it. */
+  .bf-report table{min-width:0; display:block; overflow-x:auto; -webkit-overflow-scrolling:touch}
+  .bf-report .doc-body table.doc{min-width:0}
+
+  /* Targets. 44px is Apple's figure and 48 is Google's; 44 is the one a
+     thumb actually needs, and every one of these was under thirty. */
+  .bf-report .jump button,
+  .bf-report .tabbtn,
+  .bf-report .skl-all{min-height:44px; padding-top:11px; padding-bottom:11px}
+  .bf-report .chart-data summary{min-height:44px; display:flex; align-items:center}
+  /* The composer a family writes a question in. Five buttons the width of a
+     fingernail is a toolbar nobody uses from a phone. */
+  .bf-report .rt-bar button{min-height:44px; min-width:44px; white-space:nowrap}
+  .bf-report .rt .btn{min-height:44px; white-space:nowrap}
+  .bf-report .rt-hint{font-size:12px}
+  /* Thumb sized buttons in a row that was drawn for small ones: "Attach" came
+     out as "Atta" over "ch", and the post button as "Po" over "st". They wrap
+     onto a second row instead of inside themselves. */
+  .bf-report .rt-bar{flex-wrap:wrap; gap:4px}
+  /* The link out to the full diagnostic. It was a button everywhere else and
+     a 37px strip here. */
+  .bf-report .btn{min-height:44px; padding-top:14.5px; padding-bottom:14.5px}
+  .bf-report .docsec-h,
+  .bf-report .pi-head,
+  .bf-report .session-h{min-height:48px}
+
+  /* The floor. Each of these was a caption somebody has to read: which
+     session a row is about, who cancelled it, when a text was read. */
+  .bf-report .meta,
+  .bf-report .eyebrow,
+  .bf-report .miss-tag,
+  .bf-report .miss-n,
+  .bf-report .miss-meta,
+  .bf-report .skl-m,
+  .bf-report .bk-lv,
+  .bf-report .bk-d,
+  .bf-report .block-h,
+  .bf-report .meter-foot,
+  .bf-report .step-marks,
+  .bf-report .attend-l,
+  .bf-report .seg-lbl,
+  .bf-report .msg-h time,
+  .bf-report .session-date .m,
+  .bf-report .rung .g,
+  .bf-report .rung.now .tag,
+  .bf-report .rung.base .tag,
+  .bf-report .bank,
+  .bf-report .scope-chip,
+  .bf-report .skl-t,
+  .bf-report thead th,
+  .bf-report td{font-size:12px}
+
+  /* The jump strip is a row of pills that wrapped into four lines of
+     half-height buttons. Given room, it is four rows of something a thumb
+     can land on. */
+  .bf-report .jump{gap:8px}
+
+  /* ---- room to read ----
+   *
+   * The report sits inside its own 26px of padding, inside a card with 16,
+   * inside a section body with 18. On a laptop that is breathing room. On a
+   * 383px phone it is fifty-two pixels of nothing before a word starts and
+   * fifty-two after it ends, leaving a column of about thirty characters:
+   * four words a line, a paragraph running half a screen, and a parent
+   * scrolling through a column the width of a bookmark.
+   *
+   * Every one of those is halved. The report still has a margin; it no
+   * longer has three of them stacked. */
+  .bf-report{padding:16px 10px 28px}
+  .bf-report .card{padding:13px}
+  .bf-report .docsec-b{padding-left:13px; padding-right:13px}
+  .bf-report .acc-pad{padding-left:13px; padding-right:13px}
+  .bf-report .session-head{padding:13px}
+  .bf-report .chart-head{padding:15px 14px}
+  .bf-report .chart-body{padding:14px 10px}
+  .bf-report .blk-new,
+  .bf-report .blk-hw,
+  .bf-report .blk-home{padding:13px}
+
+  /* ---- the action card's header ----
+   *
+   * Four things on one line: what the card is, how many are still to do, how
+   * many are done, and the chevron. On a laptop that is a row. On a phone the
+   * three on the right take their width first and leave the title a column
+   * eight characters wide, so "Priority items" comes out as a stack of two
+   * words with a three line eyebrow over it.
+   *
+   * The title takes the line; the three controls take the one under it. */
+  .bf-report .pi-head{flex-wrap:wrap; gap:10px; padding:14px}
+  .bf-report .pi-h-t{flex:1 1 100%}
+  .bf-report .pi-badge{order:2}
+  .bf-report .pi-count{order:3}
+  .bf-report .pi-chev{order:4; margin-left:auto}
+  .bf-report .pi-banner{padding:13px 14px}
+
+  /* And the list under it. Twenty-two pixels of list padding inside sixteen
+     of item padding is thirty-eight before a word starts, on each side. The
+     peek line's arrow is centred on its label, which on a laptop is one line
+     and on a phone is six, so the arrow sat halfway down a paragraph; it
+     belongs on the first line, where the sentence starts. */
+  .bf-report .pi-list{padding:14px 13px 4px}
+  .bf-report .pi-item{padding:13px}
+  .bf-report .pi-row{gap:10px}
+  .bf-report .pi-det{align-items:flex-start}
+  .bf-report .pi-det .fbc{margin-top:4px}
+
+  /* Long words in a narrow column: an email address, a spelling written out
+     letter by letter, a web address a tutor pasted in. In thirty characters
+     any of them pushes the line past the edge. */
+  .bf-report .doc-body,
+  .bf-report .blk,
+  .bf-report .miss-b{overflow-wrap:anywhere}
+
+  /* ---- the tab strip ----
+   *
+   * A capsule with a 999px radius and flex-wrap. Wrapped, it is a two-row
+   * capsule with one tab hanging under the other and the shape broken around
+   * them. Two tabs side by side, each half the width, is the same control
+   * and still a control. */
+  .bf-report .tabstrip{width:100%; border-radius:10px; padding:4px}
+  .bf-report .tabbtn{flex:1 1 0; min-width:0; border-radius:8px; padding:11px 8px;
+    font-size:13px; white-space:normal; text-align:center}
+
+  /* ---- the charts ----
+   *
+   * An SVG with a 720 wide viewBox scaled into a 300px column renders every
+   * label at forty per cent of its stated size: ten and a half points comes
+   * out as four real pixels. Nothing is wrong with the chart. It is the
+   * scale, so the fix is the type, not the picture.
+   *
+   * Twenty-eight viewBox points is as far as it goes. The rule that drops a
+   * label when two would touch lives in PHP and is tuned for the designed
+   * size, and past twenty-eight "Initial" and "Interim" land on each other
+   * on a report with five readings. Twenty-eight over a 300px column is
+   * twelve real pixels, which is the floor this whole block is built on.
+   * Measured, not guessed: the audit checks the rendered size and the
+   * overlaps on every chart on every screen.
+   *
+   * The one thing in the way is the label under the left of the axis. At the
+   * designed size "Preprimer" fits inside the 96 units of margin the chart
+   * leaves for it; at twenty-eight it is half again as wide as that margin
+   * and hangs off the left edge of the viewBox, which is what used to force
+   * the chart wider than the phone and put the rest of it behind a swipe.
+   * So on a phone it stops hanging off the end of the axis and sits above
+   * the start of it, left aligned at the edge, where it has all the room it
+   * needs and the chart can be exactly as wide as the screen. */
+  /* The chart card runs to the edges of the report.
+   *
+   * Everything else on the page wants a margin; the chart wants width, and
+   * the two levels of padding it sits inside are the difference between a
+   * label a parent can read and one they cannot. The band and the plot go
+   * out to the edge, the words in the card keep their inset. */
+  .bf-report .chart-card{padding:0; margin-left:-10px; margin-right:-10px}
+  .bf-report .chartwrap{overflow-x:auto; -webkit-overflow-scrolling:touch;
+    margin-left:-10px; margin-right:-10px}
+  .bf-report .chart text,
+  .bf-report .chart.journey text{font-size:28px}
+  .bf-report .chart .axis-t{font-size:27px}
+  .bf-report .chart.journey .journey-t{font-size:28px}
+  /* The goal label is set a size above the rest at every width, because it
+     is the thing the whole chart is pointing at. It sits alone in the top
+     corner, so it can afford the extra without touching anything. */
+  .bf-report .chart.journey .journey-g{font-size:32px}
+  /* 74 units left puts its start just inside the edge of the viewBox, where
+     the anchor it hangs from sits, less a few for air; 24 up clears both the
+     baseline it names and the row of labels under it. */
+  .bf-report .chart.journey .journey-floor{text-anchor:start; transform:translate(-74px,-24px)}
+
+  /* A skill row is a dot, a name, when it was taught and how often it came
+     back, wrapping as it needs to. When the name is longer than the line the
+     whole name moves down and the dot is left sitting on a line of its own.
+     first line and sends the date under it rather than squeezing in beside
+     it. */
+  .bf-report .skl-n{flex:1 1 200px; min-width:0}
+
+  /* The New markers on a lesson. Nine points by design, ten and a half in
+     the width rules above, and both of them under the floor. They are the
+     one word on the row that says this is the first time a child met it. */
+  .bf-report .newpill{font-size:12px; letter-spacing:.02em}
+  .bf-report .tag-act .new{font-size:12px; letter-spacing:.02em}
+
+  /* The label under a work sample, in a box 74px wide: room for twelve
+     pixels, and it was set at nine and a half. */
+  .bf-report .sample{font-size:12px}
+
+  /* The skills grid's session numbers. Twelve pixels over a twenty pixel
+     cell does not fit, so the cells are given the room instead. The grid
+     already scrolls sideways inside its own box, so this costs a swipe and
+     buys a row of numbers somebody can actually read. */
+  .bf-report .covtab thead th{font-size:12px; min-width:26px}
+  .bf-report .cell{width:26px; height:26px}
+  .bf-report .cell.new{font-size:11px; line-height:26px}
+}
+
+/* ---- a folded activity description -----------------------------------
+   Scoped under .bf-report like everything else in this file: a family's
+   report is rendered inside somebody else's theme, and an unscoped rule is
+   one this plugin imposes on a page it does not own. */
+.bf-report .about-more { background: none; border: 0; padding: 2px 0; margin: 2px 0 0;
+	font: inherit; font-size: 15px; color: var(--ink-2, #5b5366); text-decoration: underline;
+	text-underline-offset: 3px; cursor: pointer; }
+.bf-report .about-more:hover { color: var(--ink, #2b2632); }
+.bf-report .about-more:focus-visible { outline: 2px solid var(--acc, #7a6f8a); outline-offset: 2px; border-radius: 3px; }
+
+@media (max-width: 782px) {
+	/* A line of underlined text is 21px tall, which is not a thumb. Padded
+	   rather than enlarged, so it still reads as a link in a paragraph.
+	   In this section's own media block, at the end of it, because overrides
+	   appended to the end of the file beat a media query higher up. */
+	.bf-report .about-more { padding: 11px 0; min-height: 44px; }
+}
+
+/* ---- a piece of work at full size ------------------------------------ */
+.bf-report .shot-open { display: block; cursor: zoom-in; }
+.bf-report .shot-open:focus-visible { outline: 2px solid var(--acc, #7a6f8a); outline-offset: 3px; }
+

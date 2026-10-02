@@ -1,0 +1,556 @@
+/* Holding the theme at the wrapper.
+   -------------------------------------------------------------------------
+   bftutoring.com runs a block theme, and a block theme styles bare elements,
+   so its font, line height and letter spacing reach inside anything this
+   plugin draws. Measured on the live site, the brand mark grew from 35px to
+   51px, the top bar from 63px to 79px, and the navigation fell back to
+   Helvetica. This puts the inheritance back.
+
+   :where() contributes no specificity, so this weighs exactly as much as
+   .bf-portal alone: heavier than the theme's bare element selectors, lighter
+   than every real rule below it. It has to sit at the top of this file and not
+   in bftd-report.css, which loads later and would therefore win ties against
+   the rules below rather than losing them. The report's copy is the same block
+   scoped to .bf-report; the two are checked against each other by
+   tests/report-styling.php. */
+.bf-portal :where(p, h1, h2, h3, h4, h5, h6, a, button, table, thead, tbody, tfoot,
+  tr, th, td, ul, ol, li, figure, figcaption, blockquote, strong, b, em, i, small,
+  span, div, section, article, header, footer, time, br, label, svg, path, circle,
+  rect, line, g, text){
+  font-family:inherit;
+  line-height:inherit;
+  letter-spacing:inherit;
+  max-width:none;
+}
+.bf-portal :where(img, picture, video, canvas, iframe, object){
+  font-family:inherit;
+  line-height:inherit;
+  letter-spacing:inherit;
+}
+.bf-portal :where(input, textarea, select, option){
+  font-family:inherit;
+  font-size:inherit;
+  line-height:inherit;
+  letter-spacing:inherit;
+}
+
+/* ==========================================================================
+   Brilliant Futures parent portal
+   Scoped under .bf-portal so it sits inside the existing bftutoring.com theme
+   without touching anything around it.
+   ========================================================================== */
+
+.bf-portal{
+  --bf-purple:#70567F; --bf-purple-deep:#513C5D; --bf-purple-mid:#8A6F99;
+  --bf-purple-pale:#EFE9F2; --bf-purple-wash:#F7F3F9;
+  --bf-sage:#A2A55A; --bf-sage-deep:#5A6B2C; --bf-sage-pale:#F0F2E1;
+  --bf-clay:#B85C2E; --bf-clay-pale:#FAEDE3;
+  --ground:#F9F4F2; --card:#fff; --sunk:#FBF8F9;
+  --ink:#241E2A; --body:#39323F; --muted:#5F5769;
+  --line:#E2D9E6; --line-soft:#EFE9F2;
+  --fd:'Raleway','Trebuchet MS',sans-serif;
+  --fb:'Source Sans 3',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--ground); color:var(--body);
+  font-family:var(--fb); font-size:16px; line-height:1.6;
+  border-radius:8px; overflow:hidden;
+}
+.bf-portal *,.bf-portal *::before,.bf-portal *::after{box-sizing:border-box}
+.bf-portal h1,.bf-portal h2,.bf-portal h3,.bf-portal h4{font-family:var(--fd);color:var(--ink);margin:0}
+.bf-portal h1{font-size:32px;font-weight:800;letter-spacing:-.015em;line-height:1.15}
+.bf-portal h2{font-size:21px;font-weight:700}
+.bf-portal h3{font-size:17px;font-weight:700}
+.bf-portal p{margin:0 0 12px}
+.bf-portal a{color:var(--bf-purple-deep)}
+
+.bf-bar{display:flex;align-items:center;gap:14px;background:var(--bf-purple);color:#fff;padding:14px 20px}
+.bf-mark{font-family:var(--fd);font-weight:800;letter-spacing:.13em;font-size:13px;text-transform:none}
+.bf-mark span{display:block;font-size:9px;letter-spacing:.28em;opacity:.75}
+.bf-who,.bf-switch{margin-left:auto;color:#fff}
+.bf-switch{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);border-radius:4px;padding:7px 10px;font:inherit;font-size:14px}
+
+.bf-nav{display:flex;flex-wrap:wrap;gap:2px;background:var(--bf-purple);padding:0 14px}
+.bf-nav a{display:flex;align-items:center;gap:7px;padding:12px 15px;color:rgba(255,255,255,.75);text-decoration:none;font-weight:600;font-size:14.5px;border-bottom:3px solid transparent}
+.bf-nav a:hover{color:#fff}
+.bf-nav a.is-on{color:#fff;border-bottom-color:var(--bf-sage)}
+.bf-dot{width:7px;height:7px;border-radius:50%;background:var(--bf-sage)}
+
+.bf-screen{padding:24px 20px 40px}
+@media (min-width:800px){.bf-screen{padding:30px 34px 46px}}
+
+.bf-head{margin-bottom:26px}
+/* Who taught this, under the title. Lighter than the heading so it reads as
+   a subheading rather than as a second one. */
+.bf-sub{margin:6px 0 0;font-size:17px;color:var(--muted)}
+.bf-eyebrow{font-family:var(--fd);font-weight:700;font-size:12px;color:var(--bf-purple);margin:0 0 5px}
+.bf-lede{font-size:17px;line-height:1.6;color:var(--body);max-width:62ch}
+.bf-empty{padding:22px;background:var(--sunk);border:1px dashed var(--line);border-radius:6px;color:var(--muted)}
+
+.bf-btn{display:inline-block;background:var(--bf-sage);color:#22260B;border:1px solid var(--bf-sage);border-radius:3px;padding:11px 20px;font-weight:600;font-size:14px;text-decoration:none;cursor:pointer}
+.bf-btn:hover{background:var(--bf-sage-deep);border-color:var(--bf-sage-deep);color:#fff}
+.bf-btn-ghost{background:transparent;color:var(--bf-purple);border-color:var(--bf-purple)}
+.bf-btn-ghost:hover{background:var(--bf-purple);border-color:var(--bf-purple);color:#fff}
+
+.bf-card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:18px;margin-bottom:18px}
+.bf-next{background:var(--bf-purple);color:#fff;border-radius:6px;padding:20px;margin-bottom:18px}
+.bf-next .bf-eyebrow{color:rgba(255,255,255,.75)}
+.bf-when{font-family:var(--fd);font-weight:800;font-size:22px;color:#fff;margin:0 0 10px}
+.bf-bank{font-size:13px;color:rgba(255,255,255,.8);margin:10px 0 0}
+.bf-fig{font-family:var(--fd);font-weight:800;font-size:34px;color:var(--ink);line-height:1;margin:0}
+.bf-fig span{font-family:var(--fb);font-weight:400;font-size:14px;color:var(--muted)}
+.bf-sub{font-size:14px;color:var(--muted);margin:6px 0 0}
+
+.bf-tags{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:12px 0 0;padding:0}
+.bf-tag{background:var(--bf-purple-wash);border:1px solid var(--bf-purple-pale);color:var(--bf-purple-deep);border-radius:3px;padding:5px 10px;font-size:13.5px}
+.bf-tag b{color:var(--bf-clay);font-size:10.5px;letter-spacing:.04em;margin-right:5px}
+.bf-tag i{font-style:normal;color:var(--muted)}
+.bf-expiry{font-size:13px;color:var(--muted);margin-left:10px}
+
+.bf-sec{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:20px 22px;margin-bottom:18px}
+.bf-sec-h{margin-bottom:14px}
+.bf-sec-b>*:last-child{margin-bottom:0}
+.bf-rich{font-size:16px;line-height:1.72}
+.bf-rich p{margin:0 0 13px}
+.bf-rich ul,.bf-rich ol{margin:0 0 13px;padding-left:22px}
+.bf-kv{display:flex;gap:12px;flex-wrap:wrap;align-items:baseline;padding:9px 0;border-top:1px solid var(--line-soft);margin:0}
+.bf-kv:first-child{border-top:0}
+.bf-k{font-weight:600;color:var(--muted);min-width:170px;font-size:14px}
+.bf-v{color:var(--ink)}
+
+.bf-tablewrap{overflow-x:auto;margin:0 0 14px}
+.bf-table{border-collapse:collapse;width:100%;min-width:440px;font-size:15px}
+.bf-table th,.bf-table td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+.bf-table thead th{font-family:var(--fd);font-weight:700;font-size:13px;color:var(--muted);border-bottom:2px solid var(--bf-purple-pale)}
+.bf-table tr:last-child td{border-bottom:0}
+
+.bf-gallery{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.bf-shot img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:5px;display:block}
+
+.bf-session{border-top:1px solid var(--line-soft);padding:20px 0}
+.bf-session:first-of-type{border-top:0}
+.bf-blk{margin:14px 0}
+.bf-blk h4{font-size:14px;color:var(--muted);margin:0 0 6px}
+
+/* ---------- conversations ---------- */
+.bf-thread{border-top:1px solid var(--line-soft);margin-top:24px;padding-top:20px}
+.bf-thread-h{display:flex;align-items:center;gap:11px;margin:0 0 14px;padding:12px 15px;background:var(--bf-purple-pale);border-left:3px solid var(--bf-purple);border-radius:5px}
+.bf-thread-h h3{flex:1;min-width:0;font-size:16.5px;color:var(--bf-purple-deep)}
+.bf-thread-ic{display:flex;width:26px;height:26px;align-items:center;justify-content:center;border-radius:50%;background:var(--bf-purple);color:#fff;flex:0 0 auto}
+.bf-thread-ic svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.bf-thread-n{flex:0 0 auto;font-size:12.5px;font-weight:600;color:var(--bf-purple-deep);background:var(--card);border:1px solid var(--bf-purple-mid);border-radius:14px;padding:6px 11px}
+.bf-thread-empty{color:var(--muted);font-size:15px}
+
+.bf-msg{display:flex;gap:11px;margin-bottom:14px}
+.bf-avatar{width:30px;height:30px;flex:0 0 auto;border-radius:50%;background:var(--bf-purple-mid);color:#fff;font:700 11px/30px var(--fd);text-align:center}
+.bf-msg.is-mine .bf-avatar{background:var(--bf-sage-deep)}
+.bf-msg-b{flex:1;min-width:0}
+.bf-msg-h{display:flex;gap:9px;align-items:baseline;margin:0 0 3px;font-size:13px;color:var(--muted)}
+.bf-msg-h b{color:var(--ink);font-size:13.5px}
+.bf-msg-t{font-size:15px;line-height:1.6}
+.bf-msg-t p{margin:0 0 8px}
+.bf-msg-att{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.bf-att{display:inline-flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:7px 10px 7px 7px;text-decoration:none;max-width:330px}
+.bf-att:hover{border-color:var(--bf-purple-mid)}
+.bf-att img{width:34px;height:34px;object-fit:cover;border-radius:4px;flex:0 0 auto}
+.bf-att-ic{width:34px;height:34px;flex:0 0 auto;border-radius:4px;background:var(--bf-purple-pale);color:var(--bf-purple-deep);font:700 10px/34px var(--fd);text-align:center}
+.bf-att-n{flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bf-att-s{font-size:11px;color:var(--muted);flex:0 0 auto}
+
+.bf-rt{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--card);margin-top:8px}
+.bf-rt-bar{display:flex;gap:2px;align-items:center;padding:7px 8px;background:var(--sunk);border-bottom:1px solid var(--line-soft)}
+.bf-rt-bar button{min-width:30px;height:28px;padding:0 9px;background:none;border:1px solid transparent;border-radius:4px;cursor:pointer;font:600 13px/1 var(--fb);color:var(--muted)}
+.bf-rt-bar button:hover{background:var(--card);border-color:var(--line);color:var(--ink)}
+.bf-rt-sep{width:1px;align-self:stretch;margin:2px 6px;background:var(--line)}
+.bf-rt-in{min-height:78px;padding:12px 14px;font-size:15px;line-height:1.62;color:var(--ink);outline:0}
+.bf-rt-in:empty::before{content:attr(data-ph);color:var(--muted)}
+.bf-rt-in:focus{box-shadow:inset 0 0 0 2px var(--bf-purple-pale)}
+.bf-rt.is-drop{box-shadow:inset 0 0 0 2px var(--bf-purple)}
+.bf-rt-files{display:flex;flex-wrap:wrap;gap:8px;padding:11px 14px;border-top:1px solid var(--line-soft);background:var(--sunk)}
+.bf-rt-files[hidden]{display:none}
+.bf-rt-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-top:1px solid var(--line-soft);background:var(--sunk)}
+.bf-rt-hint{font-size:12.5px;color:var(--muted)}
+.bf-att-x{width:22px;height:22px;flex:0 0 auto;border-radius:50%;border:0;background:var(--line-soft);color:var(--muted);cursor:pointer;font:400 15px/1 var(--fb);padding:0}
+.bf-att-x:hover{background:var(--bf-clay-pale);color:var(--bf-clay)}
+
+/* ---------- messages hub ---------- */
+.bf-hub{display:flex;flex-direction:column;gap:1px;background:var(--line-soft);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.bf-hub-item{display:block;padding:14px 16px;background:var(--card);text-decoration:none;color:var(--body)}
+.bf-hub-item:hover{background:var(--bf-purple-wash)}
+.bf-hub-item.is-unread{box-shadow:inset 3px 0 0 var(--bf-clay)}
+.bf-hub-top{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+.bf-hub-src{background:var(--bf-purple-pale);color:var(--bf-purple-deep);border-radius:11px;padding:3px 9px;font-weight:600}
+.bf-hub-when{margin-left:auto}
+.bf-hub-title{display:block;font-family:var(--fd);font-weight:700;font-size:16px;color:var(--ink);margin-top:5px}
+.bf-hub-prev{display:block;font-size:14px;color:var(--muted);margin-top:2px}
+
+/* ---------- resources ---------- */
+.bf-lib{display:flex;flex-direction:column}
+.bf-lib-item{display:flex;gap:15px;padding:20px 0;border-top:1px solid var(--line-soft)}
+.bf-lib-item:first-child{border-top:0}
+.bf-lib-n{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:var(--bf-purple);color:#fff;font:800 14px/30px var(--fd);text-align:center}
+.bf-for{font-size:13px;color:var(--bf-clay);background:var(--bf-clay-pale);border-radius:14px;padding:6px 11px;display:inline-block}
+
+@media (prefers-reduced-motion:reduce){.bf-portal *{animation:none!important;transition:none!important}}
+
+/* ==========================================================================
+   Notice, help bar, footer
+   ========================================================================== */
+.bf-banner{display:flex;gap:12px;align-items:flex-start;border-radius:6px;padding:14px 16px;margin:0 0 20px;
+  border:1px solid var(--bf-purple-pale);background:var(--bf-purple-wash);color:var(--ink)}
+.bf-banner p{margin:0;flex:1;font-size:15px}
+.bf-banner-sage{background:var(--bf-sage-pale);border-color:rgba(90,107,44,.25)}
+.bf-banner-clay{background:var(--bf-clay-pale);border-color:rgba(184,92,46,.28)}
+.bf-banner-x{background:none;border:0;cursor:pointer;font-size:20px;line-height:1;color:var(--muted);padding:0 2px}
+.bf-banner-x:hover{color:var(--ink)}
+
+.bf-help{display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between;
+  margin:26px 0 0;padding:16px 18px;background:var(--bf-purple-wash);border:1px solid var(--bf-purple-pale);border-radius:6px}
+.bf-help p{margin:0;font-size:15px;color:var(--body)}
+.bf-foot{margin:16px 0 0;font-size:13.5px;color:var(--muted)}
+.bf-logo{max-height:46px;max-width:190px;width:auto;height:auto;display:block;object-fit:contain}
+
+/* ==========================================================================
+   Priority items and For review
+   A full-width banner card: collapsed to one line and a count, opened by
+   choice. Status is never carried by colour alone — there is a count, a
+   fraction and a written label beside it.
+   ========================================================================== */
+
+.bf-items{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--bf-clay);
+  border-radius:6px;overflow:hidden;margin:0 0 18px}
+.bf-items-sage{border-top-color:var(--bf-sage-deep)}
+
+.bf-items-head{display:flex;align-items:center;gap:14px;width:100%;text-align:left;border:0;cursor:pointer;
+  font:inherit;padding:16px 22px;background:var(--bf-clay-pale);border-bottom:1px solid transparent}
+.bf-items-sage .bf-items-head{background:var(--bf-sage-pale)}
+.bf-items-head:hover{filter:brightness(.985)}
+.bf-items.is-open .bf-items-head{border-bottom-color:var(--line-soft)}
+.bf-items-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.bf-items-title{font-family:var(--fd);font-weight:700;font-size:21px;color:var(--ink);letter-spacing:-.01em}
+.bf-items-badge{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;border-radius:16px;padding:8px 13px;
+  font:600 13px/1 var(--fb);background:var(--bf-clay);color:#fff}
+.bf-items-badge b{font-family:var(--fd);font-weight:800}
+.bf-items-sage .bf-items-badge{background:var(--bf-sage-deep)}
+.bf-items-badge.is-clear{background:transparent;color:var(--bf-sage-deep);box-shadow:inset 0 0 0 1.5px var(--bf-sage-deep)}
+.bf-items-count{flex:0 0 auto;font:600 13px/1 var(--fb);color:var(--muted)}
+.bf-items-chev{flex:0 0 auto;color:var(--muted);transition:transform .2s}
+.bf-items-chev svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
+.bf-items.is-open .bf-items-chev{transform:rotate(180deg)}
+
+.bf-items-acc{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s ease}
+.bf-items.is-open>.bf-items-acc,
+.bf-item.is-det-open .bf-item-det-acc,
+.bf-item.is-talk-open>.bf-item-thread{grid-template-rows:1fr}
+.bf-items-acc-in{overflow:hidden;min-height:0}
+.bf-items-list{padding:18px 22px 20px;display:flex;flex-direction:column;gap:11px}
+
+.bf-item{border:1px solid var(--line);border-left:3px solid var(--bf-clay);border-radius:4px;padding:16px 18px;background:var(--card)}
+.bf-items-sage .bf-item{border-left-color:var(--bf-sage-deep)}
+.bf-item.is-done{background:var(--sunk);border-left-color:var(--line)}
+.bf-item-row{display:flex;gap:13px;align-items:flex-start;cursor:pointer}
+.bf-item-check{flex:0 0 auto;width:26px;height:26px;border-radius:50%;border:2px solid var(--bf-clay);
+  background:var(--card);display:flex;align-items:center;justify-content:center;margin-top:1px}
+.bf-items-sage .bf-item-check{border-color:var(--bf-sage-deep)}
+.bf-item-check svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.bf-item.is-done .bf-item-check{background:var(--bf-clay);border-color:var(--bf-clay)}
+.bf-items-sage .bf-item.is-done .bf-item-check{background:var(--bf-sage-deep);border-color:var(--bf-sage-deep)}
+.bf-item.is-done .bf-item-check svg{opacity:1}
+.bf-item-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.bf-item-text{font-size:15.5px;line-height:1.55;color:var(--ink)}
+.bf-item.is-done .bf-item-text{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+.bf-item-meta{font-size:13px;color:var(--muted);margin-top:7px}
+.bf-item-meta:empty{display:none}
+
+.bf-item-det{display:inline-flex;align-items:center;gap:7px;background:none;border:0;cursor:pointer;
+  padding:8px 0 0;font:400 13.5px/1.4 var(--fb);color:var(--muted);text-align:left}
+.bf-item-det:hover{color:var(--bf-purple)}
+.bf-item-chev{width:11px;height:11px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+.bf-item.is-det-open .bf-item-chev{transform:rotate(90deg)}
+.bf-item-det-b{padding:11px 0 2px;font-size:15px;line-height:1.65}
+.bf-item-link{display:inline-block;margin-top:9px;font-size:13.5px;font-weight:600;color:var(--bf-purple);text-decoration:none}
+.bf-item-link:hover{text-decoration:underline}
+
+.bf-item-talk{display:block;margin-top:11px;background:none;border:0;cursor:pointer;padding:2px 0;
+  font:600 13.5px/1 var(--fb);color:var(--bf-clay)}
+.bf-items-sage .bf-item-talk{color:var(--bf-sage-deep)}
+.bf-item-talk:hover{text-decoration:underline}
+.bf-item-thread .bf-thread{border-top:0;margin-top:8px;padding-top:8px}
+.bf-item-thread .bf-thread-h{padding:9px 13px}
+.bf-item-thread .bf-thread-h h3{font-size:14.5px}
+
+/* ==========================================================================
+   Staff view: the family picker and the bar above a family's portal
+   ========================================================================== */
+
+.bf-staffbar{background:var(--ink);color:#fff;padding:14px 20px;display:flex;gap:18px;
+  align-items:center;flex-wrap:wrap}
+.bf-staffbar-t{flex:1;min-width:220px;display:flex;flex-direction:column;gap:2px}
+.bf-staffbar-eyebrow{font-family:var(--fd);font-weight:700;font-size:11.5px;letter-spacing:.04em;color:var(--bf-sage)}
+.bf-staffbar-t strong{font-family:var(--fd);font-weight:700;font-size:17px;color:#fff}
+.bf-staffbar-sub{font-size:13px;color:rgba(255,255,255,.7)}
+.bf-staffbar-a{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.bf-staffbar-a a{color:#fff;font-size:13.5px;font-weight:600;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.4)}
+.bf-staffbar-a a:hover{border-bottom-color:var(--bf-sage);color:var(--bf-sage)}
+.bf-staffbar-x{opacity:.8}
+.bf-staffbar-note{flex:1 0 100%;margin:0;font-size:12.5px;color:rgba(255,255,255,.62);line-height:1.5}
+
+.bf-find{max-width:640px;margin:6px 0 0}
+.bf-find-l{display:block;font-family:var(--fd);font-weight:700;font-size:13px;color:var(--ink);margin-bottom:6px}
+.bf-find-box{position:relative}
+.bf-find-in{width:100%;font:400 16px/1.4 var(--fb);color:var(--ink);background:var(--card);
+  border:1px solid var(--line);border-radius:6px;padding:14px 44px 14px 15px;-webkit-appearance:none}
+.bf-find-in:focus{outline:2px solid transparent;border-color:var(--bf-purple);box-shadow:0 0 0 3px var(--bf-purple-pale)}
+.bf-find-spin{position:absolute;right:14px;top:50%;width:16px;height:16px;margin-top:-8px;border-radius:50%;
+  border:2px solid var(--line);border-top-color:var(--bf-purple);animation:bf-spin .7s linear infinite}
+@keyframes bf-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.bf-find-spin{animation:none}}
+
+.bf-find-list{list-style:none;margin:10px 0 0;padding:0;border:1px solid var(--line);border-radius:6px;
+  background:var(--card);overflow:hidden}
+.bf-find-list:empty{display:none}
+.bf-find-item{display:block;width:100%;text-align:left;background:none;border:0;cursor:pointer;
+  padding:13px 16px;border-top:1px solid var(--line-soft);font:inherit;color:var(--body)}
+.bf-find-list li:first-child .bf-find-item{border-top:0}
+.bf-find-item:hover,.bf-find-item.is-active{background:var(--bf-purple-wash)}
+.bf-find-item.is-active{box-shadow:inset 3px 0 0 var(--bf-purple)}
+.bf-find-name{display:block;font-family:var(--fd);font-weight:700;font-size:16px;color:var(--ink)}
+.bf-find-meta{display:block;font-size:13.5px;color:var(--muted);margin-top:2px}
+.bf-find-kids{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.bf-find-kid{background:var(--bf-purple-pale);color:var(--bf-purple-deep);border-radius:12px;
+  padding:3px 10px;font-size:12.5px;font-weight:600}
+.bf-find-none{margin:12px 0 0;color:var(--muted);font-size:15px}
+
+/* ==========================================================================
+   Charts
+   Two colours carry data: the child's own line and the benchmark. Neither is
+   the brand purple, and that is deliberate. #70567F is a chrome colour: at a
+   chroma of 0.071 it reads as grey once it is a 3px line on white, and a
+   colourblind reader cannot separate it from the sage benchmark. The pair
+   below was picked by running the palette validator, and passes every check
+   including the deuteranopia and protanopia separation.
+
+     light   series #6E4A95   benchmark #8B8F3E
+     dark    series #A87BC9   benchmark #949B4D   (kept here for the day the
+                                                   portal gains a dark theme;
+                                                   both validated against a
+                                                   dark surface)
+
+   Identity is never colour alone: the benchmark is dashed as well as sage,
+   both series are named in the legend, and the numbers sit behind a
+   disclosure as a table.
+   ========================================================================== */
+.bf-portal{
+  --bf-chart-series:#6E4A95;
+  --bf-chart-goal:#8B8F3E;
+  --bf-chart-grid:#EAE3ED;
+  --bf-chart-ink:#7D7488;
+  --fm:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.bf-chartwrap{position:relative;margin-top:6px}
+.bf-chart{width:100%;height:auto;display:block;overflow:visible}
+.bf-chart text{font-family:var(--fm);font-size:11px;fill:var(--bf-chart-ink);letter-spacing:.01em}
+.bf-chart .bf-axis-t{font-size:10.5px}
+.bf-pts circle{cursor:pointer}
+
+.bf-tip{position:absolute;pointer-events:none;opacity:0;transform:translate(-50%,-118%);
+  background:var(--ink);color:var(--ground);padding:7px 10px;border-radius:4px;
+  font:500 11.5px/1.45 var(--fb);white-space:nowrap;z-index:6;transition:opacity .12s}
+.bf-tip[hidden]{display:block}          /* hidden only until it is first placed */
+.bf-tip.is-on{opacity:1}
+.bf-tip b{font-family:var(--fm);font-weight:500;display:block}
+
+.bf-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:13px;color:var(--muted)}
+.bf-legend i{display:inline-flex;align-items:center;gap:6px;font-style:normal}
+.bf-key{width:16px;height:3px;border-radius:2px;background:var(--bf-chart-series);flex:0 0 auto}
+.bf-key.is-goal{background:none;border-top:2px dashed var(--bf-chart-goal);height:0}
+
+.bf-chart-data{margin-top:14px}
+.bf-chart-data summary{cursor:pointer;font-size:13.5px;color:var(--bf-purple-deep);
+  padding:7px 0;list-style:revert}
+.bf-chart-data summary:hover{color:var(--bf-clay)}
+.bf-chart-data[open] summary{margin-bottom:8px}
+
+/* ---------- skills covered, session by session ---------- */
+.bf-howto{display:flex;gap:9px;align-items:flex-start;background:var(--bf-purple-wash);
+  border:1px solid var(--bf-purple-pale);border-radius:5px;padding:12px 14px;font-size:14px;
+  color:var(--body);margin-bottom:16px}
+.bf-howto b{color:var(--ink);font-weight:600}
+.bf-cov-scroll{overflow-x:auto}
+.bf-covtab{border-collapse:separate;border-spacing:3px;width:auto;min-width:auto}
+/* The skill name stays put while the lessons scroll under it. Without this
+   the first column scrolls away too and the grid becomes rows of anonymous
+   squares. */
+.bf-covtab th.bf-cn{text-align:left;font:600 12.5px/1.3 var(--fb);color:var(--ink);
+  padding:0 12px 0 0;white-space:nowrap;border:0;background:var(--card);
+  position:sticky;left:0;z-index:2}
+.bf-covtab thead th.bf-cn{z-index:3}
+.bf-covtab thead th{font-family:var(--fm);font-size:10px;color:var(--muted);padding:0 0 5px;
+  text-align:center;border:0;min-width:20px;font-weight:500}
+.bf-covtab td{padding:0;border:0;text-align:center}
+.bf-cell{display:block;width:20px;height:20px;border-radius:3px;
+  background:var(--bf-purple-pale);font-style:normal}
+.bf-cell.is-new{background:var(--bf-clay);color:#fff;font:800 9px/20px var(--fd);letter-spacing:.04em}
+.bf-cov-key{display:flex;align-items:center;gap:8px 18px;font-size:13px;color:var(--muted);
+  margin-top:12px;flex-wrap:wrap}
+.bf-cov-key span{display:inline-flex;align-items:center;gap:7px}
+.bf-cov-key .bf-cell{display:inline-block;flex:0 0 auto}
+
+/* The SVG scales with the card, and so does its text: 11 user units is 11px
+   at full width and six illegible pixels on a phone. These sizes are in the
+   viewBox's units, chosen so the rendered result stays around 12px. */
+@media (max-width:860px){
+  .bf-chart text{font-size:15px}
+  .bf-chart .bf-axis-t{font-size:14px}
+}
+@media (max-width:640px){
+  .bf-chart text{font-size:24px}
+  .bf-chart .bf-axis-t{font-size:22px}
+  .bf-covtab th.bf-cn{white-space:normal;max-width:42vw;min-width:120px}
+  .bf-cov-scroll{margin-right:-6px}
+}
+
+
+/* ==========================================================================
+   The summary cards at the top of a diagnostic
+   Ported from the agreed prototype. One card per skill area, so a parent
+   takes in the whole picture before deciding what to read.
+
+   Colour is never the only signal: the bar's colour, the pill's colour and
+   the pill's words all say the same thing, so the card still reads correctly
+   printed in black and white or by someone who cannot separate the hues.
+   ========================================================================== */
+.bf-skills{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:12px;margin-bottom:22px}
+.bf-skill{display:block;background:var(--card);border:1px solid var(--line);border-radius:6px;
+  padding:15px;text-decoration:none;color:inherit;transition:border-color .15s,box-shadow .15s}
+.bf-skill:hover,.bf-skill:focus-visible{border-color:var(--bf-purple-mid);
+  box-shadow:0 4px 16px -8px rgba(36,30,42,.25);outline:0}
+.bf-skill-name{display:block;font-family:var(--fd);font-weight:700;font-size:15px;color:var(--ink);margin-bottom:2px}
+.bf-skill-sub{display:block;font-size:12.5px;color:var(--muted);margin-bottom:12px;min-height:2.6em;line-height:1.35}
+.bf-skill-fig{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
+.bf-num{font-family:var(--fd);font-weight:800;font-size:28px;line-height:1;color:var(--ink);
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.bf-num.is-word{font-size:20px;line-height:1.15}
+.bf-of{font-family:var(--fm);font-size:12px;color:var(--muted)}
+.bf-track{position:relative;display:block;height:9px;border-radius:5px;background:var(--line-soft)}
+.bf-fill{position:absolute;inset:0 auto 0 0;border-radius:5px;background:var(--bf-purple)}
+.bf-fill.is-sage{background:var(--bf-sage-deep)}
+.bf-fill.is-clay{background:var(--bf-clay)}
+.bf-fill.is-purple{background:var(--bf-purple)}
+.bf-skill-status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px;flex-wrap:wrap}
+.bf-pill{display:inline-flex;align-items:center;gap:5px;border-radius:20px;
+  font:600 11.5px/1 var(--fb);letter-spacing:.03em;padding:5px 10px;white-space:nowrap}
+.bf-pill .bf-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:0 0 auto}
+.bf-pill.is-sage{background:var(--bf-sage-pale);color:var(--bf-sage-deep)}
+.bf-pill.is-clay{background:var(--bf-clay-pale);color:var(--bf-clay)}
+.bf-pill.is-purple{background:var(--bf-purple-pale);color:var(--bf-purple-deep)}
+.bf-meta{font-family:var(--fm);font-size:11.5px;color:var(--muted)}
+.bf-skill-note{display:block;margin-top:11px;padding-top:11px;border-top:1px solid var(--line-soft);
+  font-size:13.5px;line-height:1.55;color:var(--body)}
+
+/* A section jumped to from a card says so for a moment, so the reader knows
+   where they landed. */
+.bf-sec:target{border-color:var(--bf-purple-mid);box-shadow:0 0 0 3px var(--bf-purple-pale)}
+.bf-sec{scroll-margin-top:20px}
+
+@media (max-width:560px){
+  .bf-skills{grid-template-columns:1fr}
+  .bf-skill-sub{min-height:0}
+}
+
+/* ---------- the progress overview, as the prototype draws it ---------- */
+.bf-ckpt{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:16px}
+.bf-ckpt-item{display:inline-flex;align-items:center;gap:7px;background:var(--sunk);
+  border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:13px;color:var(--muted)}
+.bf-ckpt-item b{font-family:var(--fd);font-weight:700;color:var(--ink)}
+.bf-ckpt-item.is-done{background:var(--bf-sage-pale);border-color:var(--bf-sage-pale);color:var(--bf-sage-deep)}
+.bf-ckpt-item.is-done b{color:var(--bf-sage-deep)}
+.bf-tick{width:14px;height:14px;flex:0 0 auto}
+
+.bf-ovt th[scope=row]{text-align:left;vertical-align:top;padding-right:16px}
+.bf-ovt-name{display:block;font-family:var(--fd);font-weight:700;font-size:14.5px;color:var(--ink)}
+.bf-ovt-sub{display:block;font-size:12.5px;color:var(--muted);font-weight:400;margin-top:1px}
+.bf-ovt td{vertical-align:top}
+.bf-ovt-fig{display:block;font-family:var(--fd);font-weight:800;font-size:19px;color:var(--ink);
+  font-variant-numeric:tabular-nums;line-height:1.15}
+.bf-ovt-unit{display:block;font-family:var(--fm);font-size:11.5px;color:var(--muted);margin-top:2px}
+.bf-ovt td .bf-track{margin-top:8px;max-width:150px}
+.bf-ovt-note{display:block;margin-top:7px;font-size:12.5px;color:var(--muted);line-height:1.45}
+.bf-ovt-none{color:var(--muted)}
+.bf-ovt-foot{margin:12px 0 0;font-size:13px;color:var(--muted)}
+
+/* ==========================================================================
+   The report, as the prototype lays it out
+   A hero naming the child, one thing to read first, the summary in prose,
+   six cards, then the full report as sections that open.
+   ========================================================================== */
+.bf-hero{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:22px 24px;margin-bottom:18px}
+.bf-hero .bf-eyebrow{color:var(--bf-purple);margin-bottom:6px}
+.bf-hero h1{color:var(--ink);font-size:32px;margin-bottom:7px}
+.bf-hero-sub{font-family:var(--fm);font-size:12.5px;color:var(--muted);letter-spacing:.01em;line-height:1.7}
+.bf-hero .bf-lede{color:var(--body);font-size:16px;margin-top:14px;max-width:64ch}
+.bf-hero-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}
+
+.bf-read-first{margin-bottom:18px}
+.bf-read-first svg{width:17px;height:17px;flex:0 0 auto;margin-top:2px;stroke:var(--bf-clay);fill:none;stroke-width:1.9;stroke-linecap:round}
+
+/* ---------- sections that open ---------- */
+.bf-docsec{padding:0;overflow:hidden}
+.bf-docsec>.bf-sec-h{display:flex;width:100%;gap:12px;align-items:flex-start;padding:16px 20px;
+  background:none;border:0;font:inherit;text-align:left;cursor:pointer;color:inherit}
+.bf-docsec>.bf-sec-h:hover{background:var(--sunk)}
+.bf-docsec>.bf-sec-h:focus-visible{outline:2px solid var(--bf-purple);outline-offset:-3px}
+.bf-sec-t{flex:1;min-width:0}
+.bf-sec-t .bf-eyebrow{display:block;margin-bottom:3px}
+.bf-sec-t h2{font-size:19px}
+.bf-chev{flex:0 0 auto;margin-top:6px;color:var(--muted);transition:transform .2s}
+.bf-chev svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
+.bf-docsec.is-open>.bf-sec-h .bf-chev{transform:rotate(180deg)}
+
+.bf-acc{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s ease}
+.bf-docsec.is-open>.bf-acc,.bf-skill.is-open>.bf-acc{grid-template-rows:1fr}
+.bf-acc-in{overflow:hidden;min-height:0}
+.bf-docsec>.bf-acc .bf-sec-b{padding:2px 20px 20px;border-top:1px solid var(--line-soft);margin-top:2px;padding-top:16px}
+.bf-docsec>.bf-acc>.bf-acc-in>.bf-thread,
+.bf-docsec>.bf-acc>.bf-acc-in>.bf-items{margin:0 20px 20px}
+
+/* Without JavaScript, and on paper, everything is open: the script removes
+   no-js from the document element once it has taken over. */
+html.no-js .bf-acc{grid-template-rows:1fr}
+@media print{
+  .bf-acc{grid-template-rows:1fr !important}
+  .bf-chev,.bf-hero-actions{display:none}
+}
+
+/* ---------- the cards open too ---------- */
+.bf-skill{padding:0}
+.bf-skill-head{display:block;width:100%;text-align:left;background:none;border:0;font:inherit;
+  color:inherit;cursor:pointer;padding:15px}
+.bf-skill-head:focus-visible{outline:2px solid var(--bf-purple);outline-offset:-3px}
+.bf-acc-pad{padding:0 15px 15px;border-top:1px solid var(--line-soft);margin-top:2px;padding-top:13px}
+.bf-note{font-size:14px;line-height:1.62;color:var(--body);margin:0}
+.bf-skill-more{margin-top:9px}
+.bf-skill-more a{color:var(--bf-purple);font-weight:600}
+
+/* Which part of the report a to-do list belongs to. */
+.bf-scope-chip{display:inline-block;margin-left:9px;vertical-align:middle;
+  background:var(--bf-purple-pale);color:var(--bf-purple-deep);border-radius:11px;
+  padding:3px 9px;font:600 10.5px/1.4 var(--fb);letter-spacing:.05em}
+.bf-items{margin-bottom:14px}
+
+/* ---- a piece of a child's work, at full size --------------------------
+   In this file rather than in bftd-report.css because the dialog is appended
+   to the body: every selector in that file is scoped under .bf-report, and a
+   thing that is not inside the report cannot honestly be written as though it
+   were. Appending it into the report instead would put a fixed overlay inside
+   a container whose ancestors this plugin does not control. */
+.bftd-shotbox { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center;
+	justify-content: center; padding: 28px; background: rgba(22, 19, 26, 0.88); }
+.bftd-shotbox img { max-width: 100%; max-height: 100%; width: auto; height: auto;
+	border-radius: 4px; background: #fff; }
+.bftd-shotbox-x { position: absolute; top: 10px; right: 14px; width: 44px; height: 44px;
+	background: none; border: 0; color: #fff; font-size: 30px; line-height: 1; cursor: pointer; }
+.bftd-shotbox-x:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 4px; }
+
+@media (max-width: 782px) {
+	.bftd-shotbox { padding: 12px; }
+	.bftd-shotbox-x { top: 4px; right: 6px; }
+}
