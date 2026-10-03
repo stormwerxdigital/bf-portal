@@ -643,41 +643,6 @@
 	else init();
 } )();
 
-/* ---- an activity description, folded to its first sentence --------------
- *
- * Shipped open by the server so a family whose scripts did not run reads the
- * whole description, which is the behaviour this replaces. The script closes it
- * and offers it back, which is the way round that cannot leave somebody with
- * one sentence and a button that does nothing.
- */
-jQuery( function ( $ ) {
-	$( '.doc-body.about.has-more' ).each( function () {
-		var $body = $( this );
-		var gist  = $body.attr( 'data-gist' ) || '';
-		if ( ! gist ) return;
-
-		var full = $body.html();
-		var $btn = $( '<button type="button" class="about-more"></button>' );
-
-		function shut() {
-			$body.html( $( '<p>' ).text( gist ) );
-			$btn.text( 'Read more' ).attr( 'aria-expanded', 'false' );
-			$body.after( $btn );
-		}
-		function open() {
-			$body.html( full );
-			$btn.text( 'Show less' ).attr( 'aria-expanded', 'true' );
-			$body.after( $btn );
-		}
-
-		$btn.on( 'click', function () {
-			if ( 'true' === $btn.attr( 'aria-expanded' ) ) shut(); else open();
-		} );
-
-		shut();
-	} );
-} );
-
 /* ---- a piece of work, full size ----------------------------------------
  *
  * The link already opens the image on its own, so this only upgrades it. A

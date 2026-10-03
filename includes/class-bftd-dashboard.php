@@ -94,7 +94,9 @@ class BFTD_Dashboard {
 		// under .bf-report, so nothing in it reaches the theme.
 		wp_enqueue_style( 'bftd-report', BFTD_URL . 'assets/css/bftd-report.css', array( 'bftd-fonts', 'bftd-portal' ), BFTD_VERSION );
 
-		wp_enqueue_script( 'bftd-portal', BFTD_URL . 'assets/js/bftd-portal.js', array(), BFTD_VERSION, true );
+		// jQuery is asked for by name: the work lightbox is written with it, and
+		// a theme is not obliged to load it. Without this the lightbox did nothing.
+		wp_enqueue_script( 'bftd-portal', BFTD_URL . 'assets/js/bftd-portal.js', array( 'jquery' ), BFTD_VERSION, true );
 
 		// Without this the sections, the lesson accordions and the per-item
 		// detail toggles are drawn but dead. A control that does nothing is
@@ -1009,54 +1011,7 @@ class BFTD_Dashboard {
 					$shots   = array_filter( (array) $a['samples'] );
 					if ( '' === $about && '' === wp_strip_all_tags( $note ) && ! $shots ) continue;
 					?>
-					<div class="blk<?php echo $is_new ? ' blk-new' : ''; ?>">
-						<div class="blk-h"><?php
-							if ( $is_new ) echo '<span class="newpill">New</span>';
-							/*
-							 * Named as an activity, not just named. On a
-							 * session record these blocks sit among "What we
-							 * did", "Homework" and "Skills practiced", all of
-							 * which say what they are; a bare title like
-							 * "Up tea earn weigh" read as one more heading
-							 * rather than as the thing the child worked on.
-							 */
-							echo '<span class="blk-k">Activity:</span> ';
-							echo esc_html( $a['name'] );
-						?></div>
-						<?php if ( '' !== $about ) : ?>
-							<?php
-							/*
-							 * One sentence, with the rest a click away.
-							 *
-							 * An activity's description is written for a parent
-							 * who wants to know what the thing is, and a session
-							 * with six activities was six paragraphs of
-							 * curriculum before the first word about their own
-							 * child. The first sentence says what it is; the
-							 * rest is there for whoever wants it.
-							 *
-							 * Shipped OPEN, with the script closing it. A
-							 * family whose scripts did not run reads the whole
-							 * description, which is the old behaviour, rather
-							 * than one sentence and a button that does nothing.
-							 */
-							$gist = self::first_sentence( $about );
-							$more = '' !== $gist && wp_strip_all_tags( $gist ) !== trim( wp_strip_all_tags( $about ) );
-							?>
-							<div class="doc-body about<?php echo $more ? ' has-more' : ''; ?>"<?php
-								echo $more ? ' data-gist="' . esc_attr( $gist ) . '"' : ''; ?>><?php
-								echo wp_kses_post( wpautop( $about ) );
-							?></div>
-						<?php endif; ?>
-						<?php if ( '' !== wp_strip_all_tags( $note ) ) : ?>
-							<div class="doc-body"><?php echo wp_kses_post( wpautop( $note ) ); ?></div>
-						<?php endif; ?>
-						<?php if ( $shots ) : ?>
-							<div class="samples"><?php
-								foreach ( $shots as $aid ) echo self::work_shot( (int) $aid );
-							?></div>
-						<?php endif; ?>
-					</div>
+					<?php echo self::activity_block( $a, $is_new, $about, $note, $shots ); ?>
 				<?php endforeach; ?>
 
 				<?php
@@ -1114,7 +1069,7 @@ class BFTD_Dashboard {
 				 * a parent came for, so it says so.
 				 */
 				$blks = array(
-					'notes'    => array( 'A note from your tutor', 'blk-notes' ),
+					'notes'    => array( 'Tutor session notes', 'blk-notes' ),
 					// Homework keeps its name. Only the tutor's note needed one.
 					'homework' => array( 'Homework', 'blk-hw' ),
 				);
@@ -1178,6 +1133,109 @@ class BFTD_Dashboard {
 	private static function abbreviations() {
 		return array( 'mr', 'mrs', 'ms', 'miss', 'dr', 'prof', 'rev', 'st', 'sr', 'jr',
 			'etc', 'eg', 'ie', 'vs', 'approx', 'no', 'fig', 'al', 'mt', 'co', 'inc', 'ltd' );
+	}
+
+	/**
+	 * One activity on a session: its name, its folded description, the tutor's
+	 * notes on it and the child's work from it. Public so a browser test can
+	 * draw it with the real code rather than a copy of its markup.
+	 */
+	public static function activity_block( $a, $is_new, $about, $note, $shots ) {
+		ob_start();
+		?>
+		<div class="blk<?php echo $is_new ? ' blk-new' : ''; ?>">
+			<div class="blk-h"><?php
+				if ( $is_new ) echo '<span class="newpill">New</span>';
+				/*
+				 * Named as an activity, not just named. On a
+				 * session record these blocks sit among "What we
+				 * did", "Homework" and "Skills practiced", all of
+				 * which say what they are; a bare title like
+				 * "Up tea earn weigh" read as one more heading
+				 * rather than as the thing the child worked on.
+				 */
+				echo '<span class="blk-k">Activity:</span> ';
+				echo esc_html( $a['name'] );
+			?></div>
+			<?php if ( '' !== $about ) : ?>
+				<?php
+				/*
+				 * The description, folded, under its own label.
+				 *
+				 * A session with six activities was six descriptions of
+				 * curriculum before the first word about the child, so each
+				 * one is closed until it is asked for. A details element
+				 * rather than a script: it folds on the portal, in the staff
+				 * preview and with scripts off alike, and the server decides
+				 * the state the page opens in. The script version depended
+				 * on jQuery, which the portal never asked for, and the
+				 * preview never loaded, so it did not fold at all.
+				 *
+				 * The first sentence shows while it is closed, when the
+				 * description opens with one. One that opens with a heading
+				 * or a list has no sentence to offer, so it shows the label.
+				 * A description that is one sentence long is not folded.
+				 */
+				$gist = self::about_gist( $about );
+				$all  = trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( $about ) ) );
+				$fold = '' === $gist || $gist !== $all;
+				?>
+				<?php if ( $fold ) : ?>
+					<details class="about-fold">
+						<summary>
+							<span class="about-k">About this activity</span>
+							<?php if ( '' !== $gist ) : ?><span class="about-gist"><?php echo esc_html( $gist ); ?></span><?php endif; ?>
+							<span class="about-more"></span>
+						</summary>
+						<div class="doc-body about"><?php echo wp_kses_post( wpautop( $about ) ); ?></div>
+					</details>
+				<?php else : ?>
+					<div class="about-fold is-short">
+						<span class="about-k">About this activity</span>
+						<div class="doc-body about"><?php echo wp_kses_post( wpautop( $about ) ); ?></div>
+					</div>
+				<?php endif; ?>
+			<?php endif; ?>
+			<?php if ( '' !== wp_strip_all_tags( $note ) ) : ?>
+				<?php
+				// What the tutor wrote about this activity on this
+				// session, set apart from the description above it so the
+				// two never read as one block of text.
+				?>
+				<div class="act-note">
+					<div class="act-note-h">Tutor activity notes</div>
+					<div class="doc-body"><?php echo wp_kses_post( wpautop( $note ) ); ?></div>
+				</div>
+			<?php endif; ?>
+			<?php if ( $shots ) : ?>
+				<div class="samples"><?php
+					foreach ( $shots as $aid ) echo self::work_shot( (int) $aid );
+				?></div>
+			<?php endif; ?>
+		</div>
+		<?php
+		return ob_get_clean();
+	}
+
+	/**
+	 * The sentence a folded activity description shows while it is closed.
+	 *
+	 * Only from an opening paragraph. A description that starts with a heading
+	 * or a list strips down to its headings run together, which is not a
+	 * sentence, so it gets none and the fold shows its label instead.
+	 */
+	public static function about_gist( $about ) {
+		// Read as stored. The classic editor stores paragraphs as plain text
+		// and headings and lists as tags, so a description that opens with a
+		// tag other than a paragraph opens with a heading or a list.
+		$raw = trim( (string) $about );
+		if ( '' === $raw ) return '';
+		if ( '<' === $raw[0] ) {
+			if ( ! preg_match( '/^<p\b[^>]*>(.*?)<\/p>/is', $raw, $m ) ) return '';
+			return self::first_sentence( $m[1] );
+		}
+		$para = preg_split( '/\n\s*\n/', $raw );
+		return self::first_sentence( $para[0] );
 	}
 
 	/**

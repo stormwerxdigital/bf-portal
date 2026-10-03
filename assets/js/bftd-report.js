@@ -238,6 +238,10 @@
 			Array.prototype.forEach.call( root.querySelectorAll( '.docsec, .skill, .pi-card, .session' ), function ( el ) {
 				el.classList.add( 'is-open' );
 			} );
+			// Folded activity descriptions print in full.
+			Array.prototype.forEach.call( root.querySelectorAll( 'details.about-fold' ), function ( el ) {
+				el.open = true;
+			} );
 		} );
 	}
 

@@ -167,4 +167,27 @@ check(false === strpos($bare, 'What we read'), 'and one that read nothing says n
 check(false !== strpos($bare, 'Quiet one.'), 'while what was written is still there');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
+/* ---- who wrote what ----
+ *
+ * The practice's description of an activity, the tutor's notes on that
+ * activity, and the tutor's notes on the whole session are three different
+ * voices, and on the family's page they ran together. Each now says what it
+ * is, and the description is folded so the notes are what shows. */
+check(1 === preg_match('#<div class="blk-h">Tutor session notes</div>\s*<div class="doc-body">.{0,10}He read it twice#s', $html),
+  'the session notes are headed Tutor session notes');
+check(false === strpos($html, 'A note from your tutor'), 'and no longer by the old heading');
+
+$GLOBALS['SESS'][903] = array('session_date' => '2026-09-17', 'status' => 'held');
+$GLOBALS['ACTS'][903] = array(
+  array('key' => 'a9', 'id' => 9, 'name' => 'KAT Routine', 'label' => 'KAT Routine',
+        'about' => '<h3>Completed</h3><ul><li>Story introduction</li></ul><p>Then the routine. It has four steps.</p>',
+        'note' => '<p>Main idea expanded: completed the problem and the solution.</p>', 'samples' => array()),
+);
+$kat = $draw(903);
+check(1 === preg_match('#<details class="about-fold">\s*<summary>\s*<span class="about-k">About this activity</span>#', $kat),
+  'an activity description is folded, under its own label');
+check(false === strpos($kat, 'about-gist'), 'one that opens with a heading shows the label, not its headings run together');
+check(1 === preg_match('#</details>\s*<div class="act-note">\s*<div class="act-note-h">Tutor activity notes</div>\s*<div class="doc-body">.{0,10}Main idea expanded#s', $kat),
+  'the tutor\'s notes on the activity follow it, outside the fold, headed Tutor activity notes');
+
 exit($fail ? 1 : 0);

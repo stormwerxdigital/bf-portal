@@ -1,0 +1,32 @@
+{
+  "rows": {
+    "1":  { "name": "Sound lines", "num": "2" },
+    "2":  { "name": "Up, Tea, Earn, Weigh", "num": "1" },
+    "3":  { "name": "Introduction to Phoneme Deletion", "num": "2" },
+    "4":  { "name": "Handwriting for Fluency", "num": "3" },
+    "5":  { "name": "Introduction to Consonant + e", "num": "4" },
+    "6":  { "name": "Introduction to Double Consonant", "num": "5" },
+    "7":  { "name": "Read, Read Back, Read Again", "num": "12" },
+    "8":  { "name": "Spreading the word", "num": "120" },
+    "9":  { "name": "Introduction to Authentic Lesson using KAT: Multisyllable Split Word Reading (Activity 2 of 4)", "num": "" },
+    "10": { "name": "Intro. to Authentic Lesson (EBLI): Multisyllable Spelling (Activity 1 of 4)", "num": "" },
+    "11": { "name": "Practice routine 61", "num": "21" }
+  },
+  "cases": [
+    { "q": "read", "want": [7, 9], "why": "a word matches where a word starts, so Reading counts and Spreading does not" },
+    { "q": "12", "want": [7, 8], "why": "twelve first, then numbers that start with 12" },
+    { "q": "1", "want": [2, 7, 8, 10], "why": "number one, then 12 and 120, then a name with 1 standing on its own" },
+    { "q": "consonant", "want": [5, 6], "why": "every name with the word, in library order when equal" },
+    { "q": "sound lines", "want": [1], "why": "the name typed" },
+    { "q": "lines sound", "want": [1], "why": "in any order" },
+    { "q": "intro", "want": [3, 5, 6, 9, 10], "why": "the start of a word finds Introduction and Intro." },
+    { "q": "kat split", "want": [9], "why": "every word has to be there" },
+    { "q": "61", "want": [11], "why": "a number in the name still finds it when no record has that number" },
+    { "q": "sound 2", "want": [1], "why": "a number and a word together" },
+    { "q": "lesson 1", "want": [10], "why": "Activity 1 of 4, not Activity 2 of 4" },
+    { "q": "ing", "want": [], "why": "the inside of a word is not a match" },
+    { "q": "multisyllable spelling", "want": [10], "why": "two words, one record" },
+    { "q": "  ", "want": [], "why": "nothing typed finds nothing" },
+    { "q": "EBLI", "want": [10], "why": "case does not matter, and brackets are not part of the word" }
+  ]
+}

@@ -206,7 +206,7 @@ class BFTD_Sessions {
 					<span class="bftd-ses-who"><?php echo esc_html( $row['name'] ); ?></span>
 				</button>
 				<span class="bftd-stu-acts">
-					<a href="<?php echo esc_url( (string) get_edit_post_link( $row['id'] ) ); ?>">View student</a>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . BFTD_Admin::HUB_SLUG . '&student=' . (int) $row['id'] ) ); ?>">View student</a>
 					<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=' . BFTD_CPT::SESSION . '&student=' . (int) $row['id'] ) ); ?>">Record a session</a>
 				</span>
 			</td>

@@ -103,7 +103,7 @@ $held = screen('held');
 $moved = screen('rescheduled');
 
 $css = file_get_contents(BFTD_PATH.'assets/css/bftd-admin.css');
-$js  = file_get_contents(BFTD_PATH.'assets/js/bftd-admin.js');
+$js  = file_get_contents(BFTD_PATH.'assets/js/bftd-match.js') . "\n" . file_get_contents(BFTD_PATH.'assets/js/bftd-admin.js');
 /*
  * The rescheduled screen on its own page, with no script on it at all. What
  * a tutor sees before anything has run is a question about PHP, and it

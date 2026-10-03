@@ -534,7 +534,9 @@ class BFTD_Activities {
 		ob_start();
 		wp_nonce_field( 'bftd_activity_' . $post->ID, 'bftd_activity_nonce' );
 		$chosen = self::skills_of( $post->ID );
-		echo '<div class="bftd-box bftd-skillpull"><p class="description">What a child can do after this activity. These are what the skills grid on a progress report is built from, so they are chosen here once rather than retyped on every session. Choosing one writes what that skill says about itself into the description below, where you can reword it.</p>';
+		// The pickers in this box only offer skills in the activity's own
+		// track. The script follows the track select if it is changed.
+		echo '<div class="bftd-box bftd-skillpull" data-bftd-lock="' . esc_attr( self::track_of( $post->ID ) ) . '"><p class="description">What a child can do after this activity. Only skills in this activity\'s track are offered. These are what the skills grid on a progress report is built from, so they are chosen here once rather than retyped on every session. Choosing one writes what that skill says about itself into the description below, where you can reword it.</p>';
 		BFTD_Fields::render_field( $post->ID, 'activity', 'skills', array(
 			'type'      => 'rows',
 			'label'     => 'Skills',
@@ -573,9 +575,15 @@ class BFTD_Activities {
 		// because that is what every reader wants and unpacking rows at each
 		// of them is how the same loop ends up written four times.
 		$skills = array();
+		$before = self::skills_of( $post_id );
 		foreach ( (array) ( $rows['skills'] ?? array() ) as $row ) {
 			$sid = is_array( $row ) && isset( $row['id'] ) ? (int) $row['id'] : 0;
-			if ( $sid && '' !== BFTD_Skills::label( $sid ) ) $skills[] = $sid;
+			if ( ! $sid || '' === BFTD_Skills::label( $sid ) ) continue;
+			// A skill from the other track is not added. One that was already
+			// on this activity is kept, so nothing attached before skills had
+			// tracks is dropped by a save; the box marks it for a person to fix.
+			if ( BFTD_Skills::track_of( $sid ) !== $track && ! in_array( $sid, $before, true ) ) continue;
+			$skills[] = $sid;
 		}
 		update_post_meta( $post_id, self::SKILLS_KEY, array_values( array_unique( $skills ) ) );
 
@@ -628,16 +636,13 @@ class BFTD_Activities {
 	public static function filter_ui( $post_type ) {
 		if ( self::POST_TYPE !== $post_type ) return;
 		$now = isset( $_GET['bftd_track'] ) ? sanitize_key( wp_unslash( $_GET['bftd_track'] ) ) : '';
-		?>
-		<select name="bftd_track">
-			<option value="">Every track</option>
-			<?php foreach ( self::tracks() as $key => $label ) : ?>
-				<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $now, $key ); ?>><?php
-					echo esc_html( $label );
-				?></option>
-			<?php endforeach; ?>
-		</select>
-		<?php
+		if ( ! isset( self::tracks()[ $now ] ) ) $now = '';
+		BFTD_Library::track_pills( 'bftd_track', self::tracks(), $now );
+	}
+
+	/** Every activity on the list screen, for its search and suggestions. */
+	public static function list_index() {
+		return BFTD_Library::index( self::POST_TYPE, self::NUMBER_KEY, array( __CLASS__, 'track_of' ) );
 	}
 
 	/**
@@ -688,6 +693,8 @@ class BFTD_Activities {
 			isset( $_GET['bftd_track'] ) ? sanitize_key( wp_unslash( $_GET['bftd_track'] ) ) : ''
 		);
 		if ( $track ) $query->set( 'meta_query', array( $track ) );
+
+		BFTD_Library::list_search( $query, self::list_index() );
 	}
 
 	/**

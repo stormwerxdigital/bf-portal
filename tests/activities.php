@@ -244,11 +244,13 @@ check(false === strpos($block, 'match, chosen'), 'and the count does not claim i
 check(false !== strpos($block, ".trigger( 'change' )"),
   "taking one does fire the change, because the row's notes and work appear on that event and a value set in script does not raise it");
 
-/* The short list under the box, which is what a tutor reads while typing. */
-check(false !== strpos($block, 'var SHOW = 8'),
-  'the list is capped, because a search for one letter is not a list worth reading');
-check(false !== strpos($block, 'Keep typing to narrow it further'),
-  'and the cap is stated rather than silently applied');
+/* The list under the box shows every match, because records can share a name
+   and no amount of typing tells those apart (browser/picker-search.mjs drives
+   that). So it has to scroll rather than grow down the page. */
+check(false === strpos($block, 'var SHOW = 8'), 'the list is not cut off at eight');
+$acss = file_get_contents(BFTD_PATH . 'assets/css/bftd-admin.css');
+check(1 === preg_match('/\.bftd-actpick-r\{[^}]*max-height:[^}]*overflow:auto/', $acss),
+  'and it scrolls inside a set height');
 /* Checked at the call site, not at the helper. The helper being present says
  * nothing about whether the list uses it, and an earlier version of this
  * check passed while the label went in raw. */
@@ -715,7 +717,7 @@ BFTD_Skills::flush();
 
 /* The list is two lists, not one alphabetical run with Wordwall words
    scattered through it. With nothing numbered and nothing tracked yet, every
-   skill is a Track 1 skill, so the group is what is left to order by. */
+   skill is in the default track, so the group is what is left to order by. */
 check(array(401, 402, 404, 403) === array_keys(BFTD_Skills::all()),
   'skills first, then Wordwall, each by name, got ' . implode(',', array_keys(BFTD_Skills::all())));
 check(is_array(BFTD_Skills::all()[401]) && isset(BFTD_Skills::all()[401]['name']),
@@ -727,11 +729,13 @@ check(BFTD_Skills::labels() === array_map(function($r){ return $r['name']; }, BF
  *
  * The same shape the activity library has, because a student's starting point
  * is a number in one track's sequence and the report counts from it. */
-check('t1' === BFTD_Skills::track_of(401), 'a skill with no track stored is a Track 1 skill');
+check('t23' === BFTD_Skills::track_of(401), 'a skill with no track stored is a Tracks 2 and 3 skill');
 check(0 === BFTD_Skills::number_of(401), 'and an unnumbered one answers zero rather than guessing');
 
 $GLOBALS['META'][401]['_bftd_skill_number'] = 2;
 $GLOBALS['META'][402]['_bftd_skill_number'] = 1;
+$GLOBALS['META'][401]['_bftd_skill_track']  = 't1';
+$GLOBALS['META'][402]['_bftd_skill_track']  = 't1';
 $GLOBALS['META'][404]['_bftd_skill_track']  = 't23';
 $GLOBALS['META'][404]['_bftd_skill_number'] = 1;
 $GLOBALS['META'][403]['_bftd_skill_track']  = 't23';
@@ -740,7 +744,7 @@ BFTD_Skills::flush();
 check('t23' === BFTD_Skills::track_of(404), 'and one written since says which track it is in');
 $GLOBALS['META'][404]['_bftd_skill_track'] = 'invented';
 BFTD_Skills::flush();
-check('t1' === BFTD_Skills::track_of(404), 'a track nobody offers is not a third track');
+check('t23' === BFTD_Skills::track_of(404), 'a track nobody offers is not a third track, it is the default');
 $GLOBALS['META'][404]['_bftd_skill_track'] = 't23';
 BFTD_Skills::flush();
 
@@ -760,10 +764,10 @@ check('said' === BFTD_Skills::numbered_label(403), 'and an unnumbered one is jus
 $scol = BFTD_Skills::columns(array('cb' => 'x', 'title' => 'Title', 'date' => 'Date'));
 check(isset($scol['bftd_number']), 'the library list has a number column');
 check(isset(BFTD_Skills::sortable(array())['bftd_number']), 'and it sorts by it');
-$stc = BFTD_Skills::track_clause('t1');
+$stc = BFTD_Skills::track_clause('t23');
 check(isset($stc['relation']) && 'OR' === $stc['relation'],
-  'filtering skills to Track 1 also asks for everything with no track stored');
-check(isset(BFTD_Skills::track_clause('t23')['value']), 'while Tracks 2 and 3 ask for themselves alone');
+  'filtering skills to Tracks 2 and 3 also asks for everything with no track stored');
+check(isset(BFTD_Skills::track_clause('t1')['value']), 'while Track 1 asks for itself alone');
 check(null === BFTD_Skills::track_clause(''), 'and no filter asks for no narrowing');
 
 /* Karl asked for one word. */

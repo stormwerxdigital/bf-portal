@@ -32,8 +32,15 @@ class BFTD_Skills {
 	const TRACK_KEY  = '_bftd_skill_track';
 	const NUMBER_KEY = '_bftd_skill_number';
 
-	/** The track everything written before tracks reached this library is in. */
-	const TRACK_DEFAULT = 't1';
+	/**
+	 * The track a skill is in when none is stored. Skills are grouped by the
+	 * track they belong to, and the library is mostly Tracks 2 and 3.
+	 */
+	const TRACK_DEFAULT = 't23';
+
+	/** Stamp for the one-time write of the default onto unset skills. */
+	const TRACK_FILL_OPTION  = 'bftd_skills_track_fill';
+	const TRACK_FILL_VERSION = 1;
 
 	/** The group everything written before groups existed belongs to. */
 	const GROUP_DEFAULT = 'skill';
@@ -80,10 +87,8 @@ class BFTD_Skills {
 	/**
 	 * The track of one skill, always one of the two.
 	 *
-	 * A skill written before tracks reached this library has none stored, and
-	 * every one of those is a Track 1 skill: Track 1 is the programme the
-	 * practice was already running. Answering "unknown" would drop the whole
-	 * existing library out of both filters at once.
+	 * A skill with no track stored is a Tracks 2 and 3 skill. Answering
+	 * "unknown" would drop it out of both filters and every activity picker.
 	 */
 	public static function track_of( $id ) {
 		if ( null !== self::$fixture ) {
@@ -92,8 +97,18 @@ class BFTD_Skills {
 			$has  = ( is_array( $one ) && isset( $one['track'] ) ) ? (string) $one['track'] : '';
 			return isset( self::tracks()[ $has ] ) ? $has : self::TRACK_DEFAULT;
 		}
+		$stored = self::stored_track( $id );
+		return '' !== $stored ? $stored : self::TRACK_DEFAULT;
+	}
+
+	/**
+	 * The track actually stored on a skill, or '' when none has been chosen.
+	 * A new skill has none, and its edit screen asks for one rather than
+	 * quietly offering the default as if somebody had picked it.
+	 */
+	public static function stored_track( $id ) {
 		$stored = (string) get_post_meta( (int) $id, self::TRACK_KEY, true );
-		return isset( self::tracks()[ $stored ] ) ? $stored : self::TRACK_DEFAULT;
+		return isset( self::tracks()[ $stored ] ) ? $stored : '';
 	}
 
 	/**
@@ -262,6 +277,77 @@ class BFTD_Skills {
 		add_action( 'pre_get_posts', array( __CLASS__, 'admin_list_filter' ) );
 		add_filter( 'posts_clauses', array( __CLASS__, 'admin_list_order' ), 10, 2 );
 		add_filter( 'post_class', array( __CLASS__, 'row_class' ), 10, 3 );
+
+		// Track and number from the list itself, without opening the skill.
+		add_action( 'quick_edit_custom_box', array( __CLASS__, 'quick_box' ), 10, 2 );
+		add_action( 'save_post_' . self::POST_TYPE, array( __CLASS__, 'save_quick' ), 10, 2 );
+
+		// A skill cannot be saved or published without a track.
+		add_filter( 'wp_insert_post_data', array( __CLASS__, 'hold_without_track' ), 10, 2 );
+		add_filter( 'redirect_post_location', array( __CLASS__, 'flag_held' ), 10, 2 );
+		add_action( 'admin_notices', array( __CLASS__, 'held_notice' ) );
+
+		add_action( 'admin_init', array( __CLASS__, 'maybe_fill_tracks' ) );
+	}
+
+	/**
+	 * Write Tracks 2 and 3 onto every skill that has no track stored, once.
+	 *
+	 * track_of() already reads an unset skill as Tracks 2 and 3, so nothing
+	 * changes for anybody reading. This makes the stored data say the same
+	 * thing. A skill that already has a track keeps it.
+	 */
+	public static function maybe_fill_tracks() {
+		if ( (int) get_option( self::TRACK_FILL_OPTION, 0 ) >= self::TRACK_FILL_VERSION ) return;
+		$ids = get_posts( array(
+			'post_type'      => self::POST_TYPE,
+			'post_status'    => 'any',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+			'meta_query'     => array( array( 'key' => self::TRACK_KEY, 'compare' => 'NOT EXISTS' ) ),
+		) );
+		foreach ( (array) $ids as $id ) {
+			update_post_meta( (int) $id, self::TRACK_KEY, self::TRACK_DEFAULT );
+		}
+		update_option( self::TRACK_FILL_OPTION, self::TRACK_FILL_VERSION );
+		self::flush();
+	}
+
+	/** Is this a skill edit-screen save that posted a real track? */
+	private static function posted_track() {
+		$t = isset( $_POST['bftd_skill_track'] ) ? sanitize_key( wp_unslash( $_POST['bftd_skill_track'] ) ) : '';
+		return isset( self::tracks()[ $t ] ) ? $t : '';
+	}
+
+	/**
+	 * Keep a skill a draft when it is saved from its edit screen with no
+	 * track. The browser stops the form first; this is for when it does not.
+	 * Only the edit screen is checked, which is the one form that sends the
+	 * skill nonce: quick edit always posts a track.
+	 */
+	public static function hold_without_track( $data, $postarr ) {
+		if ( self::POST_TYPE !== ( $data['post_type'] ?? '' ) ) return $data;
+		if ( empty( $_POST['bftd_skill_nonce'] ) ) return $data;
+		if ( '' !== self::posted_track() ) return $data;
+		if ( in_array( $data['post_status'], array( 'publish', 'future', 'pending', 'private' ), true ) ) {
+			$data['post_status'] = 'draft';
+			self::$held = true;
+		}
+		return $data;
+	}
+
+	/** Set by hold_without_track() for the redirect that follows. */
+	private static $held = false;
+
+	public static function flag_held( $location, $post_id ) {
+		if ( ! self::$held ) return $location;
+		return add_query_arg( 'bftd_skill_held', 1, remove_query_arg( 'message', $location ) );
+	}
+
+	public static function held_notice() {
+		if ( empty( $_GET['bftd_skill_held'] ) ) return;
+		echo '<div class="notice notice-error"><p><strong>Choose a track for this skill.</strong> It has been kept as a draft and will not be offered to any activity until it has one.</p></div>';
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -282,12 +368,13 @@ class BFTD_Skills {
 	 */
 	public static function box_place( $post ) {
 		wp_nonce_field( 'bftd_skill_' . $post->ID, 'bftd_skill_nonce' );
-		$track = self::track_of( $post->ID );
+		$track = self::stored_track( $post->ID );
 		$n     = self::number_of( $post->ID );
 		?>
 		<p>
 			<label for="bftd_skill_track"><strong>Track</strong></label><br>
-			<select name="bftd_skill_track" id="bftd_skill_track" style="width:100%">
+			<select name="bftd_skill_track" id="bftd_skill_track" style="width:100%" required>
+				<option value="" <?php selected( $track, '' ); ?> disabled>Choose a track</option>
 				<?php foreach ( self::tracks() as $key => $label ) : ?>
 					<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $track, $key ); ?>><?php
 						echo esc_html( $label );
@@ -295,7 +382,7 @@ class BFTD_Skills {
 				<?php endforeach; ?>
 			</select>
 		</p>
-		<p class="description">Which part of the programme this skill belongs to.</p>
+		<p class="description">Which part of the programme this skill belongs to. Required: an activity only offers the skills in its own track.</p>
 		<p style="margin-top:14px">
 			<label for="bftd_skill_number"><strong>Number in that track</strong></label><br>
 			<input type="number" min="1" step="1" style="width:100%" name="bftd_skill_number"
@@ -336,23 +423,87 @@ class BFTD_Skills {
 		if ( ! isset( self::groups()[ $group ] ) ) $group = self::GROUP_DEFAULT;
 		update_post_meta( $post_id, self::GROUP_KEY, $group );
 
-		// Always one of the two tracks. Anything else posted from anywhere
-		// falls back to Track 1, which is where the existing library lives,
-		// rather than to a third track that is not real.
-		$track = isset( $_POST['bftd_skill_track'] ) ? sanitize_key( wp_unslash( $_POST['bftd_skill_track'] ) ) : '';
+		// No track chosen: nothing is written for it, and the skill was kept
+		// a draft by hold_without_track(). The number is still saved.
+		$track = self::posted_track();
+		if ( '' !== $track ) self::store_track( $post_id, $track );
+		self::store_number( $post_id, isset( $_POST['bftd_skill_number'] ) ? wp_unslash( $_POST['bftd_skill_number'] ) : '' );
+
+		self::flush();
+	}
+
+	/**
+	 * Write a skill's track and number. Used by the edit screen and by quick
+	 * edit, so the two cannot disagree about what a track or a number is.
+	 */
+	public static function store_place( $post_id, $track, $number ) {
+		self::store_track( $post_id, $track );
+		self::store_number( $post_id, $number );
+	}
+
+	/**
+	 * Always one of the two tracks. Anything else falls back to the default
+	 * rather than to a third track that is not real.
+	 */
+	public static function store_track( $post_id, $track ) {
+		$track = sanitize_key( (string) $track );
 		if ( ! isset( self::tracks()[ $track ] ) ) $track = self::TRACK_DEFAULT;
 		update_post_meta( $post_id, self::TRACK_KEY, $track );
+	}
 
+	public static function store_number( $post_id, $number ) {
 		// No number is a real answer: a skill in the library that is not a
 		// position in the programme. Stored as absent rather than as zero, so
 		// nothing has to remember that zero means no.
-		$n = isset( $_POST['bftd_skill_number'] ) ? absint( $_POST['bftd_skill_number'] ) : 0;
+		$n = absint( $number );
 		if ( $n ) {
 			update_post_meta( $post_id, self::NUMBER_KEY, $n );
 		} else {
 			delete_post_meta( $post_id, self::NUMBER_KEY );
 		}
+	}
 
+	/**
+	 * Quick edit on the skills list: the track and the number, nothing else.
+	 *
+	 * One box serves every row, so it carries its own nonce rather than the
+	 * per-skill one the edit screen uses. The script fills it from the row.
+	 */
+	public static function quick_box( $col, $post_type ) {
+		if ( self::POST_TYPE !== $post_type || 'bftd_number' !== $col ) return;
+		wp_nonce_field( 'bftd_skill_quick', 'bftd_skill_qe_nonce' );
+		?>
+		<fieldset class="inline-edit-col-right bftd-skill-qe">
+			<div class="inline-edit-col">
+				<label>
+					<span class="title">Track</span>
+					<select name="bftd_skill_track">
+						<?php foreach ( self::tracks() as $key => $label ) : ?>
+							<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</label>
+				<label>
+					<span class="title">Number</span>
+					<span class="input-text-wrap"><input type="number" min="1" step="1" name="bftd_skill_number" value="" placeholder="None"></span>
+				</label>
+			</div>
+		</fieldset>
+		<?php
+	}
+
+	/**
+	 * Save from quick edit. Only the track and the number are written, and
+	 * only when they were posted: quick edit does not send the group, so the
+	 * group is left exactly as it was.
+	 */
+	public static function save_quick( $post_id, $post ) {
+		if ( empty( $_POST['bftd_skill_qe_nonce'] ) ) return;
+		if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['bftd_skill_qe_nonce'] ) ), 'bftd_skill_quick' ) ) return;
+		if ( ! current_user_can( 'edit_post', $post_id ) ) return;
+		if ( ! array_key_exists( 'bftd_skill_track', $_POST ) || ! array_key_exists( 'bftd_skill_number', $_POST ) ) return;
+
+		self::store_place( $post_id, wp_unslash( $_POST['bftd_skill_track'] ), wp_unslash( $_POST['bftd_skill_number'] ) );
 		self::flush();
 	}
 
@@ -378,6 +529,12 @@ class BFTD_Skills {
 		if ( 'bftd_number' !== $col ) return;
 		$n = self::number_of( $post_id );
 		echo $n ? '<strong>' . (int) $n . '</strong>' : '<span class="bftd-none">&ndash;</span>';
+		// What quick edit opens with. Read by the script, never shown.
+		printf(
+			'<span class="bftd-skill-place" hidden data-track="%s" data-number="%s"></span>',
+			esc_attr( self::track_of( $post_id ) ),
+			$n ? (int) $n : ''
+		);
 	}
 
 	public static function sortable( $cols ) {
@@ -403,15 +560,9 @@ class BFTD_Skills {
 		if ( self::POST_TYPE !== $post_type ) return;
 		$group = isset( $_GET['bftd_group'] ) ? sanitize_key( wp_unslash( $_GET['bftd_group'] ) ) : '';
 		$track = isset( $_GET['bftd_skill_track_filter'] ) ? sanitize_key( wp_unslash( $_GET['bftd_skill_track_filter'] ) ) : '';
+		if ( ! isset( self::tracks()[ $track ] ) ) $track = '';
+		BFTD_Library::track_pills( 'bftd_skill_track_filter', self::tracks(), $track );
 		?>
-		<select name="bftd_skill_track_filter">
-			<option value="">Every track</option>
-			<?php foreach ( self::tracks() as $key => $label ) : ?>
-				<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $track, $key ); ?>><?php
-					echo esc_html( $label );
-				?></option>
-			<?php endforeach; ?>
-		</select>
 		<select name="bftd_group">
 			<option value="">Every group</option>
 			<?php foreach ( self::groups() as $key => $label ) : ?>
@@ -463,6 +614,11 @@ class BFTD_Skills {
 		);
 	}
 
+	/** Every skill on the list screen, for its search and suggestions. */
+	public static function list_index() {
+		return BFTD_Library::index( self::POST_TYPE, self::NUMBER_KEY, array( __CLASS__, 'track_of' ) );
+	}
+
 	public static function admin_list_filter( $query ) {
 		if ( ! is_admin() || ! $query->is_main_query() ) return;
 		if ( self::POST_TYPE !== $query->get( 'post_type' ) ) return;
@@ -476,6 +632,8 @@ class BFTD_Skills {
 		);
 		if ( $g ) $want[] = $g;
 		if ( $t ) $want[] = $t;
+
+		BFTD_Library::list_search( $query, self::list_index() );
 
 		// Both filters at once narrows to the intersection, which is what
 		// picking two things from two lists means to the person doing it.

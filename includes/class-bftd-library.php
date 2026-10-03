@@ -220,4 +220,170 @@ class BFTD_Library {
 			? substr( $noun, 0, -1 ) . 'ies'
 			: $noun . 's';
 	}
+
+	/* ------------------------------------------------------------------ */
+	/* Searching a library                                                 */
+	/* ------------------------------------------------------------------ */
+
+	/*
+	 * The same rule as assets/js/bftd-match.js, for the server. Both are run
+	 * against tests/search-cases.json, so a change to one that is not made to
+	 * the other fails a test rather than making the list and the picker
+	 * disagree.
+	 */
+
+	public static function asked( $term ) {
+		$nums  = array();
+		$words = array();
+		foreach ( preg_split( '/[^a-z0-9]+/', strtolower( (string) $term ) ) as $bit ) {
+			if ( '' === $bit ) continue;
+			if ( ctype_digit( $bit ) ) $nums[] = $bit; else $words[] = $bit;
+		}
+		return array( 'nums' => $nums, 'words' => $words, 'empty' => ! $nums && ! $words );
+	}
+
+	/** Where $w starts a word in $name, or -1. */
+	private static function word_at( $name, $w ) {
+		$from = 0;
+		while ( false !== ( $at = strpos( $name, $w, $from ) ) ) {
+			if ( 0 === $at || ! ctype_alnum( $name[ $at - 1 ] ) ) return $at;
+			$from = $at + 1;
+		}
+		return -1;
+	}
+
+	private static function whole_word( $name, $w ) {
+		$from = 0;
+		while ( false !== ( $at = strpos( $name, $w, $from ) ) ) {
+			$before = 0 === $at || ! ctype_alnum( $name[ $at - 1 ] );
+			$next   = $at + strlen( $w );
+			$after  = $next >= strlen( $name ) || ! ctype_alnum( $name[ $next ] );
+			if ( $before && $after ) return true;
+			$from = $at + 1;
+		}
+		return false;
+	}
+
+	/** How well one record answers; 0 means it does not. $o: name, num. */
+	public static function score( $o, $ask ) {
+		$name = strtolower( (string) ( $o['name'] ?? '' ) );
+		$num  = (string) ( $o['num'] ?? '' );
+		$n    = 0;
+
+		foreach ( $ask['nums'] as $q ) {
+			if ( '' !== $num && $num === $q ) $n += 1000;
+			elseif ( '' !== $num && 0 === strpos( $num, $q ) ) $n += 120;
+			elseif ( self::whole_word( $name, $q ) ) $n += 30;
+			else return 0;
+		}
+
+		foreach ( $ask['words'] as $w ) {
+			$at = self::word_at( $name, $w );
+			if ( -1 === $at ) return 0;
+			$n += 60;
+			if ( 0 === $at ) $n += 40;
+		}
+
+		if ( $ask['words'] ) {
+			$phrase = implode( ' ', $ask['words'] );
+			$flat   = trim( preg_replace( '/[^a-z0-9]+/', ' ', $name ) );
+			if ( $flat === $phrase ) $n += 600;
+			elseif ( 0 === strpos( $flat, $phrase ) ) $n += 250;
+			elseif ( -1 !== self::word_at( $flat, $phrase ) ) $n += 80;
+		}
+
+		return $n;
+	}
+
+	/** The ids in $rows (id => name, num) that answer $term, best first. */
+	public static function search( $rows, $term ) {
+		$ask = self::asked( $term );
+		if ( $ask['empty'] ) return array();
+		$hits = array();
+		$i    = 0;
+		foreach ( $rows as $id => $row ) {
+			$n = self::score( $row, $ask );
+			if ( $n > 0 ) $hits[] = array( $id, $n, $i );
+			$i++;
+		}
+		usort( $hits, function ( $a, $b ) {
+			return ( $b[1] - $a[1] ) ?: ( $a[2] - $b[2] );
+		} );
+		return array_map( function ( $h ) { return $h[0]; }, $hits );
+	}
+
+	/**
+	 * Every record on a library's list screen, for searching and for the
+	 * suggestions under its search box: drafts included, the bin left out.
+	 */
+	public static function index( $post_type, $number_key, $track_of ) {
+		$ids = get_posts( array(
+			'post_type'      => $post_type,
+			'post_status'    => array( 'publish', 'draft', 'pending', 'future', 'private' ),
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'orderby'        => 'title',
+			'order'          => 'ASC',
+			'no_found_rows'  => true,
+		) );
+		$out = array();
+		foreach ( $ids as $id ) {
+			$n = (int) get_post_meta( $id, $number_key, true );
+			$out[ (int) $id ] = array(
+				'name'  => (string) get_the_title( $id ),
+				'num'   => $n ? (string) $n : '',
+				'track' => (string) call_user_func( $track_of, $id ),
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * The search box on a library's list screen, by the rule above rather
+	 * than WordPress's, which matched any run of letters in the title or
+	 * the body. Results come back best first unless a column was chosen.
+	 */
+	public static function list_search( $query, $index ) {
+		$term = (string) $query->get( 's' );
+		if ( '' === trim( $term ) ) return;
+		$ids = self::search( $index, $term );
+		$query->set( 'post__in', $ids ? $ids : array( 0 ) );
+		if ( ! $query->get( 'orderby' ) ) $query->set( 'orderby', 'post__in' );
+
+		// The term stays on the query, so the screen still says what was
+		// searched for; WordPress's own matching is switched off for it.
+		$query->set( 'bftd_lib_search', 1 );
+		if ( ! has_filter( 'posts_search', array( __CLASS__, 'drop_core_search' ) ) ) {
+			add_filter( 'posts_search', array( __CLASS__, 'drop_core_search' ), 10, 2 );
+		}
+	}
+
+	public static function drop_core_search( $search, $query ) {
+		return $query->get( 'bftd_lib_search' ) ? '' : $search;
+	}
+
+	/**
+	 * All / Track 1 / Track 2 & 3, as links, the way the pickers offer them.
+	 * The current track rides along in a hidden field so searching keeps it.
+	 */
+	public static function track_pills( $var, $tracks, $now ) {
+		$base = remove_query_arg( array( $var, 'paged' ) );
+		echo '<span class="bftd-pills" role="group" aria-label="Track">';
+		$all = array( '' => 'All' ) + $tracks;
+		foreach ( $all as $key => $label ) {
+			$on  = (string) $now === (string) $key;
+			$url = '' === $key ? $base : add_query_arg( $var, $key, $base );
+			printf(
+				'<a class="bftd-pill%s" href="%s"%s>%s</a>',
+				$on ? ' is-on' : '',
+				esc_url( $url ),
+				$on ? ' aria-current="true"' : '',
+				esc_html( $label )
+			);
+		}
+		echo '</span>';
+		if ( '' !== (string) $now ) {
+			echo '<input type="hidden" name="' . esc_attr( $var ) . '" value="' . esc_attr( $now ) . '">';
+		}
+	}
 }

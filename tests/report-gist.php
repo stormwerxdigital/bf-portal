@@ -30,7 +30,8 @@ preg_match('/\/\*\*\s*\n\s*\* The first sentence of some text\..*?\n\t\}\n/s', $
 preg_match('/\/\*\* A gist longer than.*?\n\t\}\n/s', $src, $c);
 preg_match('/\/\*\*\s*\n\s*\* A piece of a child\'s work.*?\n\t\}\n/s', $src, $d);
 check($a && $b && $c && $d, 'the helpers were found in the source');
-eval('class G { ' . $a[0] . $b[0] . $c[0] . $d[0] . ' }');
+preg_match('/\/\*\*\s*\n\s*\* The sentence a folded activity description shows.*?\n\t\}\n/s', $src, $e);
+eval('class G { ' . $a[0] . $b[0] . $c[0] . $d[0] . $e[0] . ' }');
 
 echo "\nOne sentence, and which one:\n";
 check('Sound Lines builds the link between a sound and its spelling.'
@@ -82,6 +83,19 @@ check(false !== strpos($plain, '<figure class="shot">') && false === strpos($pla
 
 $GLOBALS['IMG'] = '';
 check('' === G::work_shot(7), 'and an attachment that is not an image draws nothing');
+
+
+/* What a folded activity description shows while closed: its first sentence
+   when it opens with a paragraph, nothing when it opens with a heading or a
+   list, because those strip down to headings run together. */
+check('Sound Lines builds the link between a sound and its spelling.' === G::about_gist("Sound Lines builds the link between a sound and its spelling. The child says the word.\n\nA second paragraph."),
+  'a description stored as plain paragraphs offers its first sentence');
+check('Sound Lines builds the link between a sound and its spelling.' === G::about_gist('<p>Sound Lines builds the link between a sound and its spelling. The child says the word.</p>'),
+  'and so does one stored with its paragraph tags');
+check('' === G::about_gist("<h3>Completed</h3>\n<ul><li>Story introduction</li></ul>\n<h3>KAT routine in progress</h3>"),
+  'one that opens with a heading offers none');
+check('' === G::about_gist('<ul><li>One</li><li>Two</li></ul>'), 'nor does one that opens with a list');
+check('' === G::about_gist(''), 'and an empty one offers none');
 
 echo $fail ? "\n$fail failure(s)\n" : "\nAll checks passed.\n";
 exit($fail ? 1 : 0);

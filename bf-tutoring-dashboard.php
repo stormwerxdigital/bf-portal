@@ -5,7 +5,7 @@
  * Primary Branch: main
  * Plugin URI:  https://bftutoring.com
  * Description: The parent portal and the tutor back end for Brilliant Futures Tutoring. Reading diagnostics, living progress reports, lesson records, per-section conversations, a full activity log, and customisable email with send rules.
- * Version:     1.116.0
+ * Version:     1.122.0
  * Author:      Stormwerx Digital
  * Author URI:  https://stormwerxdigital.com
  * Text Domain: bftd
@@ -13,7 +13,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'BFTD_VERSION', '1.116.0' );
+define( 'BFTD_VERSION', '1.122.0' );
 define( 'BFTD_PATH', plugin_dir_path( __FILE__ ) );
 define( 'BFTD_URL', plugin_dir_url( __FILE__ ) );
 
@@ -100,7 +100,31 @@ final class BFTD_Plugin {
 		wp_enqueue_style( 'bftd-admin', BFTD_URL . 'assets/css/bftd-admin.css', array( 'bftd-fonts' ), BFTD_VERSION );
 
 		wp_enqueue_media();
-		wp_enqueue_script( 'bftd-admin', BFTD_URL . 'assets/js/bftd-admin.js', array( 'jquery', 'jquery-ui-sortable' ), BFTD_VERSION, true );
+		// The search rule every picker and library list uses, on its own so
+		// the same file can be tested outside a browser.
+		wp_enqueue_script( 'bftd-match', BFTD_URL . 'assets/js/bftd-match.js', array(), BFTD_VERSION, true );
+		wp_enqueue_script( 'bftd-admin', BFTD_URL . 'assets/js/bftd-admin.js', array( 'jquery', 'jquery-ui-sortable', 'bftd-match' ), BFTD_VERSION, true );
+
+		// The Skills and Activities lists suggest records as somebody types in
+		// their search box, from the same index their search runs on.
+		if ( 'edit.php' === $hook ) {
+			$type = isset( $_GET['post_type'] ) ? sanitize_key( wp_unslash( $_GET['post_type'] ) ) : '';
+			$lib  = array( 'bftd_skill' => 'BFTD_Skills', 'bftd_activity' => 'BFTD_Activities' );
+			if ( isset( $lib[ $type ] ) && class_exists( $lib[ $type ] ) ) {
+				$tracks = call_user_func( array( $lib[ $type ], 'tracks' ) );
+				$rows   = array();
+				foreach ( call_user_func( array( $lib[ $type ], 'list_index' ) ) as $id => $r ) {
+					$rows[] = array(
+						'id'    => $id,
+						'name'  => $r['name'],
+						'num'   => $r['num'],
+						'track' => $tracks[ $r['track'] ] ?? '',
+						'url'   => (string) get_edit_post_link( $id, 'raw' ),
+					);
+				}
+				wp_add_inline_script( 'bftd-admin', 'window.BFTD_LIBRARY = ' . wp_json_encode( $rows ) . ';', 'before' );
+			}
+		}
 		// Whether this screen autosaves, and which of the two things that
 		// means. It is the server that decides, not the screen: a tab left
 		// open while somebody else published must stop writing the record and

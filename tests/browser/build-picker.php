@@ -80,6 +80,18 @@ foreach (array('t1' => $t1, 't23' => $t2) as $track => $rows) {
   }
 }
 
+/* Ten activities with the same name, the way the library really has them,
+   two with no number yet. A search for the name has to offer all ten. */
+foreach (array(array(51,'t1'),array(62,'t1'),array(72,'t1'),array(82,'t1'),array(92,'t1'),
+               array(102,'t1'),array(112,'t23'),array(0,'t1'),array(0,'t23'),array(122,'t23')) as $one) {
+  list($n, $track) = $one;
+  $GLOBALS['TITLES'][$id] = 'Listen, Tally, Say, Write';
+  $GLOBALS['TYPE'][$id] = 'bftd_activity';
+  $GLOBALS['META'][$id] = $n ? array('_bftd_activity_number' => $n, '_bftd_activity_track' => $track)
+                             : array('_bftd_activity_track' => $track);
+  $id++;
+}
+
 $skills = array(
   'Holding the sounds of a word in order', 'Mapping sounds to their spellings',
   'Reading a long word by chunk', 'Reading a passage smoothly',
@@ -97,7 +109,7 @@ foreach ($skills as $name) {
 }
 
 $css = file_get_contents(BFTD_PATH.'assets/css/bftd-admin.css');
-$js  = file_get_contents(BFTD_PATH.'assets/js/bftd-admin.js');
+$js  = file_get_contents(BFTD_PATH.'assets/js/bftd-match.js') . "\n" . file_get_contents(BFTD_PATH.'assets/js/bftd-admin.js');
 
 file_put_contents(__DIR__.'/picker.html',
   '<!doctype html><meta charset="utf-8">'

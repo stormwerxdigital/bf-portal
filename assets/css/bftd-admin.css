@@ -1304,3 +1304,28 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
 	.bftd-done-row label { gap: 9px; }
 	.bftd-done-row input[type="checkbox"] { width: 22px; height: 22px; }
 }
+
+/* The skills list: the number is two or three digits, so its column is too. */
+.post-type-bftd_skill .wp-list-table .column-bftd_number{width:4.5em}
+
+/* An activity's skills are locked to its track, so the track buttons go. */
+[data-bftd-lock] .bftd-actpick-b{display:none}
+.bftd-actpick.is-offtrack .bftd-actpick-name{color:#b32d2e}
+.bftd-actpick-off{margin:4px 0 0;color:#b32d2e;font-size:13px}
+
+/* Track pills on the Skills and Activities lists, read the same way as the
+   pills above a picker. */
+.bftd-pills{display:inline-flex;gap:6px;margin:0 8px 0 0;vertical-align:middle}
+.bftd-pill{display:inline-block;padding:5px 12px;border:1px solid #c3c4c7;border-radius:999px;background:#fff;color:#2c3338;text-decoration:none;font-size:13px;line-height:1.4}
+.bftd-pill:hover{border-color:var(--bftd-purple,#6b4f7a);color:var(--bftd-purple-deep,#3f2a4d)}
+.bftd-pill.is-on{background:var(--bftd-purple,#6b4f7a);border-color:var(--bftd-purple,#6b4f7a);color:#fff}
+
+/* Suggestions under the library search box. */
+.bftd-libsearch{position:relative}
+.bftd-libsug{position:absolute;z-index:50;right:0;top:100%;margin:4px 0 0;padding:4px 0;min-width:420px;max-width:640px;background:#fff;border:1px solid #c3c4c7;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.12);list-style:none;text-align:left}
+.bftd-libsug li{display:flex;gap:10px;align-items:baseline;margin:0;padding:7px 12px;cursor:pointer}
+.bftd-libsug li.is-on,.bftd-libsug li:hover{background:var(--bftd-purple-wash,#f3eef6)}
+.bftd-libsug .n{min-width:2.5em;font-weight:700;color:var(--bftd-purple-deep,#3f2a4d)}
+.bftd-libsug .t{flex:1}
+.bftd-libsug .k{font-size:12px;color:#646970;white-space:nowrap}
+@media (max-width:782px){.bftd-libsug{left:0;right:0;min-width:0}}

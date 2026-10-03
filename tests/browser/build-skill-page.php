@@ -42,12 +42,14 @@ $GLOBALS['TITLES'] = array(
   102 => 'Reading a passage smoothly',
 );
 foreach (array_keys($GLOBALS['TITLES']) as $id) $GLOBALS['TYPE'][$id] = 'bftd_skill';
+// A Track 1 activity offers Track 1 skills, so these are stored as Track 1.
+foreach (array(100,101,102) as $id) $GLOBALS['META'][$id]['_bftd_skill_track'] = 't1';
 $GLOBALS['TITLES'][88] = 'Activity 1'; $GLOBALS['TYPE'][88] = 'bftd_activity';
 $GLOBALS['META'][88] = array('_bftd_activity_number'=>1,'_bftd_activity_track'=>'t1');
 
 $post = (object) array('ID'=>88,'post_type'=>'bftd_activity');
 $css  = file_get_contents(BFTD_PATH.'assets/css/bftd-admin.css');
-$js   = file_get_contents(BFTD_PATH.'assets/js/bftd-admin.js');
+$js   = file_get_contents(BFTD_PATH.'assets/js/bftd-match.js') . "\n" . file_get_contents(BFTD_PATH.'assets/js/bftd-admin.js');
 
 file_put_contents(__DIR__.'/skill-page.html',
   '<!doctype html><meta charset="utf-8">'

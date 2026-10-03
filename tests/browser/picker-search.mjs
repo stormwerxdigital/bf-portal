@@ -122,6 +122,18 @@ r = await search('#skills', '1');
 check(r.hits.every(h => /1/.test(h)),
   'in a library that numbers nothing, digits are read as characters again');
 
+/* ---------------------------------------- every match, numbered or not */
+r = await search('#acts', 'listen tally say write');
+check(r.hits.filter(h => /Listen, Tally, Say, Write$/.test(h)).length === 10,
+  'a name ten activities share offers all ten, got ' + r.hits.filter(h => /Listen, Tally, Say, Write$/.test(h)).length);
+check(r.hits.filter(h => 'Listen, Tally, Say, Write' === h).length === 2,
+  'including the two that have no number yet');
+check(!(await page.$$eval('#acts .bftd-actpick-r li', ls => ls.some(l => /Keep typing/.test(l.textContent)))),
+  'and does not stop at eight and ask for more typing that could not help');
+r = await search('#skills', 'reading');
+check(r.hits.length === 4 && r.hits.every(h => /^Reading/.test(h)),
+  'an unnumbered skill library is searched by its words, got ' + JSON.stringify(r.hits));
+
 check(0 === errors.length, 'and nothing threw: ' + JSON.stringify(errors));
 
 await browser.close();

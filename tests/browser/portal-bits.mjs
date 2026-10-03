@@ -1,10 +1,10 @@
 /*
- * The folded description and the work lightbox, driven in a browser.
+ * The folded description, the tutor's notes, and the work lightbox, driven in
+ * a browser.
  *
- * Both ship open and working with no script at all, so the thing that can break
- * silently is the upgrade. A fold that never folds looks like a long page; a
- * lightbox that never opens looks like an ordinary link. Neither shows up in a
- * unit test and neither throws.
+ * A fold that never folds looks like a long page, and a lightbox that never
+ * opens looks like an ordinary link. Neither shows up in a unit test and
+ * neither throws.
  */
 import { execSync } from 'child_process';
 import { join, dirname } from 'path';
@@ -23,33 +23,58 @@ const p = await b.newPage();
 await p.goto('file://' + join(here, 'portal-bits.html'));
 await p.waitForTimeout(300);
 
-/* ---- the fold ---- */
-const shut = await p.evaluate(() => ({
-  text: document.querySelector('.doc-body.about').innerText.trim(),
-  btn: (document.querySelector('.about-more') || {}).textContent || '',
-  expanded: (document.querySelector('.about-more') || {}).getAttribute
-    ? document.querySelector('.about-more').getAttribute('aria-expanded') : null,
-}));
-check(/^Sound Lines builds the link between a sound and its spelling\.$/.test(shut.text),
-  'the description folds to its first sentence');
-check('Read more' === shut.btn, 'with a button offering the rest');
-check('false' === shut.expanded, 'which says it is closed');
+/* ---- the fold ----
+ * Drawn by the real activity_block(). A details element, so it folds with no
+ * script at all; the checks below would pass with scripts switched off. */
+const fold = () => p.evaluate(() => {
+  const d = document.querySelectorAll('details.about-fold')[0];
+  const vis = el => !!el && el.checkVisibility();
+  return {
+    open: d.open,
+    label: d.querySelector('.about-k').textContent.trim(),
+    gistShown: vis(d.querySelector('.about-gist')),
+    gist: (d.querySelector('.about-gist') || {}).textContent || '',
+    bodyShown: vis(d.querySelector('.doc-body.about')),
+    more: getComputedStyle(d.querySelector('.about-more'), '::after').content,
+  };
+});
+let f = await fold();
+check(!f.open && !f.bodyShown, 'an activity description starts folded');
+check('About this activity' === f.label, 'under a label that says what it is');
+check(f.gistShown && /^Sound Lines builds the link between a sound and its spelling\.$/.test(f.gist),
+  'showing its first sentence, got ' + JSON.stringify(f.gist));
+check('"Read more"' === f.more, 'and offering the rest, got ' + f.more);
 
-await p.click('.about-more');
-const open = await p.evaluate(() => ({
-  text: document.querySelector('.doc-body.about').innerText.trim(),
-  btn: document.querySelector('.about-more').textContent,
-  expanded: document.querySelector('.about-more').getAttribute('aria-expanded'),
-}));
-check(open.text.includes('writes each sound as they say it'), 'clicking it shows the whole description');
-check(open.text.includes('most of the early sequence is built on'), 'all of it, not the second sentence only');
-check('Show less' === open.btn, 'and the button offers to close it again');
-check('true' === open.expanded, 'which says it is open');
+await p.click('details.about-fold >> nth=0 >> summary');
+f = await fold();
+check(f.open && f.bodyShown, 'clicking it shows the whole description');
+check(!f.gistShown, 'without repeating the first sentence above it');
+check('"Show less"' === f.more, 'and offers to close it again, got ' + f.more);
+check((await p.evaluate(() => document.querySelectorAll('details.about-fold')[0].innerText)).includes('most of the early sequence is built on'),
+  'all of it, not the second sentence only');
+await p.click('details.about-fold >> nth=0 >> summary');
+check(!(await fold()).open, 'and closing it folds it back');
 
-await p.click('.about-more');
-check(/^Sound Lines builds the link between a sound and its spelling\.$/.test(
-  await p.evaluate(() => document.querySelector('.doc-body.about').innerText.trim())),
-  'and closing it folds it back');
+/* A description that opens with headings has no first sentence to show. */
+const kat = await p.evaluate(() => {
+  const d = document.querySelectorAll('details.about-fold')[1];
+  return { open: d.open, gist: !!d.querySelector('.about-gist'), summary: d.querySelector('summary').innerText.replace(/\s+/g, ' ').trim() };
+});
+check(!kat.open, 'a description that starts with a heading folds too');
+check(!kat.gist && /^About this activity/.test(kat.summary), 'showing its label rather than headings run together, got ' + JSON.stringify(kat.summary));
+
+/* Tutor notes are set apart from the description, under their own heading. */
+const note = await p.evaluate(() => {
+  const blk = document.querySelectorAll('.bf-report > .blk')[1];
+  const n = blk.querySelector('.act-note');
+  return n ? { head: n.querySelector('.act-note-h').textContent.trim(), text: n.innerText,
+    outside: !n.closest('details'), border: getComputedStyle(n).borderLeftStyle } : null;
+});
+check(note && 'Tutor activity notes' === note.head, 'the tutor\'s notes on an activity are headed Tutor activity notes');
+check(note && /completed the problem and the solution/.test(note.text), 'and hold what the tutor wrote');
+check(note && note.outside, 'outside the folded description, so they show while it is closed');
+check(note && 'solid' === note.border, 'set off with a rule');
+check(0 === (await p.$$('.bf-report > .blk:first-child .act-note')).length, 'and an activity with no notes has no empty notes panel');
 
 /* ---- the lightbox ---- */
 check(0 === (await p.$$('.bftd-shotbox')).length, 'no dialog until somebody asks for one');

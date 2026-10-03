@@ -1687,20 +1687,35 @@
 }
 
 /* ---- a folded activity description -----------------------------------
-   Scoped under .bf-report like everything else in this file: a family's
-   report is rendered inside somebody else's theme, and an unscoped rule is
-   one this plugin imposes on a page it does not own. */
-.bf-report .about-more { background: none; border: 0; padding: 2px 0; margin: 2px 0 0;
-	font: inherit; font-size: 15px; color: var(--ink-2, #5b5366); text-decoration: underline;
-	text-underline-offset: 3px; cursor: pointer; }
-.bf-report .about-more:hover { color: var(--ink, #2b2632); }
-.bf-report .about-more:focus-visible { outline: 2px solid var(--acc, #7a6f8a); outline-offset: 2px; border-radius: 3px; }
+   A details element, so it folds with no script. Scoped under .bf-report like
+   everything else in this file: a family's report is rendered inside somebody
+   else's theme, and an unscoped rule is one this plugin imposes on a page it
+   does not own. */
+.bf-report .about-fold { margin: 0 0 4px; }
+.bf-report .about-fold > summary { display: block; list-style: none; cursor: pointer; }
+.bf-report .about-fold > summary::-webkit-details-marker { display: none; }
+.bf-report .about-k { display: block; font-size: 13px; font-weight: 700; color: var(--muted, #6b6475); margin-bottom: 4px; }
+.bf-report .about-gist { display: block; }
+.bf-report .about-fold[open] .about-gist { display: none; }
+.bf-report .about-more { display: inline-block; padding: 2px 0; margin: 2px 0 0;
+	font-size: 15px; color: var(--ink-2, #5b5366); text-decoration: underline;
+	text-underline-offset: 3px; }
+.bf-report .about-more::after { content: "Read more"; }
+.bf-report .about-fold[open] .about-more::after { content: "Show less"; }
+.bf-report .about-fold > summary:hover .about-more { color: var(--ink, #2b2632); }
+.bf-report .about-fold > summary:focus-visible { outline: 2px solid var(--acc, #7a6f8a); outline-offset: 2px; border-radius: 3px; }
+.bf-report .about-fold[open] > .doc-body { margin-top: 8px; }
+
+/* ---- what the tutor wrote ---------------------------------------------
+   Tutor activity notes sit under an activity's description and are set apart
+   from it the same way tutor session notes are: a sage rule and a heading
+   that says who wrote it. */
+.bf-report .act-note { margin-top: 14px; border-left: 3px solid var(--bf-sage); padding: 2px 0 2px 13px; }
+.bf-report .act-note-h { font-family: var(--font-d); font-weight: 700; font-size: 14px; color: var(--ink); margin-bottom: 6px; }
 
 @media (max-width: 782px) {
 	/* A line of underlined text is 21px tall, which is not a thumb. Padded
-	   rather than enlarged, so it still reads as a link in a paragraph.
-	   In this section's own media block, at the end of it, because overrides
-	   appended to the end of the file beat a media query higher up. */
+	   rather than enlarged, so it still reads as a link in a paragraph. */
 	.bf-report .about-more { padding: 11px 0; min-height: 44px; }
 }
 

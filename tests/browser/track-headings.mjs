@@ -44,7 +44,7 @@ ${rows.map(([t, n, name], i) =>
 </tbody></table>
 <script src="${here}/jquery.js"></script>
 <script>window.BFTD={ajax_url:"",nonce:"",post_id:0,autosave:0,tracks:{"t1":"Track 1","t23":"Track 2 & 3"}};</script>
-<script>${readFileSync(root + '/assets/js/bftd-admin.js')}</script>`;
+<script>${readFileSync(root + '/assets/js/bftd-match.js')}</script><script>${readFileSync(root + '/assets/js/bftd-admin.js')}</script>`;
 
 writeFileSync(here + '/track-list.html', html);
 

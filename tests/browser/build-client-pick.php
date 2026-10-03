@@ -40,7 +40,7 @@ AF::assign_field('bftd_clients', $users, array(20), 'Nobody linked yet.', '', tr
 $many = ob_get_clean();
 
 $css = file_get_contents(BFTD_PATH.'assets/css/bftd-admin.css');
-$js  = file_get_contents(BFTD_PATH.'assets/js/bftd-admin.js');
+$js  = file_get_contents(BFTD_PATH.'assets/js/bftd-match.js') . "\n" . file_get_contents(BFTD_PATH.'assets/js/bftd-admin.js');
 file_put_contents(__DIR__.'/client-pick.html',
   '<!doctype html><meta charset="utf-8">'
   . '<meta name="viewport" content="width=device-width,initial-scale=1">'

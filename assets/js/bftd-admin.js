@@ -2399,88 +2399,23 @@ function bftdTrim( v ) {
 	}
 
 	/* ----------------------------------------------------------------
-	 * What was typed
+	 * What was typed, and how well a record answers it.
 	 *
-	 * Split on spaces, and each piece is either a number or a word. Both can
-	 * appear at once: "17 phoneme" is activity seventeen whose name mentions
-	 * phonemes, which is how somebody half-remembering one actually types.
+	 * The rule lives in bftd-match.js, shared with the search box on the
+	 * Skills and Activities lists and mirrored on the server, so a picker and
+	 * a list cannot disagree about what a search means.
 	 * ---------------------------------------------------------------- */
 
-	function asked( term ) {
-		var nums = [], words = [];
-		var bits = bftdTrim( term.toLowerCase() ).split( /\s+/ );
-		for ( var i = 0; i < bits.length; i++ ) {
-			if ( ! bits[ i ] ) continue;
-			if ( /^\d+$/.test( bits[ i ] ) ) nums.push( bits[ i ] );
-			else words.push( bits[ i ] );
-		}
-		return { nums: nums, words: words, empty: ! nums.length && ! words.length };
-	}
+	function asked( term ) { return window.BFTDMatch.asked( term ); }
+	function numbered() { return true; }
+	function score( o, ask ) { return window.BFTDMatch.score( o, ask ); }
 
-	/* Does this library number anything at all? */
-	function numbered( all ) {
-		for ( var i = 0; i < all.length; i++ ) if ( all[ i ].num ) return true;
-		return false;
-	}
-
-	/**
-	 * How well one option answers what was typed. 0 means it does not.
-	 *
-	 * Everything typed has to be accounted for: three words means all three
-	 * are in the name, in any order, because "lines sound" and "sound lines"
-	 * are the same request and only one of them used to find anything.
-	 *
-	 * The number is matched AS A NUMBER where the library has them. Typing 12
-	 * used to return 112, 120, 121 and anything with a 12 in its title, which
-	 * is six answers to a question with one. Now twelve is twelve, and 112 is
-	 * offered under it rather than instead of it, because somebody typing the
-	 * first digits of a longer number is also a real thing.
-	 */
-	function score( o, ask, hasNums ) {
-		var n = 0;
-
-		if ( ask.nums.length ) {
-			if ( ! hasNums ) {
-				// Nothing here is numbered, so digits are just characters.
-				for ( var d = 0; d < ask.nums.length; d++ ) {
-					if ( o.name.indexOf( ask.nums[ d ] ) === -1 ) return 0;
-					n += 20;
-				}
-			} else {
-				if ( ! o.num ) return 0;
-				for ( var k = 0; k < ask.nums.length; k++ ) {
-					if ( o.num === ask.nums[ k ] ) n += 1000;
-					else if ( 0 === o.num.indexOf( ask.nums[ k ] ) ) n += 120;
-					else return 0;
-				}
-			}
-		}
-
-		for ( var w = 0; w < ask.words.length; w++ ) {
-			var at = o.name.indexOf( ask.words[ w ] );
-			if ( at === -1 ) return 0;
-			// A word where a word starts beats the same letters in the middle
-			// of a longer one: "read" should find "Read, Read Back" before
-			// "Spreading".
-			var edge = ( 0 === at ) || ! /[a-z0-9]/.test( o.name.charAt( at - 1 ) );
-			n += edge ? 60 : 15;
-			if ( 0 === at ) n += 40;
-		}
-
-		// The whole phrase, in the order it was typed, at the front of the
-		// name. This is somebody typing the name of the thing they want.
-		if ( ask.words.length ) {
-			var phrase = ask.words.join( ' ' );
-			if ( o.name === phrase ) n += 600;
-			else if ( 0 === o.name.indexOf( phrase ) ) n += 250;
-			else if ( o.name.indexOf( phrase ) !== -1 ) n += 80;
-		}
-
-		return n;
-	}
-
-	/* Which bucket is switched on, or '' for all of them. */
+	/* Which bucket is switched on, or '' for all of them. A picker inside a
+	   box locked to one track (an activity's skills) only ever offers that
+	   track, whatever button was pressed. */
 	function bucket( $wrap ) {
+		var lock = $wrap.closest( '[data-bftd-lock]' ).attr( 'data-bftd-lock' );
+		if ( lock ) return lock;
 		var $on = $wrap.find( '.bftd-actpick-t.is-on' );
 		return $on.length ? ( $on.attr( 'data-bucket' ) || '' ) : '';
 	}
@@ -2581,11 +2516,11 @@ function bftdTrim( v ) {
 	 * multisyllable words" appear after three characters instead of narrowing
 	 * a list they cannot see.
 	 *
-	 * Capped, because a search for "s" is not a list worth reading, and the
-	 * cap is stated rather than silently applied.
+	 * Every match is listed, in a list that scrolls. It used to stop at
+	 * eight and ask for more typing, but a library has records with the same
+	 * name, numbered and not, and no amount of typing tells those apart, so
+	 * the ninth was simply unreachable from the search.
 	 * ---------------------------------------------------------------- */
-
-	var SHOW = 8;
 
 	function esc( t ) { return $( '<div>' ).text( t ).html(); }
 
@@ -2628,11 +2563,10 @@ function bftdTrim( v ) {
 		for ( var m = 0; m < scored.length; m++ ) hits.push( scored[ m ].o );
 
 		var html = '';
-		for ( var j = 0; j < hits.length && j < SHOW; j++ ) {
+		for ( var j = 0; j < hits.length; j++ ) {
 			html += '<li role="option" aria-selected="false" data-value="' + esc( hits[ j ].value ) + '">' +
 				esc( hits[ j ].label ) + '</li>';
 		}
-		if ( hits.length > SHOW ) html += '<li class="is-more">Keep typing to narrow it further</li>';
 
 		$list.html( html ).prop( 'hidden', false );
 		$q.attr( 'aria-expanded', 'true' );
@@ -3280,3 +3214,156 @@ jQuery( function ( $ ) {
 		show( $( this ).val() || '' );
 	} );
 } );
+
+/* --------------------------------------------------------------------------
+   Quick edit on the skills list
+
+   WordPress fills its own quick edit fields from the row and knows nothing of
+   ours, so after it opens the box this copies the track and the number in
+   from the hidden span the number column prints for each row.
+   -------------------------------------------------------------------------- */
+( function ( $ ) {
+	'use strict';
+
+	$( function () {
+		if ( ! $( 'body' ).hasClass( 'post-type-bftd_skill' ) ) return;
+		if ( ! window.inlineEditPost || ! inlineEditPost.edit ) return;
+
+		var core = inlineEditPost.edit;
+		inlineEditPost.edit = function ( id ) {
+			var out = core.apply( this, arguments );
+			if ( 'object' === typeof id ) id = this.getId( id );
+
+			var $place = $( '#post-' + id + ' .bftd-skill-place' );
+			var $box   = $( '#edit-' + id );
+			if ( $place.length ) {
+				$box.find( 'select[name="bftd_skill_track"]' ).val( String( $place.attr( 'data-track' ) || '' ) );
+				$box.find( 'input[name="bftd_skill_number"]' ).val( String( $place.attr( 'data-number' ) || '' ) );
+			}
+			return out;
+		};
+	} );
+}( jQuery ) );
+
+/* --------------------------------------------------------------------------
+   An activity's skills follow the activity's track
+
+   The skills box is locked to the track chosen in the box beside it, so its
+   pickers only offer skills in that track. Changing the track moves the lock
+   and narrows the open pickers at once. A skill already on the activity from
+   the other track is kept but marked, because saving does not drop it and a
+   person should decide what happens to it.
+   -------------------------------------------------------------------------- */
+( function ( $ ) {
+	'use strict';
+
+	function mark( $box ) {
+		var lock  = $box.attr( 'data-bftd-lock' ) || '';
+		var names = ( window.BFTD && BFTD.tracks ) || {};
+		$box.find( '.bftd-actpick' ).each( function () {
+			var $w   = $( this );
+			var $opt = $w.find( '.bftd-actpick-s option:selected' );
+			var buck = $opt.attr( 'data-bucket' ) || '';
+			var off  = !! ( $opt.val() && buck && lock && buck !== lock );
+			var $note = $w.find( '.bftd-actpick-off' );
+			$w.toggleClass( 'is-offtrack', off );
+			if ( ! off ) { $note.remove(); return; }
+			if ( ! $note.length ) $note = $( '<p class="bftd-actpick-off"></p>' ).insertAfter( $w.find( '.bftd-actpick-is' ) );
+			$note.text( 'This skill is in ' + ( names[ buck ] || buck ) + ', not ' + ( names[ lock ] || lock ) +
+				'. Choose a ' + ( names[ lock ] || lock ) + ' skill or remove this row.' );
+		} );
+	}
+
+	function refilter( $box ) {
+		$box.find( '.bftd-actpick-q' ).trigger( 'input' );
+		mark( $box );
+	}
+
+	$( function () {
+		var $box = $( '.bftd-skillpull[data-bftd-lock]' );
+		if ( ! $box.length ) return;
+		refilter( $box );
+
+		$( document ).on( 'change', '#bftd_activity_track', function () {
+			$box.attr( 'data-bftd-lock', $( this ).val() || '' );
+			refilter( $box );
+		} );
+		$box.on( 'change', '.bftd-actpick-s', function () { mark( $box ); } );
+		// Twice deferred on purpose. The picker's own row-add handler clears
+		// the new row's option cache in a timeout queued after this one, and
+		// filtering before that would cache an already narrowed list, so a
+		// later track change would have nothing left to offer.
+		$box.on( 'click', '.bftd-row-add', function () {
+			setTimeout( function () { setTimeout( function () { refilter( $box ); }, 0 ); }, 0 );
+		} );
+	} );
+}( jQuery ) );
+
+/* --------------------------------------------------------------------------
+   Suggestions under the Skills and Activities search box
+
+   The list's own index is on the page (window.BFTD_LIBRARY), matched by the
+   same rule the server searches with, so what is suggested is what Enter will
+   find. Narrowed to the track pill that is on. Choosing a suggestion opens the
+   record; Enter with none chosen searches the list as before.
+   -------------------------------------------------------------------------- */
+( function ( $ ) {
+	'use strict';
+
+	function esc( t ) { return $( '<div>' ).text( null == t ? '' : String( t ) ).html(); }
+
+	$( function () {
+		var rows = window.BFTD_LIBRARY;
+		var $q   = $( '#post-search-input' );
+		if ( ! rows || ! $q.length || ! window.BFTDMatch ) return;
+
+		var on   = $( '.bftd-pills .bftd-pill.is-on' ).text();
+		var pool = ( ! on || 'All' === on ) ? rows : rows.filter( function ( r ) { return r.track === on; } );
+
+		var $box  = $q.closest( '.search-box' ).addClass( 'bftd-libsearch' );
+		var $list = $( '<ul id="bftd-libsug" class="bftd-libsug" role="listbox" hidden></ul>' ).appendTo( $box );
+		$q.attr( { role: 'combobox', 'aria-expanded': 'false', 'aria-autocomplete': 'list',
+			'aria-controls': 'bftd-libsug', autocomplete: 'off', placeholder: 'Number or name' } );
+
+		var hits = [];
+		var at   = -1;
+
+		function close() {
+			$list.prop( 'hidden', true ).empty();
+			$q.attr( 'aria-expanded', 'false' ).removeAttr( 'aria-activedescendant' );
+			hits = []; at = -1;
+		}
+
+		function draw() {
+			hits = window.BFTDMatch.search( pool, $q.val() ).slice( 0, 8 );
+			at = -1;
+			if ( ! hits.length ) return close();
+			$list.html( hits.map( function ( r, i ) {
+				return '<li role="option" id="bftd-libsug-' + i + '" aria-selected="false">' +
+					'<span class="n">' + esc( r.num ) + '</span>' +
+					'<span class="t">' + esc( r.name ) + '</span>' +
+					'<span class="k">' + esc( r.track ) + '</span></li>';
+			} ).join( '' ) ).prop( 'hidden', false );
+			$q.attr( 'aria-expanded', 'true' ).removeAttr( 'aria-activedescendant' );
+		}
+
+		function mark() {
+			$list.children().attr( 'aria-selected', 'false' ).removeClass( 'is-on' );
+			if ( at < 0 ) { $q.removeAttr( 'aria-activedescendant' ); return; }
+			$list.children().eq( at ).attr( 'aria-selected', 'true' ).addClass( 'is-on' );
+			$q.attr( 'aria-activedescendant', 'bftd-libsug-' + at );
+		}
+
+		function go( i ) { if ( hits[ i ] && hits[ i ].url ) window.location.href = hits[ i ].url; }
+
+		$q.on( 'input', draw );
+		$q.on( 'keydown', function ( e ) {
+			if ( 'ArrowDown' === e.key && hits.length ) { e.preventDefault(); at = Math.min( at + 1, hits.length - 1 ); mark(); }
+			else if ( 'ArrowUp' === e.key && hits.length ) { e.preventDefault(); at = Math.max( at - 1, -1 ); mark(); }
+			else if ( 'Escape' === e.key ) { close(); }
+			else if ( 'Enter' === e.key && at >= 0 ) { e.preventDefault(); go( at ); }
+		} );
+		$list.on( 'mousedown', 'li', function ( e ) { e.preventDefault(); go( $( this ).index() ); } );
+		$q.on( 'blur', function () { setTimeout( close, 150 ); } );
+	} );
+}( jQuery ) );
