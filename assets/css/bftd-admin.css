@@ -1322,7 +1322,7 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
 
 /* Suggestions under the library search box. */
 .bftd-libsearch{position:relative}
-.bftd-libsug{position:absolute;z-index:50;right:0;top:100%;margin:4px 0 0;padding:4px 0;min-width:420px;max-width:640px;background:#fff;border:1px solid #c3c4c7;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.12);list-style:none;text-align:left}
+.bftd-libsug{position:absolute;z-index:50;right:0;top:100%;margin:4px 0 0;padding:4px 0;min-width:420px;max-width:640px;max-height:min(60vh,420px);overflow-y:auto;overscroll-behavior:contain;background:#fff;border:1px solid #c3c4c7;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.12);list-style:none;text-align:left}
 .bftd-libsug li{display:flex;gap:10px;align-items:baseline;margin:0;padding:7px 12px;cursor:pointer}
 .bftd-libsug li.is-on,.bftd-libsug li:hover{background:var(--bftd-purple-wash,#f3eef6)}
 .bftd-libsug .n{min-width:2.5em;font-weight:700;color:var(--bftd-purple-deep,#3f2a4d)}
@@ -1330,3 +1330,9 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
 .bftd-libsug .k{font-size:12px;color:#646970;white-space:nowrap}
 @media (max-width:782px){.bftd-libsug{left:0;right:0;min-width:0}}
 .bftd-ses-go a + a{margin-left:14px}
+
+/* The library search box, moved into the filter row. */
+.tablenav .search-box.is-inline{float:none;display:inline-flex;align-items:center;gap:6px;margin:0 0 0 8px;vertical-align:middle;position:relative}
+.tablenav .search-box.is-inline #post-search-input{width:240px;margin:0}
+.tablenav .search-box.is-inline .bftd-libsug{left:0;right:auto}
+@media (max-width:782px){.tablenav .search-box.is-inline{display:flex;margin:8px 0 0;width:100%}.tablenav .search-box.is-inline #post-search-input{flex:1;width:auto}}

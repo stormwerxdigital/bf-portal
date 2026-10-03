@@ -3353,6 +3353,18 @@ jQuery( function ( $ ) {
 		var $q   = $( '#post-search-input' );
 		if ( ! rows || ! $q.length || ! window.BFTDMatch ) return;
 
+		// Into the filter row, beside the track pills and Filter, so finding
+		// and narrowing happen in one place. It is the same form, so nothing
+		// about what it sends changes. With no script it stays where
+		// WordPress put it, top right.
+		var $go = $( '#post-query-submit' );
+		if ( $go.length ) $q.closest( '.search-box' ).addClass( 'is-inline' ).insertAfter( $go );
+
+		// The suggestions are the results, so the Search button goes. It is
+		// hidden rather than removed: Enter presses it to run the full list
+		// search, and a screen reader still finds it.
+		$( '#search-submit' ).addClass( 'screen-reader-text' );
+
 		var on   = $( '.bftd-pills .bftd-pill.is-on' ).text();
 		var pool = ( ! on || 'All' === on ) ? rows : rows.filter( function ( r ) { return r.track === on; } );
 
@@ -3371,7 +3383,9 @@ jQuery( function ( $ ) {
 		}
 
 		function draw() {
-			hits = window.BFTDMatch.search( pool, $q.val() ).slice( 0, 8 );
+			// Every match, in a list that scrolls, as in the pickers: records can
+			// share a name, and no amount of typing tells those apart.
+			hits = window.BFTDMatch.search( pool, $q.val() );
 			at = -1;
 			if ( ! hits.length ) return close();
 			$list.html( hits.map( function ( r, i ) {
@@ -3386,7 +3400,8 @@ jQuery( function ( $ ) {
 		function mark() {
 			$list.children().attr( 'aria-selected', 'false' ).removeClass( 'is-on' );
 			if ( at < 0 ) { $q.removeAttr( 'aria-activedescendant' ); return; }
-			$list.children().eq( at ).attr( 'aria-selected', 'true' ).addClass( 'is-on' );
+			var $on = $list.children().eq( at ).attr( 'aria-selected', 'true' ).addClass( 'is-on' );
+			if ( $on[0] && $on[0].scrollIntoView ) $on[0].scrollIntoView( { block: 'nearest' } );
 			$q.attr( 'aria-activedescendant', 'bftd-libsug-' + at );
 		}
 
@@ -3398,6 +3413,13 @@ jQuery( function ( $ ) {
 			else if ( 'ArrowUp' === e.key && hits.length ) { e.preventDefault(); at = Math.max( at - 1, -1 ); mark(); }
 			else if ( 'Escape' === e.key ) { close(); }
 			else if ( 'Enter' === e.key && at >= 0 ) { e.preventDefault(); go( at ); }
+			// Enter with no suggestion chosen searches. Now the box sits after
+			// the bulk Apply button, the browser would otherwise press that,
+			// and WordPress cancels Apply when no bulk action is chosen.
+			else if ( 'Enter' === e.key ) {
+				var $s = $( '#search-submit' );
+				if ( $s.length ) { e.preventDefault(); $s.trigger( 'click' ); }
+			}
 		} );
 		$list.on( 'mousedown', 'li', function ( e ) { e.preventDefault(); go( $( this ).index() ); } );
 		$q.on( 'blur', function () { setTimeout( close, 150 ); } );

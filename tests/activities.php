@@ -251,6 +251,17 @@ check(false === strpos($block, 'var SHOW = 8'), 'the list is not cut off at eigh
 $acss = file_get_contents(BFTD_PATH . 'assets/css/bftd-admin.css');
 check(1 === preg_match('/\.bftd-actpick-r\{[^}]*max-height:[^}]*overflow:auto/', $acss),
   'and it scrolls inside a set height');
+
+/* The same holds for the suggestions under the Skills and Activities list
+   search, which are one piece of code serving both lists. */
+$js = file_get_contents(BFTD_PATH . 'assets/js/bftd-admin.js');
+$lib = substr($js, strpos($js, 'Suggestions under the Skills and Activities search box'));
+check(1 === preg_match('/hits = window\.BFTDMatch\.search\( pool, \$q\.val\(\) \);/', $lib),
+  'the list search suggests every match, not the first eight');
+check(1 === preg_match('/\.bftd-libsug\{[^}]*max-height:[^}]*overflow-y:auto/', $acss),
+  'in a list that scrolls inside a set height');
+check(false !== strpos($lib, "insertAfter( \$go )"), 'and sits in the filter row, on both lists alike');
+check(false !== strpos($lib, "$( '#search-submit' ).addClass( 'screen-reader-text' )"), 'with no Search button, since the suggestions are the results');
 /* Checked at the call site, not at the helper. The helper being present says
  * nothing about whether the list uses it, and an earlier version of this
  * check passed while the label went in raw. */
