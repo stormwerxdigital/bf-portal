@@ -449,10 +449,9 @@ class BFTD_CPT {
 		// cosmetic act, it is the same as never registering it, and the
 		// screen goes straight back to being refused.
 		//
-		// (This differs from the student hub, which is reached through
-		// admin.php?page=... That lookup uses $_registered_pages, which
-		// remove_submenu_page() leaves alone, so hiding that row is safe.
-		// Two similar-looking calls, two different mechanisms.)
+		// The student hub has the same problem, which is why its row is
+		// hidden on admin_enqueue_scripts, after the access check, and not
+		// during admin_menu.
 	}
 
 	/** What the "Add" row is called, per post type. */

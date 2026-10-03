@@ -24,6 +24,7 @@ class BFTD_Admin {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_filter( 'parent_file', array( __CLASS__, 'keep_menu_open' ) );
 		add_action( 'admin_head', array( __CLASS__, 'menu_badge' ) );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'hide_hub_row' ), 0 );
 		add_action( 'admin_post_bftd_reply', array( __CLASS__, 'handle_reply' ) );
 		add_filter( 'login_redirect', array( __CLASS__, 'login_redirect' ), 10, 3 );
 	}
@@ -54,13 +55,18 @@ class BFTD_Admin {
 		// where a tutor lands from a student, and it links out to everything
 		// belonging to them.
 		//
-		// It is registered under the real parent and then hidden, rather than
-		// registered with a null parent. Passing null is deprecated on PHP 8.1
-		// and up and, worse, the page then fails to register a hookname that
-		// user_can_access_admin_page() recognises — so WordPress refuses it
-		// with "Sorry, you are not allowed to access this page" for anyone who
-		// is not an administrator. Registering properly and then removing the
-		// row keeps the access check intact.
+		// It is registered under the real parent, never with a null parent.
+		// Passing null is deprecated on PHP 8.1 and up and leaves no hookname
+		// that user_can_access_admin_page() recognises.
+		//
+		// The row is hidden later, on admin_enqueue_scripts, not here.
+		// Removing it during admin_menu takes it out of $submenu before the
+		// access check runs.
+		// get_admin_page_parent() then finds no parent, the hookname it builds
+		// is admin_page_bftd-student instead of the one registered, and
+		// WordPress refuses the page for everyone, administrators included.
+		// admin_enqueue_scripts fires after that check, and at priority 0 it
+		// runs before both the command palette and the sidebar read the menu.
 		add_submenu_page(
 			self::MENU_SLUG,
 			'Student',
@@ -69,6 +75,10 @@ class BFTD_Admin {
 			self::HUB_SLUG,
 			array( __CLASS__, 'render_student_hub' )
 		);
+	}
+
+	/** Hide the student hub row once access has been decided. See menu(). */
+	public static function hide_hub_row() {
 		remove_submenu_page( self::MENU_SLUG, self::HUB_SLUG );
 	}
 

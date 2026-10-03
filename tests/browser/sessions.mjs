@@ -48,6 +48,12 @@ const rec = await p.evaluate(r => document.querySelector(r + ' [data-l="Attendan
 check(/\d+ attended/.test(rec) && /\d+ missed/.test(rec), 'read in words as well as colour, got ' + JSON.stringify(rec));
 check(/\d+ draft/.test(rec), 'with the unfinished ones counted apart, got ' + JSON.stringify(rec));
 
+/* The link beside the name goes to that student's own record, the same
+   screen the Students list calls Edit, and says what it does. */
+const view = await p.evaluate(r => { const a = document.querySelector(r + ' .bftd-stu-acts a'); return a ? [a.textContent.trim(), a.getAttribute('href')] : null; }, ROW);
+check(view && view[0] === 'View student', 'the first link reads View student, got ' + JSON.stringify(view && view[0]));
+check(view && /post\.php\?post=1001&action=edit$/.test(view[1]), 'and opens that student\'s record, got ' + JSON.stringify(view && view[1]));
+
 /* ---- opening it ---- */
 await p.click(ROW + ' .bftd-ses-open');
 await p.waitForTimeout(250);
