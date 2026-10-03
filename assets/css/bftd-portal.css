@@ -536,21 +536,4 @@ html.no-js .bf-acc{grid-template-rows:1fr}
   padding:3px 9px;font:600 10.5px/1.4 var(--fb);letter-spacing:.05em}
 .bf-items{margin-bottom:14px}
 
-/* ---- a piece of a child's work, at full size --------------------------
-   In this file rather than in bftd-report.css because the dialog is appended
-   to the body: every selector in that file is scoped under .bf-report, and a
-   thing that is not inside the report cannot honestly be written as though it
-   were. Appending it into the report instead would put a fixed overlay inside
-   a container whose ancestors this plugin does not control. */
-.bftd-shotbox { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center;
-	justify-content: center; padding: 28px; background: rgba(22, 19, 26, 0.88); }
-.bftd-shotbox img { max-width: 100%; max-height: 100%; width: auto; height: auto;
-	border-radius: 4px; background: #fff; }
-.bftd-shotbox-x { position: absolute; top: 10px; right: 14px; width: 44px; height: 44px;
-	background: none; border: 0; color: #fff; font-size: 30px; line-height: 1; cursor: pointer; }
-.bftd-shotbox-x:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 4px; }
-
-@media (max-width: 782px) {
-	.bftd-shotbox { padding: 12px; }
-	.bftd-shotbox-x { top: 4px; right: 6px; }
 }

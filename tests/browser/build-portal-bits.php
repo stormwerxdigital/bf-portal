@@ -44,7 +44,7 @@ $katnote = 'Main idea expanded: completed the problem and the solution.';
 
 /* A 1x1 png, drawn at thumbnail size, so the link really occupies space. */
 $thumb = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
-$jq  = file_get_contents(__DIR__ . '/jquery.js');
+// No jQuery on this page: the preview has none, and a theme need not load it.
 $js  = file_get_contents(BFTD_PATH . 'assets/js/bftd-portal.js');
 /* Both stylesheets, in the order the portal enqueues them: bftd-report.css
    declares a dependency on bftd-portal.css and loads after it. A fixture with
@@ -64,7 +64,8 @@ $html = '<!doctype html><meta charset="utf-8">'
   . '<figure class="shot"><a class="shot-open" href="full-one.png" aria-label="Open Kaine&#039;s spelling page at full size">'
   . '<img src="' . $thumb . '" alt="Kaine&#039;s spelling page" width="300" height="200"></a></figure>'
   . '</div></div></div>'
-  . '<script>' . $jq . '</script><script>' . $js . '</script>';
+  . '<script>' . $js . '</script>'
+  . '<script>' . file_get_contents(BFTD_PATH . 'assets/js/bftd-report.js') . '</script>';
 
 file_put_contents(__DIR__ . '/portal-bits.html', $html);
 echo __DIR__ . "/portal-bits.html\n";

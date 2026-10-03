@@ -415,4 +415,26 @@ check(413 === $GLOBALS['SENT']['status'],
 check(false !== strpos($GLOBALS['SENT']['data']['message'], 'nothing was written'),
   'and a message that says what happened to the work');
 
+/* ---- skills and activities, one copy per record ----
+ * The libraries are kept by this autosave too, so WordPress's own, which keeps
+ * one copy per person, is switched off on their screens as well. */
+class BFTD_Skills { const POST_TYPE = 'bftd_skill'; }
+class BFTD_Activities { const POST_TYPE = 'bftd_activity'; }
+check(in_array('bftd_skill', BFTD_Autosave::types(), true) && in_array('bftd_activity', BFTD_Autosave::types(), true),
+  'skills and activities are kept by this autosave');
+check(BFTD_Autosave::is_draft(mkpost(60,'draft','2026-09-17 10:00:00','bftd_activity')) === true,
+  'a draft activity is saved for real, like any other draft');
+
+/* ---- the bar offering a kept copy back ----
+ * A copy is only kept for a published record, so the bar has to show on one.
+ * It asked for a draft, and never appeared. */
+$GLOBALS['CAN'] = true;
+$pub = mkpost(61, 'publish', '2026-09-17 10:00:00', 'bftd_activity');
+$GLOBALS['META'][61][BFTD_Autosave::KEY] = array('at' => strtotime('2026-09-17 11:00:00 UTC'), 'by' => 7, 'fields' => array('content' => 'x'));
+ob_start(); BFTD_Autosave::render_bar($pub); $bar = ob_get_clean();
+check(false !== strpos($bar, 'bftd-restore'), 'a published record with a newer kept copy offers it back');
+$GLOBALS['META'][61][BFTD_Autosave::KEY]['at'] = strtotime('2026-09-17 09:00:00 UTC');
+ob_start(); BFTD_Autosave::render_bar($pub); $old = ob_get_clean();
+check('' === $old, 'and one older than the record does not');
+
 exit($fail ? 1 : 0);

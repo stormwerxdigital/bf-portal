@@ -21,7 +21,7 @@ function get_edit_post_link($id){ return '/wp-admin/post.php?post='.(int)$id.'&a
 function wp_list_pluck($l,$f){ $o=array(); foreach((array)$l as $r){ $o[]=is_array($r)?$r[$f]:$r->$f; } return $o; }
 function update_meta_cache($t,$i){ return true; }
 function cache_users($i){ return true; }
-function add_query_arg($a,$u){ return $u.'?'.http_build_query($a); }
+function add_query_arg($a,$b=null,$c=null){ if (is_array($a)) { $q=$a; $u=(string)$b; } else { $q=array($a=>$b); $u=(string)$c; } return $u.(strpos($u,'?')===false?'?':'&').http_build_query($q); }
 function get_posts($a){
   $type=$a['post_type']??''; $out=array();
   if ('bftd_session'===$type) {
@@ -68,6 +68,7 @@ class BFTD_Access {
 require BFTD_PATH.'includes/class-bftd-cpt.php';
 require BFTD_PATH.'includes/class-bftd-schedule.php';
 require BFTD_PATH.'includes/class-bftd-students.php';
+require BFTD_PATH.'includes/class-bftd-preview.php';
 require BFTD_PATH.'includes/class-bftd-sessions.php';
 
 $GLOBALS['USERS'][5]=(object)array('ID'=>5,'display_name'=>'Rae Tanaka');

@@ -103,6 +103,20 @@ check(box && "Kaine's spelling page" === box.label, 'named, so a screen reader s
 check(box && 'fixed' === box.position, 'covering the page rather than sitting in the flow');
 check(box && box.focusOnClose, 'with focus moved into it');
 
+const x = await p.evaluate(() => {
+  const b = document.querySelector('.bftd-shotbox-x');
+  const r = b.getBoundingClientRect();
+  return { text: b.textContent.replace(/\s+/g, ' ').trim(), w: r.width, h: r.height, bg: getComputedStyle(b).backgroundColor };
+});
+check(/Close/.test(x.text), 'it has a button that says Close, got ' + JSON.stringify(x.text));
+check(x.h >= 44 && x.w >= 60, 'big enough to find and to press, got ' + Math.round(x.w) + 'x' + Math.round(x.h));
+check('rgba(0, 0, 0, 0)' !== x.bg, 'and drawn as a button, not bare text on the dark backdrop');
+await p.click('.bftd-shotbox-x');
+await p.waitForTimeout(120);
+check(0 === (await p.$$('.bftd-shotbox')).length, 'pressing Close closes it');
+await p.click('a.shot-open');
+await p.waitForTimeout(120);
+
 await p.keyboard.press('Escape');
 await p.waitForTimeout(120);
 check(0 === (await p.$$('.bftd-shotbox')).length, 'Escape closes it');

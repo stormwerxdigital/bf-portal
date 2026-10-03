@@ -1329,3 +1329,4 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
 .bftd-libsug .t{flex:1}
 .bftd-libsug .k{font-size:12px;color:#646970;white-space:nowrap}
 @media (max-width:782px){.bftd-libsug{left:0;right:0;min-width:0}}
+.bftd-ses-go a + a{margin-left:14px}

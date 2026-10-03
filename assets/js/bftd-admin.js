@@ -1856,7 +1856,10 @@ function bftdTrim( v ) {
 		if ( window.tinymce ) {
 			try { tinymce.triggerSave(); } catch ( e ) {}
 		}
-		var keep = /^(bftd|bftd_rows|bftd_sched|bftd_visible|bftd_items|post_title|bftd_subtitle|bftd_student)(\[|$)/;
+		// The same list the server keeps (BFTD_Autosave::kept_key): the
+		// portal's field groups, plus a library record's description, its
+		// own fields and the nonce its save handler checks.
+		var keep = /^(bftd|bftd_rows|bftd_sched|bftd_visible|bftd_items|post_title|bftd_subtitle|bftd_student|content|bftd_(skill|activity)_[a-z_]+)(\[|$)/;
 		return $form.serializeArray().filter( function ( f ) {
 			return keep.test( f.name );
 		} );
@@ -1973,7 +1976,11 @@ function bftdTrim( v ) {
 		$n.val( ourFieldCount( payload() ) );
 	} );
 
-	$form.on( 'input change', ':input', touched );
+	// A picker's search box is not a field: it has no name and is never
+	// saved. Typing in it, or the track lock refiltering it as the activity
+	// screen loads, is not a change to the record. Counting it made merely
+	// opening a published activity keep a copy, over anybody else's.
+	$form.on( 'input change', ':input:not(.bftd-actpick-q)', touched );
 	$( document ).on( 'bftd:changed', touched );
 
 	/* ---- the editors ----------------------------------------------------
@@ -1995,7 +2002,14 @@ function bftdTrim( v ) {
 		ed.bftdWatched = true;
 		// SetContent is what a pasted screenshot arrives as; ExecCommand is
 		// the toolbar; the rest is typing.
-		ed.on( 'input keyup change SetContent ExecCommand Undo Redo', touched );
+		// An editor filling itself with the saved text as it loads is not an
+		// edit. Counting it made merely opening a record with notes in an
+		// activity row autosave, which on a published record keeps a copy
+		// over anybody else's.
+		ed.on( 'input keyup change SetContent ExecCommand Undo Redo', function ( e ) {
+			if ( ! ed.initialized || ( e && ( e.initial || e.load ) ) ) return;
+			touched();
+		} );
 	}
 
 	function watchEditors() {
@@ -2748,10 +2762,16 @@ function bftdTrim( v ) {
 	function build( id ) {
 		if ( ! id || made[ id ] || ! canEdit() ) return;
 		made[ id ] = true;
+		// The full editor, the same as the session notes box: formatting,
+		// lists, alignment, links, colour, and Add Media for pictures.
 		wp.editor.initialize( id, {
-			tinymce: { wpautop: true, toolbar1: 'bold,italic,bullist,numlist,link,undo,redo' },
+			tinymce: {
+				wpautop: true,
+				toolbar1: 'formatselect,bold,italic,underline,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,unlink,wp_adv',
+				toolbar2: 'strikethrough,hr,forecolor,pastetext,removeformat,charmap,outdent,indent,undo,redo'
+			},
 			quicktags: true,
-			mediaButtons: false
+			mediaButtons: true
 		} );
 	}
 
@@ -2817,6 +2837,22 @@ function bftdTrim( v ) {
 				shut( $( this ).closest( '.bftd-rowpanel' ) );
 			} );
 		} );
+
+		// A panel that opens with the page, because the row already has notes,
+		// gets its editor now. It used to wait for a click that never came,
+		// so saved notes showed as raw HTML in a plain box. The editor
+		// scripts can arrive after this file, so it asks again until they do.
+		function buildOpen() {
+			if ( ! canEdit() ) return false;
+			$( '.bftd-rowpanel.is-open .bftd-rowpanel-a' ).each( function () { build( $( this ).attr( 'id' ) ); } );
+			return true;
+		}
+		if ( ! buildOpen() ) {
+			var tries = 0;
+			var wait = setInterval( function () {
+				if ( buildOpen() || ++tries > 100 ) clearInterval( wait );
+			}, 100 );
+		}
 
 		// Everything open, written back, before the form goes anywhere.
 		$( '#post' ).on( 'submit', function () {

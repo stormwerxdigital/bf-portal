@@ -36,6 +36,61 @@ class BFTD_Autosave {
 
 	const KEY = '_bftd_autosave';
 
+	/**
+	 * Everything this autosave keeps: the records in the portal, plus the
+	 * skills and activities libraries. One copy per record, whoever is
+	 * typing: WordPress's own autosave keeps one per person, and it is
+	 * switched off on all of these screens.
+	 */
+	public static function types() {
+		$types = BFTD_Roles::post_types();
+		if ( class_exists( 'BFTD_Skills' ) )     $types[] = BFTD_Skills::POST_TYPE;
+		if ( class_exists( 'BFTD_Activities' ) ) $types[] = BFTD_Activities::POST_TYPE;
+		return $types;
+	}
+
+	/** A library record saves through its own handler, not the portal's fields. */
+	private static function is_library( $post ) {
+		return ( class_exists( 'BFTD_Skills' ) && BFTD_Skills::POST_TYPE === $post->post_type )
+			|| ( class_exists( 'BFTD_Activities' ) && BFTD_Activities::POST_TYPE === $post->post_type );
+	}
+
+	/**
+	 * Save a library record's own fields, as its edit screen does. The nonce
+	 * the handler checks is written fresh, because a snapshot being put back
+	 * may be older than the one the page carried.
+	 */
+	private static function save_library( $post ) {
+		if ( BFTD_Skills::POST_TYPE === $post->post_type ) {
+			$_POST['bftd_skill_nonce'] = wp_create_nonce( 'bftd_skill_' . $post->ID );
+			BFTD_Skills::save( $post->ID, $post );
+		} else {
+			$_POST['bftd_activity_nonce'] = wp_create_nonce( 'bftd_activity_' . $post->ID );
+			BFTD_Activities::save( $post->ID, $post );
+		}
+	}
+
+	/** Title and description from the form, written only where they changed. */
+	private static function save_title_content( $post, $fields ) {
+		$update = array();
+		if ( isset( $fields['post_title'] ) ) {
+			$title = sanitize_text_field( $fields['post_title'] );
+			if ( '' !== $title && $title !== $post->post_title ) $update['post_title'] = $title;
+		}
+		if ( isset( $fields['content'] ) && self::is_library( $post ) ) {
+			$content = wp_kses_post( $fields['content'] );
+			if ( $content !== $post->post_content ) $update['post_content'] = $content;
+		}
+		if ( $update ) wp_update_post( array( 'ID' => $post->ID ) + $update );
+	}
+
+	/** Is this a field the autosave carries? Mirrors payload() in bftd-admin.js. */
+	private static function kept_key( $k ) {
+		return in_array( $k, array( 'bftd', 'bftd_rows', 'bftd_sched', 'bftd_visible', 'bftd_items',
+				'post_title', 'bftd_subtitle', 'bftd_student', 'content' ), true )
+			|| 1 === preg_match( '/^bftd_(skill|activity)_[a-z_]+$/', $k );
+	}
+
 	public static function init() {
 		add_action( 'wp_ajax_bftd_autosave', array( __CLASS__, 'ajax_save' ) );
 		add_action( 'wp_ajax_bftd_autosave_restore', array( __CLASS__, 'ajax_restore' ) );
@@ -62,7 +117,7 @@ class BFTD_Autosave {
 
 	public static function silence_core_autosave() {
 		$post = get_post();
-		if ( ! $post || ! in_array( $post->post_type, BFTD_Roles::post_types(), true ) ) return;
+		if ( ! $post || ! in_array( $post->post_type, self::types(), true ) ) return;
 		wp_dequeue_script( 'autosave' );
 	}
 
@@ -80,7 +135,7 @@ class BFTD_Autosave {
 	public static function is_draft( $post ) {
 		if ( is_numeric( $post ) ) $post = get_post( $post );
 		if ( ! $post ) return false;
-		if ( ! in_array( $post->post_type, BFTD_Roles::post_types(), true ) ) return false;
+		if ( ! in_array( $post->post_type, self::types(), true ) ) return false;
 		return ! in_array( $post->post_status, array( 'publish', 'future' ), true );
 	}
 
@@ -101,7 +156,8 @@ class BFTD_Autosave {
 	public static function clear_on_save( $post_id, $post ) {
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
 		if ( wp_is_post_revision( $post_id ) ) return;
-		if ( empty( $_POST['bftd_nonce'] ) ) return;   // a save from our own form
+		// A save from our own form, or from a library record's.
+		if ( empty( $_POST['bftd_nonce'] ) && empty( $_POST['bftd_skill_nonce'] ) && empty( $_POST['bftd_activity_nonce'] ) ) return;
 		self::clear( $post_id );
 	}
 
@@ -132,7 +188,7 @@ class BFTD_Autosave {
 			wp_send_json_error( array( 'message' => 'You cannot edit this record.' ), 403 );
 		}
 		$post = get_post( $post_id );
-		if ( ! $post || ! in_array( $post->post_type, BFTD_Roles::post_types(), true ) ) {
+		if ( ! $post || ! in_array( $post->post_type, self::types(), true ) ) {
 			wp_send_json_error( array( 'message' => 'That is not a record this can keep.' ), 400 );
 		}
 		return $post;
@@ -189,17 +245,17 @@ class BFTD_Autosave {
 			}
 
 			BFTD_Audit::$quiet = true;
-			BFTD_MetaBoxes::save_fields( $post->ID, $post );
+			if ( self::is_library( $post ) ) {
+				self::save_library( $post );
+			} else {
+				BFTD_MetaBoxes::save_fields( $post->ID, $post );
+			}
 			BFTD_Audit::$quiet = false;
 
 			// The title is part of the form, and a report named on the screen
-			// but not in the record is a report nobody can find.
-			if ( isset( $_POST['post_title'] ) ) {
-				$title = sanitize_text_field( wp_unslash( $_POST['post_title'] ) );
-				if ( '' !== $title && $title !== $post->post_title ) {
-					wp_update_post( array( 'ID' => $post->ID, 'post_title' => $title ) );
-				}
-			}
+			// but not in the record is a report nobody can find. A library
+			// record's description is its content, so that goes too.
+			self::save_title_content( $post, wp_unslash( $_POST ) );
 
 			$fresh = get_post( $post->ID );
 
@@ -230,12 +286,11 @@ class BFTD_Autosave {
 		}
 
 		$fields = array();
-		foreach ( array( 'bftd', 'bftd_rows', 'bftd_sched', 'bftd_visible', 'bftd_items' ) as $k ) {
-			if ( isset( $_POST[ $k ] ) ) $fields[ $k ] = wp_unslash( $_POST[ $k ] );
+		foreach ( array_keys( $_POST ) as $k ) {
+			if ( self::kept_key( (string) $k ) ) $fields[ $k ] = wp_unslash( $_POST[ $k ] );
 		}
-		foreach ( array( 'post_title', 'bftd_subtitle', 'bftd_student' ) as $k ) {
-			if ( isset( $_POST[ $k ] ) ) $fields[ $k ] = wp_unslash( $_POST[ $k ] );
-		}
+		// Nonces are not part of what was typed.
+		unset( $fields['bftd_skill_nonce'], $fields['bftd_activity_nonce'] );
 		if ( ! $fields ) wp_send_json_error( array( 'message' => 'Nothing to keep.' ), 400 );
 
 		// Stored raw and sanitised on the way out, because a snapshot is the
@@ -271,14 +326,12 @@ class BFTD_Autosave {
 		foreach ( $snap['fields'] as $k => $v ) {
 			$_POST[ $k ] = wp_slash( $v );   // the save path unslashes, as WordPress does
 		}
-		BFTD_MetaBoxes::save_fields( $post->ID, $post );
-
-		if ( isset( $snap['fields']['post_title'] ) ) {
-			$title = sanitize_text_field( $snap['fields']['post_title'] );
-			if ( '' !== $title && $title !== $post->post_title ) {
-				wp_update_post( array( 'ID' => $post->ID, 'post_title' => $title ) );
-			}
+		if ( self::is_library( $post ) ) {
+			self::save_library( $post );
+		} else {
+			BFTD_MetaBoxes::save_fields( $post->ID, $post );
 		}
+		self::save_title_content( $post, $snap['fields'] );
 
 		BFTD_Audit::log( 'autosave_restored', array(
 			'post_id' => $post->ID,
@@ -300,7 +353,10 @@ class BFTD_Autosave {
 	/* ------------------------------------------------------------------ */
 
 	public static function render_bar( $post ) {
-		if ( ! $post || ! self::is_draft( $post ) ) return;
+		// Any record this autosave keeps. It used to ask for a draft here, but
+		// a copy is only ever kept for a published record (a draft is saved
+		// for real), so the bar offering it back could never appear.
+		if ( ! $post || ! in_array( $post->post_type, self::types(), true ) ) return;
 		if ( ! current_user_can( 'edit_post', $post->ID ) ) return;
 
 		$snap = self::unsaved( $post );

@@ -59,11 +59,11 @@ ob_start(); BFTD_Activities::box_number($post); $place = ob_get_clean();
 file_put_contents(__DIR__.'/skill-lock.html',
   '<!doctype html><meta charset="utf-8">'
   . '<style>body{font:14px/1.5 system-ui;background:#f0f0f1;margin:0;padding:24px}.wrap{max-width:760px}' . $css . '</style>'
-  . '<div class="wrap"><div id="place">' . $place . '</div>'
+  . '<form id="post"><div class="wrap"><div id="place">' . $place . '</div>'
   . BFTD_Activities::box_skills_html($post)
-  . '<textarea id="content"></textarea></div>'
+  . '<textarea id="content" name="content"></textarea></div></form>'
   . '<script src="' . BFTD_PATH . 'tests/browser/jquery.js"></script>'
-  . '<script>window.BFTD={ajax_url:"/ajax",nonce:"n",post_id:88,autosave:0,tracks:'
+  . '<script>window.BFTD={ajax_url:"/ajax",nonce:"n",post_id:88,autosave:1,tracks:'
   . json_encode(BFTD_Activities::tracks()) . '};</script>'
   . '<script>' . $js . '</script>');
 

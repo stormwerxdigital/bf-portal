@@ -86,6 +86,7 @@ file_put_contents(__DIR__.'/lesson-row.html',
   . '<h3>Nothing chosen yet</h3><div id="empty">' . $empty . '</div>'
   . '<h3 style="margin-top:30px">One chosen</h3><div id="filled">' . $filled . '</div>'
   . '<h3 style="margin-top:30px" id="th">One trashed, one live</h3><div id="trashed">' . $trashed . '</div>'
+  . '<script>window.wp={editor:{initialize:function(id,s){(window.__ed=window.__ed||[]).push({id:id,s:s});},remove:function(){}}};</script>'
   . '<script src="' . BFTD_PATH . 'tests/browser/jquery.js"></script>'
   . '<script>window.BFTD={ajax_url:"",nonce:"",post_id:1,autosave:0,tracks:'.json_encode(BFTD_Activities::tracks()).'};</script>'
   . '<script>'.$js.'</script>');

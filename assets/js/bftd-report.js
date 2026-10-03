@@ -248,3 +248,98 @@
 	if ( 'loading' === document.readyState ) document.addEventListener( 'DOMContentLoaded', init );
 	else init();
 } )();
+
+/* ---- a piece of work, full size ----------------------------------------
+ *
+ * The link opens the image on its own, so this only upgrades it. A parent
+ * squinting at their child's handwriting in a 300px thumbnail is the whole
+ * reason it exists.
+ *
+ * Here, in plain script, because this file loads on the portal and on the
+ * staff preview alike. It was written with jQuery in bftd-portal.js, which the
+ * preview never loads and the portal never declared, so on those pages the
+ * link went straight to the image with no way back but the browser's.
+ *
+ * Closed by the Close button, Escape, or a click anywhere off the picture.
+ * Focus goes to Close when it opens and back to the thumbnail after.
+ */
+( function () {
+	'use strict';
+
+	var box  = null;
+	var from = null;
+
+	/*
+	 * The dialog's look, added to the page the first time a picture opens.
+	 * The dialog hangs off the page body rather than inside the report, so a
+	 * theme element with a transform above the report cannot pin it, while
+	 * bftd-report.css keeps every rule scoped under .bf-report. So the rules
+	 * travel with the script that draws the dialog, on the portal and the
+	 * preview alike. Every name is prefixed bftd-shotbox.
+	 */
+	var CSS = '.bftd-shotbox { position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 64px 28px 28px; background: rgba(22, 19, 26, 0.9); cursor: zoom-out; } .bftd-shotbox img { max-width: 100%; max-height: 100%; width: auto; height: auto; border-radius: 4px; background: #fff; cursor: default; } .bftd-shotbox-x { position: absolute; top: 14px; right: 16px; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: #fff; color: #2b2632; font: 600 16px/1 system-ui, sans-serif; cursor: pointer; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35); } .bftd-shotbox-x span { font-size: 22px; line-height: 1; } .bftd-shotbox-x:hover { background: #f1edf5; } .bftd-shotbox-x:focus-visible { outline: 3px solid #fff; outline-offset: 3px; } @media (max-width: 782px) { .bftd-shotbox { padding: 64px 10px 12px; } .bftd-shotbox-x { top: 10px; right: 10px; } }';
+
+	function style() {
+		if ( document.getElementById( 'bftd-shotbox-css' ) ) return;
+		var el = document.createElement( 'style' );
+		el.id = 'bftd-shotbox-css';
+		el.textContent = CSS;
+		document.head.appendChild( el );
+	}
+
+	function close() {
+		if ( ! box ) return;
+		box.parentNode.removeChild( box );
+		box = null;
+		document.removeEventListener( 'keydown', onKey );
+		document.documentElement.style.overflow = '';
+		if ( from ) { from.focus(); from = null; }
+	}
+
+	function onKey( e ) {
+		if ( 'Escape' === e.key || 27 === e.keyCode ) { e.preventDefault(); close(); }
+		// Close is the only control, so Tab stays on it.
+		if ( 'Tab' === e.key && box ) { e.preventDefault(); box.querySelector( '.bftd-shotbox-x' ).focus(); }
+	}
+
+	document.addEventListener( 'click', function ( e ) {
+		var a = e.target && e.target.closest ? e.target.closest( 'a.shot-open' ) : null;
+		if ( ! a ) return;
+		// A modified or middle click is somebody deliberately opening a tab.
+		if ( e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || ( e.button && 0 !== e.button ) ) return;
+		e.preventDefault();
+		if ( box ) close();
+		style();
+
+		from = a;
+		var thumb = a.querySelector( 'img' );
+		var alt   = ( thumb && thumb.getAttribute( 'alt' ) ) || 'A piece of work';
+
+		box = document.createElement( 'div' );
+		box.className = 'bftd-shotbox';
+		box.setAttribute( 'role', 'dialog' );
+		box.setAttribute( 'aria-modal', 'true' );
+		box.setAttribute( 'aria-label', alt );
+
+		var x = document.createElement( 'button' );
+		x.type = 'button';
+		x.className = 'bftd-shotbox-x';
+		x.innerHTML = '<span aria-hidden="true">&times;</span> Close';
+
+		var img = document.createElement( 'img' );
+		img.src = a.getAttribute( 'href' );
+		img.alt = alt;
+
+		box.appendChild( x );
+		box.appendChild( img );
+		document.body.appendChild( box );
+		document.documentElement.style.overflow = 'hidden';
+		x.focus();
+
+		box.addEventListener( 'click', function ( ev ) {
+			// Anywhere but the picture itself.
+			if ( ev.target !== img ) close();
+		} );
+		document.addEventListener( 'keydown', onKey );
+	} );
+}() );

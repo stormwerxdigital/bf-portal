@@ -36,6 +36,16 @@ await page.waitForTimeout(250);
    another set's row and reported a bug that was not there; scoping by
    :first-of-type only moved the problem, because the next set added to the
    page matched that too. */
+/* A row that already has notes opens with its editor built, full toolbar and
+   Add Media, rather than as a plain box of raw HTML waiting for a click. */
+const built = await page.evaluate(() => (window.__ed || []).map(e => ({ id: e.id, s: e.s })));
+const filledId = await page.evaluate(() => (document.querySelector('#filled .bftd-rowpanel.is-open .bftd-rowpanel-a') || {}).id);
+const mine = built.find(e => e.id === filledId);
+check(!!filledId && !!mine, 'notes already written open in the full editor, got ' + JSON.stringify(built.map(e => e.id)));
+check(mine && /formatselect/.test(mine.s.tinymce.toolbar1) && /forecolor/.test(mine.s.tinymce.toolbar2), 'with the full toolbar');
+check(mine && true === mine.s.mediaButtons, 'and Add Media');
+check(!built.some(e => /empty/.test(e.id)) && built.length === 1, 'while closed panels wait to be opened, got ' + built.length);
+
 const SET = '#empty .bftd-rows';
 
 const state = () => page.evaluate(sel => {

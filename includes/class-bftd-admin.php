@@ -23,6 +23,7 @@ class BFTD_Admin {
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_filter( 'parent_file', array( __CLASS__, 'keep_menu_open' ) );
+		add_filter( 'submenu_file', array( __CLASS__, 'current_row' ) );
 		add_action( 'admin_head', array( __CLASS__, 'menu_badge' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'hide_hub_row' ), 0 );
 		add_action( 'admin_post_bftd_reply', array( __CLASS__, 'handle_reply' ) );
@@ -84,10 +85,50 @@ class BFTD_Admin {
 
 	public static function keep_menu_open( $parent_file ) {
 		global $current_screen;
-		if ( $current_screen && in_array( $current_screen->post_type, BFTD_Roles::post_types(), true ) ) {
+		if ( $current_screen && isset( self::menu_rows()[ (string) $current_screen->post_type ] ) ) {
 			return self::MENU_SLUG;
 		}
 		return $parent_file;
+	}
+
+	/**
+	 * Which menu row each kind of record lives under.
+	 *
+	 * Students and sessions have screens of their own; everything else is its
+	 * WordPress list. Opening, adding or listing one of them lights that row,
+	 * so the menu always says which part of the portal you are in.
+	 */
+	public static function menu_rows() {
+		$rows = array(
+			'bftd_student'    => 'bftd-students',
+			'bftd_session'    => 'bftd-sessions',
+			'bftd_assessment' => 'edit.php?post_type=bftd_assessment',
+			'bftd_progress'   => 'edit.php?post_type=bftd_progress',
+			'bftd_resource'   => 'edit.php?post_type=bftd_resource',
+			'bftd_skill'      => 'edit.php?post_type=bftd_skill',
+			'bftd_activity'   => 'edit.php?post_type=bftd_activity',
+		);
+		return $rows;
+	}
+
+	/**
+	 * The menu row to light on this screen.
+	 *
+	 * Without this, a session being edited lit nothing: WordPress looks for a
+	 * row named post.php, finds none, and leaves the menu open with no row
+	 * marked. Adding one lit the hidden "Record a Session" row, which is the
+	 * same as lighting nothing.
+	 */
+	public static function current_row( $submenu_file ) {
+		global $current_screen, $plugin_page;
+		if ( isset( $plugin_page ) && self::HUB_SLUG === $plugin_page ) return 'bftd-students';
+		if ( ! $current_screen ) return $submenu_file;
+		$rows = self::menu_rows();
+		$type = (string) $current_screen->post_type;
+		if ( isset( $rows[ $type ] ) && in_array( $current_screen->base, array( 'edit', 'post' ), true ) ) {
+			return $rows[ $type ];
+		}
+		return $submenu_file;
 	}
 
 	/** A count of families waiting on a reply, on the menu row itself. */

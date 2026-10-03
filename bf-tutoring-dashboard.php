@@ -5,7 +5,7 @@
  * Primary Branch: main
  * Plugin URI:  https://bftutoring.com
  * Description: The parent portal and the tutor back end for Brilliant Futures Tutoring. Reading diagnostics, living progress reports, lesson records, per-section conversations, a full activity log, and customisable email with send rules.
- * Version:     1.122.0
+ * Version:     1.123.0
  * Author:      Stormwerx Digital
  * Author URI:  https://stormwerxdigital.com
  * Text Domain: bftd
@@ -13,7 +13,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'BFTD_VERSION', '1.122.0' );
+define( 'BFTD_VERSION', '1.123.0' );
 define( 'BFTD_PATH', plugin_dir_path( __FILE__ ) );
 define( 'BFTD_URL', plugin_dir_url( __FILE__ ) );
 
@@ -131,7 +131,9 @@ final class BFTD_Plugin {
 		// start keeping a snapshot instead, and it only finds that out by
 		// being told.
 		$post = get_post();
-		$ours = ( $post && class_exists( 'BFTD_Roles' ) && in_array( $post->post_type, BFTD_Roles::post_types(), true ) );
+		// Every record the autosave keeps, which includes the skills and
+		// activities libraries as well as the portal's own records.
+		$ours = ( $post && class_exists( 'BFTD_Autosave' ) && in_array( $post->post_type, BFTD_Autosave::types(), true ) );
 
 		// The scripts wp.editor.initialize needs, on our screens only. A rich
 		// note inside a repeatable row is built on the click that opens it,

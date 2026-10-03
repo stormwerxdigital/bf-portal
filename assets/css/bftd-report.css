@@ -1722,4 +1722,3 @@
 /* ---- a piece of work at full size ------------------------------------ */
 .bf-report .shot-open { display: block; cursor: zoom-in; }
 .bf-report .shot-open:focus-visible { outline: 2px solid var(--acc, #7a6f8a); outline-offset: 3px; }
-

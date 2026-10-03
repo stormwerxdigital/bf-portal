@@ -333,7 +333,15 @@ class BFTD_Sessions {
 					? '<span class="bftd-pill is-active">Published</span>'
 					: '<span class="bftd-pill is-past">Draft</span>';
 			?></td>
-			<td class="bftd-ses-go"><a href="<?php echo esc_url( (string) get_edit_post_link( $sid ) ); ?>">Open</a></td>
+			<td class="bftd-ses-go">
+				<a href="<?php echo esc_url( (string) get_edit_post_link( $sid ) ); ?>">Open</a>
+				<?php
+				// The progress report with this session in it, as the family
+				// will read it, without opening the session first. The same
+				// link as the session screen's own preview button.
+				?>
+				<a href="<?php echo esc_url( BFTD_Preview::url( $sid ) ); ?>" target="_blank" rel="noopener">View preview</a>
+			</td>
 		</tr>
 		<?php
 	}

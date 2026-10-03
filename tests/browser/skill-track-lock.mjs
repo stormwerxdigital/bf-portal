@@ -24,8 +24,12 @@ const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromi
 const page = await browser.newPage({ viewport: { width: 820, height: 900 } });
 const errors = [];
 page.on('pageerror', e => { if (!/sortable is not a function/.test(String(e))) errors.push(String(e)); });
+const autosaves = [];
+page.on('request', r => { if (/bftd_autosave/.test(r.postData() || '')) autosaves.push(r.postData()); });
 await page.goto('file://' + page_path);
-await page.waitForTimeout(250);
+/* Longer than the autosave waits after a change, so one would have gone. */
+await page.waitForTimeout(3200);
+check(0 === autosaves.length, 'opening the activity screen does not autosave, got ' + autosaves.length);
 
 /* The row already there holds 103, a Tracks 2 and 3 skill on a Track 1 activity. */
 const old = '.bftd-skillpull .bftd-actpick:has(option[value="103"]:checked)';

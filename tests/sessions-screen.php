@@ -38,7 +38,7 @@ function get_edit_post_link($id){ return '/wp-admin/post.php?post='.(int)$id; }
 function wp_list_pluck($l,$f){ $o=array(); foreach((array)$l as $r){ $o[]=is_array($r)?$r[$f]:$r->$f; } return $o; }
 function update_meta_cache($t,$i){ $GLOBALS['QUERIES']++; return true; }
 function cache_users($i){ $GLOBALS['QUERIES']++; return true; }
-function add_query_arg($a,$u){ return $u.'?'.http_build_query($a); }
+function add_query_arg($a,$b=null,$c=null){ if (is_array($a)) { $q=$a; $u=(string)$b; } else { $q=array($a=>$b); $u=(string)$c; } return $u.(strpos($u,'?')===false?'?':'&').http_build_query($q); }
 function get_posts($a){
   $GLOBALS['QUERIES']++;
   $type=$a['post_type']??''; $out=array();
@@ -86,6 +86,7 @@ class BFTD_Access {
 require BFTD_PATH.'includes/class-bftd-cpt.php';
 require BFTD_PATH.'includes/class-bftd-schedule.php';
 require BFTD_PATH.'includes/class-bftd-students.php';
+require BFTD_PATH.'includes/class-bftd-preview.php';
 require BFTD_PATH.'includes/class-bftd-sessions.php';
 
 $fail = 0;
@@ -162,6 +163,12 @@ check(false !== strpos($none,'Nothing recorded yet'), 'a student with none says 
 ob_start(); BFTD_Sessions::drawer(1001, 1); $page1 = ob_get_clean();
 check(20 === substr_count($page1,'<tr>') - 1, 'a page is twenty sessions, got ' . (substr_count($page1,'<tr>')-1));
 check(false !== strpos($page1,'1–20 of 47'), 'saying which twenty of how many');
+/* Each session opens, and previews the progress report it belongs to without
+   opening it first. The same link as the session screen's own button. */
+check(substr_count($page1, '>Open</a>') === substr_count($page1, '>View preview</a>') && substr_count($page1, '>View preview</a>') === 20,
+  'every session has View preview beside Open, got ' . substr_count($page1, '>View preview</a>'));
+check(1 === preg_match('#href="[^"]*' . BFTD_Preview::QUERY . '=\d+[^"]*_wpnonce=[^"]+"\s+target="_blank"[^>]*>View preview</a>#', $page1),
+  'opening the preview of that session, signed, in a new tab');
 check(3 === substr_count($page1,'data-page='), 'with a button per page, got ' . substr_count($page1,'data-page='));
 check(false !== strpos($page1,'is-on'), 'and the page you are on marked');
 
