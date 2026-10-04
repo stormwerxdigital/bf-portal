@@ -26,6 +26,12 @@
 .bf-report img{max-width:100%}
 .bf-report [hidden]:not([hidden=until-found i]){display:none!important}
 
+/* Text for screen readers only, such as "Done." beside a skill. Defined here
+   rather than left to the page around the report: the theme supplies it on
+   the portal, but the preview has no theme, so it showed there as text. */
+.bf-report .screen-reader-text{position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0); clip-path:inset(50%); white-space:nowrap; border:0}
+
 /* Holding the theme at the wrapper.
    -------------------------------------------------------------------------
    bftutoring.com runs a block theme, and a block theme styles bare elements:
@@ -610,7 +616,12 @@
 .bf-report .docsec-b{padding:2px 16px 18px; border-top:1px solid var(--line-soft)}
 .bf-report .docsec-b>.doc-body, .bf-report .docsec-b{padding-top:14px}
 .bf-report .blk{margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid var(--line-soft)}
-.bf-report .blk:last-child{margin-bottom:0; padding-bottom:0; border-bottom:0}
+/* The last plain block drops the divider under it. A boxed block (a coloured
+   panel with its own edge all round) keeps its padding and bottom edge: it
+   lost them here before, because this rule outweighs the box's own, and the
+   last panel in an open session looked cut off. */
+.bf-report .blk:last-child{margin-bottom:0}
+.bf-report .blk:last-child:not(.blk-new):not(.blk-hw):not(.blk-home):not(.blk-skills):not(.blk-read){padding-bottom:0; border-bottom:0}
 .bf-report .blk-h{font-family:var(--font-d); font-weight:700; font-size:15px; color:var(--ink); margin-bottom:8px}
 /* "Activity:" in front of the name, set back so the name still reads as
    the heading and the label only says what kind of thing it is. */
