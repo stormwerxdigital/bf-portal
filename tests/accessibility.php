@@ -82,6 +82,31 @@ check( '' === $row, 'and a client\'s profile does not show it' );
 ob_start(); $A::profile_row( (object) array( 'ID' => 7 ) ); $row = ob_get_clean();
 check( false !== strpos( $row, 'name="bftd_a11y"' ) && false !== strpos( $row, 'bftd_a11y_shown' ), 'a staff member\'s profile does' );
 
+/* ---- the size of the editor's buttons ---- */
+$USER = 7; $A::set( 7, true ); unset( $META[7][ $A::EDITOR_META ] );
+check( 'large' === $A::editor_size(), 'the editor buttons are Large, the size they have always been, until somebody chooses' );
+check( false !== strpos( $A::admin_body_class( '' ), 'bftd-a11y-mce-large' ), 'and the page says which size' );
+$_POST = array( 'bftd_a11y_shown' => '1', 'bftd_a11y' => '1', 'bftd_a11y_editor' => 'small' );
+$CAN = true; $A::save_profile( 7 );
+check( 'small' === $A::editor_size( 7 ) && false !== strpos( $A::admin_body_class( '' ), 'bftd-a11y-mce-small' ), 'Small chosen on the profile is Small' );
+$_POST['bftd_a11y_editor'] = 'huge';
+$A::save_profile( 7 );
+check( 'small' === $A::editor_size( 7 ), 'a size nobody offers is not saved' );
+$META[7][ $A::EDITOR_META ] = 'huge';
+check( 'large' === $A::editor_size( 7 ), 'and one stored somehow reads as Large' );
+$_POST['bftd_a11y_editor'] = 'medium'; $A::save_profile( 7 );
+check( 'medium' === $A::editor_size( 7 ), 'Medium too' );
+ob_start(); $A::profile_row( (object) array( 'ID' => 7 ) ); $row = ob_get_clean();
+check( 3 === substr_count( $row, '<option' ) && false !== strpos( $row, 'name="bftd_a11y_editor"' ), 'the profile offers the three sizes' );
+$A::set( 7, false );
+check( false === strpos( $A::admin_body_class( '' ), 'mce' ), 'with the mode off the size does nothing' );
+$a11y_css = file_get_contents( BFTD_PATH . 'assets/css/bftd-a11y.css' );
+check( false !== strpos( $a11y_css, 'body.bftd-a11y{--bftd-mce:1}' )
+	&& false !== strpos( $a11y_css, 'body.bftd-a11y.bftd-a11y-mce-medium{--bftd-mce:.6667}' )
+	&& false !== strpos( $a11y_css, 'body.bftd-a11y.bftd-a11y-mce-small{--bftd-mce:.5}' ), 'Large is the full size, Medium two thirds, Small half' );
+check( false !== strpos( $a11y_css, 'min-height:calc(44px * var(--bftd-mce))' ), 'and the buttons are sized from it' );
+$A::set( 7, true );
+
 /* ---- the editor ---- */
 check( false === strpos( $A::editor_css(), '"' ), 'the editor style has no double quote, which would stop every editor loading' );
 $init = $A::editor( array( 'content_css' => 'a.css' ) );

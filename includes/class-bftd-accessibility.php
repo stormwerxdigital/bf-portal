@@ -28,6 +28,9 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 class BFTD_Accessibility {
 
 	const META   = '_bftd_a11y';
+
+	/** How big the visual editor's toolbar buttons are in the mode. */
+	const EDITOR_META = '_bftd_a11y_editor';
 	const ACTION = 'bftd_a11y';
 	const BODY   = 'bftd-a11y';
 
@@ -71,7 +74,29 @@ class BFTD_Accessibility {
 	/* ------------------------------------------------------------------ */
 
 	public static function admin_body_class( $classes ) {
-		return self::is_on() ? $classes . ' ' . self::BODY . ' ' : $classes;
+		if ( ! self::is_on() ) return $classes;
+		return $classes . ' ' . self::BODY . ' ' . self::BODY . '-mce-' . self::editor_size() . ' ';
+	}
+
+	/**
+	 * The three sizes for the editor's toolbar buttons, as a share of the
+	 * mode's full size. Large is the size the mode has always drawn them at;
+	 * the other two are for somebody who finds that toolbar takes up too
+	 * much of the screen. The text being typed is not affected.
+	 */
+	public static function editor_sizes() {
+		return array(
+			'large'  => 'Large',
+			'medium' => 'Medium (two thirds of Large)',
+			'small'  => 'Small (half of Large)',
+		);
+	}
+
+	/** This person's editor button size, Large unless they chose another. */
+	public static function editor_size( $user_id = null ) {
+		$user_id = $user_id ? (int) $user_id : get_current_user_id();
+		$size    = (string) get_user_meta( $user_id, self::EDITOR_META, true );
+		return isset( self::editor_sizes()[ $size ] ) ? $size : 'large';
 	}
 
 	public static function body_class( $classes ) {
@@ -396,6 +421,17 @@ class BFTD_Accessibility {
 					<p class="description">Larger, clearer text, stronger contrast, underlined links, bigger buttons and a clear outline on whatever has focus. It is for <?php echo $mine ? 'you' : 'this person'; ?> only: on every admin screen, the portal and every report <?php echo $mine ? 'you open' : 'they open'; ?>. Nobody else's screens change, and printing a report prints it as usual. It can also be switched from the top bar.</p>
 				</td>
 			</tr>
+			<tr>
+				<th scope="row"><label for="bftd_a11y_editor">Editor buttons</label></th>
+				<td>
+					<select name="bftd_a11y_editor" id="bftd_a11y_editor">
+						<?php foreach ( self::editor_sizes() as $key => $label ) : ?>
+							<option value="<?php echo esc_attr( $key ); ?>" <?php selected( self::editor_size( $user->ID ), $key ); ?>><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<p class="description">How big the buttons along the top of a text editor are (Paragraph, bold, lists, links and the rest) while accessibility mode is on. The text you type stays the same size.</p>
+				</td>
+			</tr>
 		</table>
 		<?php
 	}
@@ -405,5 +441,8 @@ class BFTD_Accessibility {
 		if ( ! current_user_can( 'edit_user', $user_id ) ) return;
 		if ( ! BFTD_Roles::is_staff( $user_id ) ) return;
 		self::set( $user_id, ! empty( $_POST['bftd_a11y'] ) );
+
+		$size = isset( $_POST['bftd_a11y_editor'] ) ? sanitize_key( wp_unslash( $_POST['bftd_a11y_editor'] ) ) : '';
+		if ( isset( self::editor_sizes()[ $size ] ) ) update_user_meta( $user_id, self::EDITOR_META, $size );
 	}
 }

@@ -380,7 +380,35 @@ body.bftd-a11y .wp-list-table .row-title{font-size:19px;font-weight:700}
 /* The Visual and Code tabs over an editor. */
 body.bftd-a11y .wp-switch-editor{color:#000 !important;background:#FFF !important;border:2px solid #333 !important;min-height:40px;padding:6px 14px !important}
 body.bftd-a11y :is(.tmce-active .switch-tmce, .html-active .switch-html){background:#3D2049 !important;color:#FFF !important;border-color:#3D2049 !important}
-body.bftd-a11y .quicktags-toolbar input.button{min-height:36px;font-size:16px;padding:4px 10px}
+
+/* The editor's toolbar buttons, in the size the person chose on their
+   profile: Large is the mode's full size, Medium two thirds of it, Small
+   half. Everything about a button scales together (height, padding, label,
+   icon) except its 2px edge, which stays solid at every size. */
+body.bftd-a11y{--bftd-mce:1}
+body.bftd-a11y.bftd-a11y-mce-medium{--bftd-mce:.6667}
+body.bftd-a11y.bftd-a11y-mce-small{--bftd-mce:.5}
+body.bftd-a11y .mce-toolbar :is(.mce-btn, .mce-listbox) button{
+  min-height:calc(44px * var(--bftd-mce)) !important;
+  padding:calc(8px * var(--bftd-mce)) calc(18px * var(--bftd-mce)) !important;
+  font-size:calc(18px * var(--bftd-mce)) !important;
+  line-height:calc(23.4px * var(--bftd-mce)) !important;
+}
+body.bftd-a11y .mce-toolbar .mce-btn .mce-ico{
+  width:calc(20px * var(--bftd-mce)) !important;
+  height:calc(20px * var(--bftd-mce)) !important;
+  font-size:calc(20px * var(--bftd-mce)) !important;
+  line-height:calc(20px * var(--bftd-mce)) !important;
+}
+body.bftd-a11y .mce-toolbar .mce-txt{font-size:calc(18px * var(--bftd-mce)) !important;line-height:calc(23.4px * var(--bftd-mce)) !important}
+/* The editor fixes the Paragraph box's width when it loads, from the large
+   size; at the smaller sizes it follows its text instead. */
+body.bftd-a11y:is(.bftd-a11y-mce-medium, .bftd-a11y-mce-small) .mce-toolbar .mce-listbox .mce-txt{width:auto !important}
+body.bftd-a11y .quicktags-toolbar input.button{
+  min-height:calc(36px * var(--bftd-mce));
+  font-size:calc(16px * var(--bftd-mce)) !important;
+  padding:calc(4px * var(--bftd-mce)) calc(10px * var(--bftd-mce));
+}
 
 /* WordPress's welcome panel on the Dashboard: dark artwork, so made plain. */
 body.bftd-a11y .welcome-panel-header{background:#FFF !important;color:#000 !important;border-bottom:2px solid #000}

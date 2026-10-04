@@ -3,7 +3,7 @@
 The parent portal and the tutor back end for bftutoring.com. Built on the
 Stormwerx Client Dashboard architecture, adapted to a tutoring practice.
 
-Version 1.134.0 · text domain `bftd` · prefix `BFTD_` · meta prefix `_bftd_`
+Version 1.135.0 · text domain `bftd` · prefix `BFTD_` · meta prefix `_bftd_`
 
 Source of truth: <https://github.com/stormwerxdigital/bf-portal>, branch `main`.
 The plugin header carries `GitHub Plugin URI` and `Primary Branch`, so Git
@@ -535,6 +535,13 @@ and `assets/css/bftd-a11y.css`:
   always shown; a taller top bar.
 - The visual editors' text is enlarged too, including the ones the script
   builds when a row's notes are opened.
+- The editors' toolbar buttons have a size of their own, chosen on the
+  profile beside the switch (user meta `_bftd_a11y_editor`): Large (the mode's
+  full size, the default), Medium (two thirds) or Small (half). It is a body
+  class, `bftd-a11y-mce-<size>`, and one custom property the toolbar's sizes
+  are worked out from. Medium and Small are deliberately under the 16px floor
+  the rest of the mode keeps: they are for somebody who would rather have the
+  toolbar take less room.
 
 Everything is inside `@media screen`, so printing a report prints the report
 the family gets. Nobody else's screens change: for everyone else the only
