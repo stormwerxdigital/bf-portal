@@ -2764,12 +2764,22 @@ function bftdTrim( v ) {
 		made[ id ] = true;
 		// The full editor, the same as the session notes box: formatting,
 		// lists, alignment, links, colour, and Add Media for pictures.
+		var mce = {
+			wpautop: true,
+			toolbar1: 'formatselect,bold,italic,underline,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,unlink,wp_adv',
+			toolbar2: 'strikethrough,hr,forecolor,pastetext,removeformat,charmap,outdent,indent,undo,redo'
+		};
+		// Accessibility mode: the same large, clear text the editors drawn
+		// with the page are given by BFTD_Accessibility::editor(). Added to
+		// WordPress's own editor stylesheets rather than replacing them.
+		var a11y = window.BFTD && BFTD.a11y;
+		if ( a11y && +a11y.on ) {
+			var base = ( wp.editor.getDefaultSettings && wp.editor.getDefaultSettings().tinymce || {} ).content_css || '';
+			mce.content_css   = ( base ? base + ',' : '' ) + a11y.editor_font;
+			mce.content_style = a11y.editor_style;
+		}
 		wp.editor.initialize( id, {
-			tinymce: {
-				wpautop: true,
-				toolbar1: 'formatselect,bold,italic,underline,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,unlink,wp_adv',
-				toolbar2: 'strikethrough,hr,forecolor,pastetext,removeformat,charmap,outdent,indent,undo,redo'
-			},
+			tinymce: mce,
 			quicktags: true,
 			mediaButtons: true
 		} );

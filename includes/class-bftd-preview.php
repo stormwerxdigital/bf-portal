@@ -271,6 +271,7 @@ class BFTD_Preview {
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link rel="stylesheet" href="<?php echo esc_url( BFTD_Report_View::fonts_url() ); ?>">
 	<link rel="stylesheet" href="<?php echo esc_url( BFTD_URL . 'assets/css/bftd-report.css?v=' . BFTD_VERSION ); ?>">
+	<?php echo BFTD_Accessibility::head_tags(); // Nothing unless this person has accessibility mode on. ?>
 	<style>
 		body{margin:0;background:#EDE6EA;font-family:'Source Sans 3',system-ui,sans-serif}
 		.bfp-bar{position:sticky;top:0;z-index:40;background:#241E2A;color:#fff;padding:11px 20px;
@@ -285,7 +286,7 @@ class BFTD_Preview {
 		@media print{.bfp-bar,.bfp-warn,.bfp-note{display:none}.bfp-wrap{padding:0;max-width:none}body{background:#fff}}
 	</style>
 </head>
-<body>
+<body<?php echo BFTD_Accessibility::body_attr(); ?>>
 	<div class="bfp-bar">
 		<b>Preview</b>
 		<?php if ( ! empty( $meta['student'] ) ) : ?>
@@ -299,6 +300,11 @@ class BFTD_Preview {
 			<a href="#" onclick="window.print();return false">Print</a>
 			<?php if ( ! empty( $meta['edit'] ) ) : ?>
 				<a href="<?php echo esc_url( $meta['edit'] ); ?>">Back to editing</a>
+			<?php endif; ?>
+			<?php if ( BFTD_Roles::is_staff() ) : // This page has no admin bar, so the switch is here instead. ?>
+				<a class="bfp-a11y" href="<?php echo esc_url( BFTD_Accessibility::toggle_url() ); ?>"><?php
+					echo BFTD_Accessibility::is_on() ? 'Accessibility mode: on' : 'Accessibility mode';
+				?></a>
 			<?php endif; ?>
 			<a href="#" onclick="window.close();return false">Close</a>
 		</span>

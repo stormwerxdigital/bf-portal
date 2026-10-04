@@ -5,7 +5,7 @@
  * Primary Branch: main
  * Plugin URI:  https://bftutoring.com
  * Description: The parent portal and the tutor back end for Brilliant Futures Tutoring. Reading diagnostics, living progress reports, lesson records, per-section conversations, a full activity log, and customisable email with send rules.
- * Version:     1.132.0
+ * Version:     1.133.0
  * Author:      Stormwerx Digital
  * Author URI:  https://stormwerxdigital.com
  * Text Domain: bftd
@@ -13,7 +13,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'BFTD_VERSION', '1.132.0' );
+define( 'BFTD_VERSION', '1.133.0' );
 define( 'BFTD_PATH', plugin_dir_path( __FILE__ ) );
 define( 'BFTD_URL', plugin_dir_url( __FILE__ ) );
 
@@ -21,7 +21,7 @@ foreach ( array(
 	'time', 'schema', 'roles', 'cpt', 'access', 'audit', 'access-log',
 	'emails', 'notices', 'attachments', 'threads', 'fields', 'library', 'skills', 'activities', 'library-view', 'items',
 	'schedule', 'change-notify', 'autosave', 'crm', 'prefill', 'derived', 'charts', 'sample', 'report-view', 'preview', 'metaboxes', 'brand', 'admin-experience',
-	'pay-period', 'stat-holidays', 'pay', 'stat-pay', 'pay-profile',
+	'pay-period', 'stat-holidays', 'pay', 'stat-pay', 'pay-profile', 'accessibility',
 	'admin', 'students', 'sessions', 'oversight', 'timecards', 'settings', 'dashboard', 'ajax',
 ) as $file ) {
 	require_once BFTD_PATH . 'includes/class-bftd-' . $file . '.php';
@@ -79,6 +79,7 @@ final class BFTD_Plugin {
 		BFTD_Preview::init();
 		BFTD_Brand::init();
 		BFTD_Admin_Experience::init();
+		BFTD_Accessibility::init();
 		BFTD_Admin::init();
 		BFTD_Students::init();
 		BFTD_Sessions::init();
@@ -158,6 +159,8 @@ final class BFTD_Plugin {
 			// script where nobody would think to look for them.
 			'tracks'   => class_exists( 'BFTD_Activities' ) ? BFTD_Activities::tracks() : array(),
 			'groups'   => class_exists( 'BFTD_Skills' ) ? BFTD_Skills::groups() : array(),
+			// Accessibility mode, for the editors the script builds itself.
+			'a11y'     => class_exists( 'BFTD_Accessibility' ) ? BFTD_Accessibility::script_config() : array( 'on' => 0 ),
 		) );
 	}
 }

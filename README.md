@@ -3,7 +3,7 @@
 The parent portal and the tutor back end for bftutoring.com. Built on the
 Stormwerx Client Dashboard architecture, adapted to a tutoring practice.
 
-Version 1.132.0 · text domain `bftd` · prefix `BFTD_` · meta prefix `_bftd_`
+Version 1.133.0 · text domain `bftd` · prefix `BFTD_` · meta prefix `_bftd_`
 
 Source of truth: <https://github.com/stormwerxdigital/bf-portal>, branch `main`.
 The plugin header carries `GitHub Plugin URI` and `Primary Branch`, so Git
@@ -504,6 +504,43 @@ approver, like everything else.
 this file.** What the code does is apply one reading of it consistently and show
 the numbers it used. Deductions are not calculated anywhere yet; see *Still to
 build*.
+
+## Accessibility mode
+
+For a staff member with poor eyesight, double vision, or both. It belongs to
+one account: switched with **Accessibility mode** on the top bar (on the report
+preview it is on the preview's own bar) or the checkbox under Accessibility on
+the profile, and both write the same user meta (`_bftd_a11y`). An administrator
+can set it for somebody else from their profile. Clients never get it, whatever
+is stored. `BFTD_Accessibility` holds all of it.
+
+When it is on, every wp-admin screen, the portal as that person sees it, and
+every report they open (real, preview or sample) get the `bftd-a11y` body class
+and `assets/css/bftd-a11y.css`:
+
+- Text at least 16.5px. The plugin's own sizes are not written out a second
+  time: `BFTD_Accessibility::sizes_css()` reads every px font size out of
+  `bftd-admin.css`, `bftd-portal.css` and `bftd-report.css` and repeats it,
+  enlarged, behind the body class, so a label added next year is covered
+  without anyone remembering this exists. WordPress's own screens are sized in
+  the stylesheet.
+- Text contrast of 7:1 or better (WCAG AAA): the brand palette, darkened.
+- One typeface, Atkinson Hyperlegible, made for low vision readers. The
+  alphabet face a child is taught with is kept.
+- Nothing faint, nothing half transparent, no shadows, no italics, no motion,
+  no letter-spaced capitals. A shadow or a soft edge is a second blurred copy
+  of an edge, which is what double vision already produces.
+- Links underlined; buttons and fields 44px with a solid 2px edge; a black and
+  yellow ring on whatever has focus; row actions that normally appear on hover
+  always shown; a taller top bar.
+- The visual editors' text is enlarged too, including the ones the script
+  builds when a row's notes are opened.
+
+Everything is inside `@media screen`, so printing a report prints the report
+the family gets. Nobody else's screens change: for everyone else the only
+difference is the switch on the top bar. `tests/accessibility.php` and
+`tests/browser/a11y.mjs` check the rules; the second measures contrast, size,
+typeface and underlines on the real students list and progress report.
 
 ## Mobile
 

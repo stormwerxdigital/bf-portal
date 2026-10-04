@@ -1,0 +1,533 @@
+/* ==========================================================================
+   Accessibility mode.
+
+   For somebody with poor eyesight, double vision, or both. Loaded only for a
+   staff member who has switched the mode on (BFTD_Accessibility), on top of
+   the normal stylesheets, and every rule is behind body.bftd-a11y so it can
+   never reach anybody else. All of it is inside @media screen: printing a
+   report while the mode is on prints the report the family gets.
+
+   What it does, and why:
+
+   - Text is larger. The plugin's own sizes are enlarged by rules worked out
+     from its stylesheets (BFTD_Accessibility::sizes_css), so nothing is under
+     16px; WordPress's own screens are enlarged here.
+   - Contrast is at least 7:1 for text (WCAG AAA). The palette below is the
+     brand's own purple, sage and clay, darkened until it gets there, so the
+     screens still look like Brilliant Futures.
+   - One typeface, Atkinson Hyperlegible, made for low vision readers. The
+     alphabet face a child is taught with is kept, because it is content.
+   - Nothing faint. Pale grey text, half transparent text, thin hairlines and
+     pale-on-pale boxes are what blur first, and with double vision a faint
+     line and its ghost become indistinguishable. Borders are solid and 2px.
+   - No shadows and no motion. A shadow is a second, blurred copy of an edge,
+     which is exactly the effect double vision already produces.
+   - Links are underlined, so they are found by shape rather than colour.
+   - Buttons and fields are at least 44px tall and have a solid 2px border.
+   - Whatever has keyboard focus has a thick black and yellow ring that shows
+     on any background.
+   - Things that only appear on hover (row actions on lists) stay visible.
+   - Uppercase, letter-spaced labels are set in ordinary case: a word read by
+     its shape is easier to read than a row of same-height capitals.
+   ========================================================================== */
+
+@media screen {
+
+/* --------------------------------------------------------------------------
+   The palette. Same names as the normal one, darker values.
+   Ratios against white: ink 21, body 18.9, muted 12.6, purple 10.9,
+   sage 9.3, clay 8.1, red 8.5.
+   -------------------------------------------------------------------------- */
+body.bftd-a11y{
+  --bftd-purple:#4A3157;
+  --bftd-purple-deep:#2E1F37;
+  --bftd-purple-mid:#4A3157;
+  --bftd-purple-pale:#F1EBF4;
+  --bftd-purple-wash:#FFFFFF;
+  --bftd-sage:#3B4712;
+  --bftd-sage-deep:#2C350C;
+  --bftd-sage-pale:#F1F4E2;
+  --bftd-clay:#8A3A12;
+  --bftd-clay-pale:#FFF1E6;
+  --bftd-red:#A1170B;
+  --bftd-red-pale:#FFEDEA;
+  --bftd-ink:#000000;
+  --bftd-body:#111111;
+  --bftd-muted:#2B2B2B;
+  --bftd-line:#5A5A5A;
+  --bftd-line-soft:#BDBDBD;
+  --bftd-stone-pale:#F2F0EC;
+  --bftd-stone-line:#5A5A5A;
+  --bftd-stone-deep:#2B2B2B;
+  --bftd-card:#FFFFFF;
+  --bftd-sunk:#FFFFFF;
+  --bftd-d:'Atkinson Hyperlegible','Verdana',sans-serif;
+  --bftd-b:'Atkinson Hyperlegible','Verdana',sans-serif;
+
+  /* The portal and the report keep their own names for the same things. */
+  --bf-purple:#4A3157;
+  --bf-purple-deep:#2E1F37;
+  --bf-purple-mid:#4A3157;
+  --bf-purple-pale:#F1EBF4;
+  --bf-purple-wash:#FFFFFF;
+  --bf-sage:#3B4712;
+  --bf-sage-deep:#2C350C;
+  --bf-sage-pale:#F1F4E2;
+  --bf-clay:#8A3A12;
+  --bf-clay-pale:#FFF1E6;
+  --bf-meter-met:#3B4712;
+  --ground:#FFFFFF;
+  --card:#FFFFFF;
+  --card-sunk:#FFFFFF;
+  --sunk:#FFFFFF;
+  --ink:#000000;
+  --body:#111111;
+  --muted:#2B2B2B;
+  --line:#5A5A5A;
+  --line-soft:#BDBDBD;
+  --row-zebra:#F6F6F6;
+  --row-hover:#EFE8F3;
+  --chart-series:#4A3157;
+  --chart-band:#E4DAEA;
+  --chart-goal:#3B4712;
+  --chart-grid:#8A8A8A;
+  --chart-ink:#111111;
+  --shadow:none;
+  --fd:'Atkinson Hyperlegible','Verdana',sans-serif;
+  --fb:'Atkinson Hyperlegible','Verdana',sans-serif;
+  --font-d:'Atkinson Hyperlegible','Verdana',sans-serif;
+  --font-b:'Atkinson Hyperlegible','Verdana',sans-serif;
+  --font-m:'Atkinson Hyperlegible','Verdana',sans-serif;
+}
+/* The report sets its palette on its own wrapper, so it is set there again. */
+body.bftd-a11y .bf-report,
+body.bftd-a11y .bf-portal{
+  --bf-purple:#4A3157; --bf-purple-deep:#2E1F37; --bf-purple-mid:#4A3157;
+  --bf-purple-pale:#F1EBF4; --bf-purple-wash:#FFFFFF;
+  --bf-sage:#3B4712; --bf-sage-deep:#2C350C; --bf-sage-pale:#F1F4E2;
+  --bf-clay:#8A3A12; --bf-clay-pale:#FFF1E6; --bf-meter-met:#3B4712;
+  --ground:#FFFFFF; --card:#FFFFFF; --card-sunk:#FFFFFF; --sunk:#FFFFFF;
+  --ink:#000000; --body:#111111; --muted:#2B2B2B;
+  --line:#5A5A5A; --line-soft:#BDBDBD;
+  --row-zebra:#F6F6F6; --row-hover:#EFE8F3;
+  --chart-series:#4A3157; --chart-band:#E4DAEA; --chart-goal:#3B4712;
+  --chart-grid:#8A8A8A; --chart-ink:#111111;
+  --shadow:none;
+  --fd:'Atkinson Hyperlegible','Verdana',sans-serif;
+  --fb:'Atkinson Hyperlegible','Verdana',sans-serif;
+  --font-d:'Atkinson Hyperlegible','Verdana',sans-serif;
+  --font-b:'Atkinson Hyperlegible','Verdana',sans-serif;
+  --font-m:'Atkinson Hyperlegible','Verdana',sans-serif;
+  background:#FFFFFF;
+  color:#111111;
+}
+
+/* --------------------------------------------------------------------------
+   Type everywhere
+   -------------------------------------------------------------------------- */
+body.bftd-a11y,
+body.bftd-a11y :is(input, select, textarea, button, .button, h1, h2, h3, h4, h5, h6,
+  th, td, label, p, li, dt, dd, legend, caption, code, kbd, pre, .description,
+  #adminmenu a, #wpadminbar .ab-item, #wpadminbar .ab-label, #wpadminbar .ab-empty-item,
+  .bf-report, .bf-portal, .wp-list-table, .form-table){
+  font-family:'Atkinson Hyperlegible','Verdana',sans-serif;
+}
+body.bftd-a11y{
+  background:#FFFFFF;
+  color:#111111;
+  font-weight:400;
+  line-height:1.6;
+  letter-spacing:.01em;
+  word-spacing:.06em;
+}
+body.bftd-a11y #wpwrap,
+body.bftd-a11y #wpcontent,
+body.bftd-a11y #wpbody,
+body.bftd-a11y #wpbody-content{background:#FFFFFF}
+
+/* No italics: slanted strokes are the first to double. Emphasis is bold. */
+body.bftd-a11y *{font-style:normal !important}
+body.bftd-a11y :is(em, i, cite){font-weight:700}
+
+/* Ordinary case, ordinary spacing, and nothing thinner than regular. */
+body.bftd-a11y *:not(.dashicons):not(.ab-icon):not([class*="dashicons-"]):not(.abc):not(.bftd-crit-foot span){
+  text-transform:none !important;
+  letter-spacing:.01em !important;
+  text-shadow:none !important;
+}
+
+/* Headings in WordPress's own screens. */
+/* Sizes only: a heading on a coloured band keeps the colour that band gives it. */
+body.bftd-a11y .wrap h1,
+body.bftd-a11y .wrap h1.wp-heading-inline{font-size:32px;line-height:1.25;font-weight:700}
+body.bftd-a11y .wrap h2,
+body.bftd-a11y #wpbody-content h2{font-size:25px;line-height:1.3;font-weight:700}
+body.bftd-a11y #wpbody-content h3{font-size:21px;line-height:1.35;font-weight:700}
+body.bftd-a11y #wpbody-content h4{font-size:19px;font-weight:700}
+
+/* WordPress's own body text: lists, forms, notices, boxes, help. */
+body.bftd-a11y #wpbody-content,
+body.bftd-a11y #wpbody-content :is(p, li, td, th, dt, dd, label, legend, .description, .howto,
+  .subsubsub, .subsubsub a, .tablenav, .tablenav .displaying-num, .row-actions, .row-actions a,
+  .notice p, .postbox .inside, .postbox .hndle, .postbox h2, .form-table th, .form-table td,
+  .wp-list-table th, .wp-list-table td, .wp-list-table th a, #screen-meta, #screen-meta-links button,
+  code, kbd, .widefat td, .widefat th, #title-prompt-text, .wp-switch-editor, .post-state, .post-com-count,
+  .misc-pub-section, #major-publishing-actions, .inline-edit-row label span.title){
+  font-size:18px;
+  line-height:1.55;
+}
+body.bftd-a11y #wpbody-content :is(.description, p.description, .howto, .form-table td .description,
+  .subsubsub, .subsubsub .count, #title-prompt-text, .bftd-none, .post-state, .tablenav .displaying-num){color:#2B2B2B}
+body.bftd-a11y #wpbody-content :is(.widefat td, .widefat th){color:#111}
+body.bftd-a11y :is(.submitdelete, .row-actions .delete a, .row-actions .trash a, a.delete, .deletion){color:#A1170B !important}
+body.bftd-a11y :is(.wp-list-table .row-title, a.row-title, .column-title > strong, td.title > strong){font-size:19px !important}
+body.bftd-a11y .welcome-panel :is(a, p){font-size:18px}
+body.bftd-a11y .screen-reader-shortcut{font-size:18px}
+body.bftd-a11y #wpfooter,
+body.bftd-a11y #wpfooter p{font-size:17px;color:#111}
+
+/* --------------------------------------------------------------------------
+   Links: underlined, dark, and found by their shape
+   -------------------------------------------------------------------------- */
+/* The colour is given at the weight of a bare a{} rule, so it replaces
+   WordPress's blue but never a colour the plugin gives a link on purpose,
+   such as a white link on a purple band. */
+:where(body.bftd-a11y) a{color:#3D2049}
+:where(body.bftd-a11y) a:visited{color:#3D2049}
+body.bftd-a11y a{
+  text-decoration:underline !important;
+  text-decoration-thickness:2px !important;
+  text-underline-offset:3px;
+}
+body.bftd-a11y a:hover{text-decoration-thickness:3px !important}
+
+/* Things that are links but look like buttons, tabs or menu rows keep their
+   own look, and get it from the button rules below. */
+body.bftd-a11y :is(#adminmenu, #wpadminbar) a,
+body.bftd-a11y a:is(.button, .page-title-action, .nav-tab, .bf-btn, .btn, .bftd-btn, .bftd-pill, .tabbtn, .bfp-a11y, .chip),
+body.bftd-a11y .subsubsub a.current{
+  text-decoration:none !important;
+}
+
+/* Hover-only row actions stay on screen. Hidden things cannot be found by
+   somebody who does not know to wave the mouse over a row. */
+body.bftd-a11y .row-actions{left:0 !important;position:static !important;visibility:visible !important;opacity:1 !important;padding-top:4px}
+body.bftd-a11y .row-actions,
+body.bftd-a11y .row-actions span{color:#2B2B2B}
+body.bftd-a11y .bftd-stu-acts{opacity:1}
+body.bftd-a11y .bftd-stu-acts a{color:#3D2049;margin-right:6px}
+
+/* Colours written into the plugin's own markup and rules rather than taken
+   from the palette: the greys made dark, the oranges and reds made deep. */
+body.bftd-a11y [style*="color:#a7aaad"],
+body.bftd-a11y [style*="color:#787c82"],
+body.bftd-a11y [style*="color:#50575e"],
+body.bftd-a11y [style*="color:var(--muted)"]{color:#2B2B2B !important}
+body.bftd-a11y [style*="font-size:12px"],
+body.bftd-a11y [style*="font-size:13px"]{font-size:17px !important}
+body.bftd-a11y [style*="font-size:15px"]{font-size:18px !important}
+body.bftd-a11y :is(.bftd-none, .bftd-libsug .k){color:#2B2B2B}
+/* Half transparent white on a dark band: solid white, so there is one edge
+   to each letter rather than a soft one. */
+body.bftd-a11y :is(.bftd-stu-n, .bftd-tc-sum, .bftd-tc-stat-d,
+  .bf-report .next-lesson .eyebrow,
+  .bf-report .next-lesson .where, .bf-report .bank, .bf-report .ckpt-item.done, .bf-report .chart-head p,
+  .bf-nav a, .bf-next .bf-eyebrow, .bf-bank, .bf-staffbar-sub, .bf-staffbar-note){color:#FFFFFF}
+body.bftd-a11y .bf-staffbar-eyebrow{color:#E3EAB8}
+body.bftd-a11y .bf-staffbar-a a{color:#FFFFFF;border-bottom:0}
+body.bftd-a11y .bf-staffbar-x{opacity:1}
+/* Things shown faded to say "past", "full" or "done" stay at full strength;
+   the background and the dashed edge they already have still say it. */
+body.bftd-a11y :is(.bftd-item-row.is-confirmed, .bftd-cal-day.is-past, .bftd-cal-day.is-full, .bf-report .ovt td.w){opacity:1}
+body.bftd-a11y :is(.bftd-cal-day.is-past, .bftd-cal-day.is-full){background:#EEEEEE;color:#111}
+body.bftd-a11y .bf-mark span{opacity:1}
+/* The portal's tabs: the one you are on has a thick yellow bar under it. */
+body.bftd-a11y .bf-nav a{opacity:1}
+body.bftd-a11y .bf-nav a.is-on{border-bottom:5px solid #FFD60A;text-decoration:none !important}
+body.bftd-a11y :is(.bftd-drag, .bftd-stackrow-h .bftd-drag){color:#333}
+body.bftd-a11y :is(.bftd-stu-drafts, .bftd-hub-drafts, .bftd-hub-drafts a, .bftd-stu-left.is-low,
+  .bftd-pill.is-prospect, .bftd-att-b.is-missed, .bftd-ov-tile.is-bad b, .bftd-ov-tile.is-warn b,
+  .bftd-ov-d.is-bad, .bftd-ov-d.is-warn, .bftd-ov-flag){color:#6E2D0C}
+body.bftd-a11y :is(.bftd-actpick.is-offtrack .bftd-actpick-name, .bftd-actpick-off){color:#A1170B}
+body.bftd-a11y .wp-core-ui :is(.button-primary:disabled, .button-primary.disabled){background:#EEE !important;border-color:#333 !important;color:#333 !important}
+
+/* --------------------------------------------------------------------------
+   Focus: a black ring with a yellow halo, visible on any background
+   -------------------------------------------------------------------------- */
+body.bftd-a11y :focus-visible,
+body.bftd-a11y .bf-report :focus-visible,
+body.bftd-a11y a:focus,
+body.bftd-a11y button:focus,
+body.bftd-a11y input:focus,
+body.bftd-a11y select:focus,
+body.bftd-a11y textarea:focus,
+body.bftd-a11y .button:focus{
+  outline:3px solid #000 !important;
+  outline-offset:2px !important;
+  box-shadow:0 0 0 7px #FFD60A !important;
+  border-radius:3px;
+}
+
+/* --------------------------------------------------------------------------
+   No shadows, no blur, no motion
+   -------------------------------------------------------------------------- */
+body.bftd-a11y *,
+body.bftd-a11y *::before,
+body.bftd-a11y *::after{
+  animation-duration:0s !important;
+  animation-iteration-count:1 !important;
+  transition-duration:0s !important;
+  scroll-behavior:auto !important;
+}
+body.bftd-a11y *:not(:focus):not(:focus-visible){box-shadow:none !important}
+body.bftd-a11y *{backdrop-filter:none !important;filter:none !important}
+
+/* --------------------------------------------------------------------------
+   Buttons and fields
+   -------------------------------------------------------------------------- */
+body.bftd-a11y :is(.button, .page-title-action, button:not(.handlediv):not(.toggle-indicator):not(.notice-dismiss):not(.ab-item):not(.wp-menu-image):not(#collapse-button):not(.wp-switch-editor):not(.handle-order-higher):not(.handle-order-lower),
+  input[type=submit], input[type=button], input[type=reset], .bf-btn, .bf-report .btn, .bftd-btn){
+  min-height:44px;
+  padding:8px 18px;
+  font-size:18px;
+  font-weight:700;
+  line-height:1.3;
+  border-width:2px !important;
+  border-style:solid !important;
+  border-radius:6px;
+  white-space:normal;
+  height:auto;
+  max-width:100%;
+}
+/* Every ordinary button: white with a black outline and black text. */
+body.bftd-a11y :is(.button, .page-title-action, .button-secondary, .bf-report .btn-ghost){
+  background:#FFFFFF !important;
+  color:#000 !important;
+  border-color:#000 !important;
+}
+body.bftd-a11y :is(.button, .page-title-action, .button-secondary):hover{background:#F1EBF4 !important;color:#000 !important}
+/* The one main action on a screen: solid dark purple, white text. */
+body.bftd-a11y :is(.button-primary, .button.button-primary, input.button-primary, .bftd-btn-primary,
+  .bf-report .btn-primary, .bf-btn:not(.bf-btn-ghost):not(.is-ghost)){
+  background:#3D2049 !important;
+  color:#FFFFFF !important;
+  border-color:#3D2049 !important;
+}
+body.bftd-a11y :is(.button-primary, .button.button-primary, .bf-report .btn-primary):hover{background:#000 !important;border-color:#000 !important;color:#FFF !important}
+body.bftd-a11y :is(.button, button, .bf-btn, .btn)[disabled],
+body.bftd-a11y :is(.button, .bf-btn, .btn).disabled{
+  background:#EEEEEE !important;color:#333 !important;border-color:#333 !important;border-style:dashed !important;
+}
+body.bftd-a11y .page-title-action{top:0 !important;vertical-align:middle;margin-left:12px}
+/* Pills that are links (filters over a list) are buttons in all but name. */
+body.bftd-a11y a.bftd-pill{display:inline-flex;align-items:center;min-height:44px;padding:6px 16px;border:2px solid #333;background:#FFF;color:#000}
+body.bftd-a11y a.bftd-pill.is-on{background:#3D2049;border-color:#3D2049;color:#FFF}
+/* The open and close arrows on WordPress's boxes. */
+body.bftd-a11y .postbox-header .handle-actions button{width:40px;height:40px;min-height:40px;padding:0;border:0 !important;background:transparent !important}
+body.bftd-a11y .postbox-header .handle-actions button .order-higher-indicator::before,
+body.bftd-a11y .postbox-header .handle-actions button .order-lower-indicator::before,
+body.bftd-a11y .postbox-header .handle-actions button .toggle-indicator::before{color:#000}
+body.bftd-a11y #your-profile td,
+body.bftd-a11y .form-table td{font-size:18px}
+
+body.bftd-a11y :is(input[type=text], input[type=search], input[type=email], input[type=url], input[type=password],
+  input[type=number], input[type=date], input[type=time], input[type=tel], select, textarea){
+  min-height:44px;
+  font-size:18px !important;
+  line-height:1.4;
+  color:#000;
+  background-color:#FFFFFF;
+  border:2px solid #333 !important;
+  border-radius:5px;
+  padding:6px 10px;
+  max-width:100%;
+  box-sizing:border-box;
+}
+body.bftd-a11y select{padding-right:36px !important;background-size:18px;background-position:right 8px center}
+body.bftd-a11y ::placeholder{color:#444 !important;opacity:1}
+body.bftd-a11y :is(input[type=checkbox], input[type=radio]){
+  width:24px !important;height:24px !important;min-width:24px;border:2px solid #000 !important;margin-right:6px;
+}
+body.bftd-a11y input[type=checkbox]:checked::before{width:28px;height:28px;margin:-3px 0 0 -4px}
+body.bftd-a11y input[type=radio]:checked::before{width:12px;height:12px;margin:4px;background:#000}
+
+/* --------------------------------------------------------------------------
+   Boxes: white, with a solid edge you can see
+   -------------------------------------------------------------------------- */
+body.bftd-a11y :is(.postbox, .card, .notice, div.updated, div.error, .wp-list-table, .tablenav .tablenav-pages a,
+  .bftd-card, .bftd-box, .bf-report .card, .bf-report .kpit, .bf-report .sec, .bf-report .section){
+  border-width:2px;
+  border-color:#5A5A5A;
+}
+body.bftd-a11y .notice,
+body.bftd-a11y div.updated,
+body.bftd-a11y div.error{border-left-width:8px;background:#FFFFFF;color:#111}
+body.bftd-a11y .notice-error, body.bftd-a11y div.error{border-left-color:#A1170B}
+body.bftd-a11y .notice-warning{border-left-color:#8A3A12}
+body.bftd-a11y .notice-success, body.bftd-a11y div.updated{border-left-color:#2C350C}
+body.bftd-a11y .notice-info{border-left-color:#3D2049}
+
+/* Striped and hovered rows stay pale enough that black text keeps 7:1. */
+body.bftd-a11y .striped > tbody > :nth-child(odd),
+body.bftd-a11y ul.striped > :nth-child(odd),
+body.bftd-a11y .alternate{background:#F6F6F6}
+body.bftd-a11y .wp-list-table td,
+body.bftd-a11y .wp-list-table th{padding-top:12px;padding-bottom:12px;color:#111;border-bottom:1px solid #8A8A8A}
+body.bftd-a11y .wp-list-table thead th,
+body.bftd-a11y .wp-list-table tfoot th{font-weight:700;color:#000;border-bottom:2px solid #000}
+body.bftd-a11y .wp-list-table .row-title{font-size:19px;font-weight:700}
+
+/* The Visual and Code tabs over an editor. */
+body.bftd-a11y .wp-switch-editor{color:#000 !important;background:#FFF !important;border:2px solid #333 !important;min-height:40px;padding:6px 14px !important}
+body.bftd-a11y :is(.tmce-active .switch-tmce, .html-active .switch-html){background:#3D2049 !important;color:#FFF !important;border-color:#3D2049 !important}
+body.bftd-a11y .quicktags-toolbar input.button{min-height:36px;font-size:16px;padding:4px 10px}
+
+/* WordPress's welcome panel on the Dashboard: dark artwork, so made plain. */
+body.bftd-a11y .welcome-panel-header{background:#FFF !important;color:#000 !important;border-bottom:2px solid #000}
+body.bftd-a11y .welcome-panel-header :is(h2, a, p){color:#000 !important}
+body.bftd-a11y .welcome-panel-header-image{display:none}
+body.bftd-a11y .welcome-panel .welcome-panel-close{color:#000 !important;font-size:18px}
+body.bftd-a11y .welcome-panel .welcome-panel-close::before{color:#000 !important}
+
+/* The small "Edit" links beside status, visibility and date when saving. */
+body.bftd-a11y #submitdiv :is(.edit-post-status, .edit-visibility, .edit-timestamp){display:inline-block;padding:6px 4px;font-size:17px}
+
+/* Tabs and the filter links over a list. */
+body.bftd-a11y .nav-tab{font-size:18px;padding:10px 16px;color:#000;background:#FFF;border:2px solid #5A5A5A;border-bottom:none}
+body.bftd-a11y .nav-tab-active,
+body.bftd-a11y .nav-tab-active:hover{background:#3D2049;color:#FFF;border-color:#3D2049}
+body.bftd-a11y .subsubsub a{color:#3D2049;text-decoration:underline;display:inline-block;padding:8px 2px}
+body.bftd-a11y .subsubsub a.current{color:#000;font-weight:700;text-decoration:none;border-bottom:3px solid #000}
+body.bftd-a11y .subsubsub .count{color:#2B2B2B}
+
+/* --------------------------------------------------------------------------
+   The sidebar menu: near black, white text, the current page unmistakable
+   -------------------------------------------------------------------------- */
+body.bftd-a11y #adminmenuback,
+body.bftd-a11y #adminmenuwrap,
+body.bftd-a11y #adminmenu{background:#1A1220}
+body.bftd-a11y #adminmenu a,
+body.bftd-a11y #adminmenu .wp-submenu a{color:#FFFFFF;font-size:17px;line-height:1.35}
+body.bftd-a11y #adminmenu li.menu-top > a{font-size:18px;font-weight:700;padding-top:4px;padding-bottom:4px}
+body.bftd-a11y #adminmenu .wp-submenu a{padding-top:7px;padding-bottom:7px}
+body.bftd-a11y #adminmenu div.wp-menu-image:before{color:#FFFFFF}
+body.bftd-a11y #adminmenu .wp-submenu,
+body.bftd-a11y #adminmenu .wp-has-current-submenu .wp-submenu{background:#000000}
+body.bftd-a11y #adminmenu li.menu-top:hover,
+body.bftd-a11y #adminmenu li > a.menu-top:focus,
+body.bftd-a11y #adminmenu .wp-submenu a:hover,
+body.bftd-a11y #adminmenu .wp-submenu a:focus{background:#FFFFFF;color:#000000}
+body.bftd-a11y #adminmenu li.menu-top:hover div.wp-menu-image:before{color:#000}
+/* Where you are: white row, black bold text, a thick yellow bar. */
+body.bftd-a11y #adminmenu li.current a.menu-top,
+body.bftd-a11y #adminmenu li.wp-has-current-submenu a.wp-has-current-submenu{background:#4A3157;color:#FFFFFF}
+body.bftd-a11y #adminmenu .wp-submenu li.current > a,
+body.bftd-a11y #adminmenu .wp-submenu li.current > a:hover,
+body.bftd-a11y #adminmenu .wp-submenu li.current > a:focus,
+body.bftd-a11y #adminmenu .wp-has-current-submenu .wp-submenu li.current > a{
+  background:#FFFFFF;color:#000000;font-weight:700;box-shadow:inset 8px 0 0 #FFD60A !important;padding-left:20px;
+}
+body.bftd-a11y #adminmenu .awaiting-mod,
+body.bftd-a11y #adminmenu .update-plugins{background:#FFD60A;color:#000;font-size:15px;min-width:22px;height:22px;line-height:22px}
+body.bftd-a11y #adminmenu li.wp-menu-separator{background:#555}
+body.bftd-a11y #collapse-button{color:#FFF;font-size:17px}
+body.bftd-a11y #collapse-button .collapse-button-label{font-size:17px}
+/* A wider sidebar for the larger type. */
+@media (min-width:961px){
+  body.bftd-a11y:not(.folded) #adminmenuback,
+  body.bftd-a11y:not(.folded) #adminmenuwrap,
+  body.bftd-a11y:not(.folded) #adminmenu,
+  body.bftd-a11y:not(.folded) #adminmenu .wp-submenu{width:210px}
+  body.bftd-a11y:not(.folded) #wpcontent,
+  body.bftd-a11y:not(.folded) #wpfooter{margin-left:210px}
+  body.bftd-a11y:not(.folded) #adminmenu .wp-not-current-submenu .wp-submenu{left:210px}
+}
+
+/* --------------------------------------------------------------------------
+   The top bar
+   -------------------------------------------------------------------------- */
+body.bftd-a11y #wpadminbar{background:#000000}
+body.bftd-a11y #wpadminbar .ab-item,
+body.bftd-a11y #wpadminbar a.ab-item,
+body.bftd-a11y #wpadminbar > #wp-toolbar span.ab-label,
+body.bftd-a11y #wpadminbar .ab-empty-item{color:#FFFFFF !important}
+body.bftd-a11y #wpadminbar .ab-icon:before,
+body.bftd-a11y #wpadminbar .ab-item:before{color:#FFFFFF !important}
+body.bftd-a11y #wpadminbar .ab-top-menu > li:hover > .ab-item,
+body.bftd-a11y #wpadminbar .ab-top-menu > li > .ab-item:focus{background:#FFFFFF !important;color:#000 !important}
+body.bftd-a11y #wpadminbar .ab-top-menu > li:hover > .ab-item :is(.ab-icon, .ab-label)::before,
+body.bftd-a11y #wpadminbar .ab-top-menu > li:hover > .ab-item .ab-label{color:#000 !important}
+body.bftd-a11y #wpadminbar .ab-submenu,
+body.bftd-a11y #wpadminbar .ab-sub-wrapper{background:#000}
+body.bftd-a11y #wpadminbar #wp-admin-bar-bftd-a11y > .ab-item{background:#FFD60A !important;color:#000 !important;font-weight:700}
+body.bftd-a11y #wpadminbar #wp-admin-bar-bftd-a11y > .ab-item :is(.ab-label),
+body.bftd-a11y #wpadminbar #wp-admin-bar-bftd-a11y .ab-icon:before{color:#000 !important}
+body.bftd-a11y #wpadminbar .bftd-tb-mark{font-size:16px;font-family:'Atkinson Hyperlegible','Verdana',sans-serif}
+/* Taller, so every item is a 44px target. WordPress makes room for the bar
+   with padding on <html>, which is grown to match. On a phone the bar is
+   already 46px of icons with the words hidden, and it stays that way. */
+@media (min-width:783px){
+  body.bftd-a11y #wpadminbar :is(.ab-item, a.ab-item, .ab-empty-item, span, kbd, .display-name, .ab-label){font-size:16px !important;height:auto !important}
+  body.bftd-a11y #wpadminbar :is(span, kbd, .display-name, .ab-label){color:#FFF}
+  html.wp-toolbar:has(> body.bftd-a11y){padding-top:44px}
+  html:has(> body.bftd-a11y.admin-bar:not(.wp-admin)){margin-top:44px !important}
+  body.bftd-a11y #wpadminbar{height:44px}
+  body.bftd-a11y #wpadminbar .quicklinks > ul > li > .ab-item,
+  body.bftd-a11y #wpadminbar .quicklinks > ul > li > .ab-empty-item{height:44px !important;line-height:44px !important;padding-left:10px;padding-right:10px}
+  body.bftd-a11y #wpadminbar .quicklinks .ab-icon{top:8px !important}
+  body.bftd-a11y #wpadminbar #wp-admin-bar-my-account > .ab-item img{margin-top:10px}
+  body.bftd-a11y #wpadminbar .menupop .ab-sub-wrapper{top:44px}
+  body.bftd-a11y #wpadminbar .ab-submenu .ab-item{min-height:40px;line-height:40px !important;height:auto !important}
+}
+
+/* On a phone, a table wider than the screen scrolls inside itself rather
+   than pushing the whole page sideways, and long unbroken text wraps. */
+@media (max-width:782px){
+  body.bftd-a11y #wpbody-content table:is(.widefat, .bftd-table):not(.wp-list-table){display:block;overflow-x:auto}
+  body.bftd-a11y #wpbody-content :is(td, th){overflow-wrap:break-word}
+  /* A grid column would otherwise grow to its widest table. */
+  body.bftd-a11y #wpbody-content [class*="bftd-col"]{min-width:0}
+}
+body.bftd-a11y .wp-tooltip__text{font-size:16px}
+
+/* --------------------------------------------------------------------------
+   The report preview's own bar
+   -------------------------------------------------------------------------- */
+body.bftd-a11y .bfp-bar{background:#000;font-size:17px;padding:12px 20px}
+body.bftd-a11y .bfp-bar a{color:#FFFFFF}
+body.bftd-a11y .bfp-tag{background:#FFF;color:#000;font-weight:700}
+body.bftd-a11y .bfp-warn{background:#FFF1E6;color:#000;border-top:3px solid #8A3A12;border-bottom:3px solid #8A3A12;font-size:17px}
+body.bftd-a11y .bfp-note{background:#F1EBF4;color:#000;border-top:3px solid #3D2049;border-bottom:3px solid #3D2049;font-size:17px}
+body.bftd-a11y .bfp-a11y{display:inline-block;background:#FFD60A;color:#000 !important;padding:10px 14px;border-radius:4px;font-weight:700;text-decoration:none}
+body.bftd-a11y{background:#FFFFFF}
+
+/* --------------------------------------------------------------------------
+   Reports and the portal
+   -------------------------------------------------------------------------- */
+body.bftd-a11y .bf-report{line-height:1.6}
+body.bftd-a11y .bf-report :is(h1, h2, h3, h4){font-weight:700}
+body.bftd-a11y .bf-report :is(.card, .kpit, .sec, .section){background:#FFF}
+
+/* The skills list's row of pips and the skills grid. Normally "practised
+   again" is a pale lilac next to a pale grey, which is the first difference
+   to vanish. Here: not yet is an empty box, practised again is solid purple,
+   first reached is solid clay with its letter. */
+body.bftd-a11y .bf-report .skl-p{gap:4px}
+body.bftd-a11y .bf-report .skl-p .p{width:11px;height:11px;background:#FFF;border:1.5px solid #6E6E6E}
+body.bftd-a11y .bf-report .skl-p .p.again{background:#4A3157;border-color:#4A3157}
+body.bftd-a11y .bf-report .skl-p .p.new{background:#8A3A12;border-color:#8A3A12}
+body.bftd-a11y .bf-report .cell{width:28px;height:28px;background:#6E5680;border-radius:3px}
+body.bftd-a11y .bf-report .cell.new{background:#8A3A12;color:#FFF;font-size:16px !important;line-height:28px !important;font-weight:700}
+
+/* Round initials beside a message. */
+body.bftd-a11y .bf-report .who{width:40px;height:40px;line-height:40px !important;font-size:16px !important}
+
+/* Charts: labels in ink. */
+body.bftd-a11y .bf-report svg text,
+body.bftd-a11y .bftd-wrap svg text{fill:#111111}
+
+/* The alphabet face is the one a child is taught with, so it is content and
+   stays: --font-abc and --bftd-abc are deliberately not redefined above, and
+   its letter spacing is left out of the rule that evens spacing out. */
+
+}
