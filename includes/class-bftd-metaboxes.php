@@ -111,7 +111,7 @@ class BFTD_MetaBoxes {
 		add_meta_box( 'bftd_review', 'For review', array( __CLASS__, 'box_review' ), array( BFTD_CPT::ASSESSMENT, BFTD_CPT::PROGRESS ), 'normal', 'default' );
 
 		add_meta_box( 'bftd_parent', 'Student', array( __CLASS__, 'box_parent' ), BFTD_Access::report_types(), 'side', 'high' );
-		add_meta_box( 'bftd_report_staff', 'Who can see this', array( __CLASS__, 'box_report_staff' ), BFTD_Access::report_types(), 'side', 'high' );
+		add_meta_box( 'bftd_report_staff', 'Also shared with', array( __CLASS__, 'box_report_staff' ), BFTD_Access::report_types(), 'side', 'high' );
 		add_meta_box( 'bftd_taught_by', 'Taught by', array( __CLASS__, 'box_taught_by' ), BFTD_CPT::SESSION, 'side', 'high' );
 		add_meta_box( 'bftd_preview', 'See it as a family does', array( __CLASS__, 'box_preview' ), BFTD_Access::report_types(), 'side', 'high' );
 
@@ -603,7 +603,7 @@ class BFTD_MetaBoxes {
 			BFTD_Roles::staff_users(),
 			$assigned,
 			'Nobody yet. Whoever saves this first is added automatically.',
-			'Only the tutors listed here can open this record. Managers, Senior Managers and Administrators always can. Whoever creates it is added straight away, so nobody is locked out of their own work.'
+			'The student\'s tutors can always open this record. Anyone listed here can open it too, even without being on the student. Managers, Senior Managers and Administrators always can. Whoever creates it is added straight away.'
 				. ( $can_assign ? '' : '<br><strong>You cannot change this list</strong>, because you are neither assigned to this record nor a manager.' ),
 			$can_assign,
 			function ( $u ) { return BFTD_Roles::role_name( $u->ID ); }
@@ -1187,7 +1187,7 @@ class BFTD_MetaBoxes {
 			) ),
 			// Whose hour this was, and so whose time card it lands on.
 			// Whoever creates the session, unless somebody changes it in the
-			// Taught by box beside Who can see this. Drawn there by
+			// Taught by box beside Also shared with. Drawn there by
 			// box_taught_by(), not in the session record.
 			'delivered_by'   => array(
 				'type'  => 'staff',
@@ -1923,7 +1923,7 @@ class BFTD_MetaBoxes {
 	}
 
 	/**
-	 * The Taught by box, beside Who can see this.
+	 * The Taught by box, beside Also shared with.
 	 *
 	 * The field was defined and required to publish, but never drawn, so a
 	 * session nobody had claimed could not be fixed from its own screen. A

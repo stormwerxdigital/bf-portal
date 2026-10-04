@@ -100,6 +100,8 @@ class BFTD_Activities {
 
 		add_filter( 'manage_' . self::POST_TYPE . '_posts_columns', array( __CLASS__, 'columns' ) );
 		add_action( 'manage_' . self::POST_TYPE . '_posts_custom_column', array( __CLASS__, 'column' ), 10, 2 );
+		// A tutor reads this list and writes nothing on it. See BFTD_Library_View.
+		add_filter( 'bulk_actions-edit-' . self::POST_TYPE, array( 'BFTD_Library_View', 'reader_bulk' ), 20 );
 		add_filter( 'manage_edit-' . self::POST_TYPE . '_sortable_columns', array( __CLASS__, 'sortable' ) );
 
 		// The list is a sequence, so it is shown as one. Sorted by number
@@ -602,7 +604,7 @@ class BFTD_Activities {
 		// what the page had just said.
 		$out['title']       = 'Name';
 		$out['date']        = isset( $cols['date'] ) ? $cols['date'] : 'Date';
-		return $out;
+		return BFTD_Library_View::reader_columns( $out, self::POST_TYPE );
 	}
 
 	/**
@@ -621,6 +623,7 @@ class BFTD_Activities {
 	}
 
 	public static function column( $col, $post_id ) {
+		if ( 'bftd_read' === $col ) { BFTD_Library_View::read_cell( $post_id ); return; }
 		if ( 'bftd_number' !== $col ) return;
 		$n = (int) get_post_meta( $post_id, self::NUMBER_KEY, true );
 		echo $n ? '<strong>' . (int) $n . '</strong>' : '<span class="bftd-none">&mdash;</span>';

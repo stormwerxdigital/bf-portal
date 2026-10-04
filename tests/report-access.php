@@ -47,7 +47,7 @@ mkpost(101,'bftd_assessment',4,array(4,5),100);        // Denise wrote it, Sam a
 
 $actors=array(1=>'Admin',2=>'Senior Mgr',3=>'Tutor Mgr',4=>'Author',5=>'Assigned',6=>'Student tutor');
 $fail=0;
-$expect=array(1=>true,2=>true,3=>true,4=>true,5=>true,6=>false);
+$expect=array(1=>true,2=>true,3=>true,4=>true,5=>true,6=>true);
 
 printf("%-30s", 'Can open the diagnostic'); foreach($actors as $l) printf("%-15s",$l); echo "\n";
 echo str_repeat('-',120),"\n";
@@ -58,7 +58,7 @@ foreach(array_keys($actors) as $a){
   if($got!==$expect[$a])$fail++;
   printf("%-15s",$got?'yes':'NO');
 }
-echo "\n\nExpected: everyone but the student's own tutor, who is not on this report.\n";
+echo "\n\nExpected: everyone. The student's own tutor opens it without being on the report, because a report follows the student.\n";
 
 /* A session is different: it belongs to the student's tutors as well, whoever
    started it. A session a manager drafted for a tutor's own student used to
@@ -72,5 +72,10 @@ foreach(array_keys($actors) as $a){
   printf("%-15s",$got?'yes':'NO');
 }
 echo "\nExpected: managers, and the student's own tutor; not tutors of other students.\n";
+/* And a tutor of some other student still cannot. */
+mkuser(7,BFTD_Roles::TUTOR_ROLE,'Pat (other students)');
+$got=BFTD_Access::can_staff_view(101,7);
+if($got)$fail++;
+printf("%-30s%s\n",'A tutor of other students',$got?'yes (WRONG)':'NO, as expected');
 echo $fail?"FAIL: $fail mismatch(es)\n":"PASS\n";
 exit($fail?1:0);

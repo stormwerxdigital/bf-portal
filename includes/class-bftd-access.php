@@ -5,12 +5,14 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  * Which tutor can see which student.
  *
  * A tutor sees the students they are assigned to, plus anything they created
- * themselves — so creating a student never locks its creator out before the
- * assignment is saved. Administrators are never restricted.
+ * themselves, so creating a student never locks its creator out before the
+ * assignment is saved. Managers, senior managers and administrators are
+ * never restricted.
  *
- * Records that hang off a student (reports, lessons) inherit the student's
- * restriction rather than carrying their own, so there is one rule to reason
- * about and no way for the two to disagree.
+ * Everything that hangs off a student (sessions, progress reports and
+ * diagnostics) follows the student: a tutor who can open the child can open
+ * all of the child's work. A record's own tutor list adds people, it never
+ * takes the student's tutors away.
  */
 class BFTD_Access {
 
@@ -20,17 +22,14 @@ class BFTD_Access {
 	}
 
 	/**
-	 * Reports and lessons carry their own assignment list, separate from the
-	 * student's.
+	 * Records that also carry a tutor list of their own.
 	 *
-	 * A student's list decides who a family's message reaches. A report's list
-	 * decides who may read that particular piece of work — which is a
-	 * different question, and a narrower one. A tutor who covered a term for
-	 * someone should not automatically gain the diagnostic another tutor wrote
-	 * two years earlier just because they are both attached to the child.
-	 *
-	 * Whoever creates a report is assigned to it at once, so nobody is ever
-	 * locked out of something they just made.
+	 * The list adds people: whoever wrote the record and whoever was added to
+	 * it can open it even without being on the student. It does not narrow
+	 * anything. Every tutor on the student opens all of the student's
+	 * sessions, reports and diagnostics, because a tutor locked out of a
+	 * child's diagnostic while teaching that child was the practice's rule
+	 * getting in the way of the practice.
 	 */
 	public static function report_types() {
 		return array( BFTD_CPT::ASSESSMENT, BFTD_CPT::PROGRESS, BFTD_CPT::SESSION );
@@ -47,25 +46,40 @@ class BFTD_Access {
 		if ( in_array( $type, self::report_types(), true ) ) {
 			if ( (int) get_post_field( 'post_author', $post_id ) === $user_id ) return true;
 			if ( in_array( $user_id, BFTD_CPT::staff_ids( $post_id ), true ) ) return true;
-			// A session belongs to the student's tutors as well, whoever
-			// started it. Otherwise a session a manager drafted for a tutor's
-			// own student refused that tutor outright.
-			if ( BFTD_CPT::SESSION === $type ) {
-				$student = BFTD_CPT::student_id( $post_id );
-				return $student && in_array( $user_id, BFTD_CPT::staff_ids( $student ), true );
-			}
-			return false;
+			// And everyone who can open the student, whoever started it.
+			$student = BFTD_CPT::student_id( $post_id );
+			return $student && self::tutor_on_student( $student, $user_id );
 		}
 
 		$student_id = BFTD_CPT::student_id( $post_id );
 		if ( ! $student_id ) return true; // the shared library belongs to everyone
 
-		if ( (int) get_post_field( 'post_author', $student_id ) === $user_id ) return true;
-		return in_array( $user_id, BFTD_CPT::staff_ids( $student_id ), true );
+		return self::tutor_on_student( $student_id, $user_id );
 	}
 
-	/** Every report of a given type this tutor wrote or was assigned to. */
+	/** The one rule for a tutor and a student: assigned to them, or created them. */
+	private static function tutor_on_student( $student_id, $user_id ) {
+		if ( (int) get_post_field( 'post_author', $student_id ) === (int) $user_id ) return true;
+		return in_array( (int) $user_id, BFTD_CPT::staff_ids( $student_id ), true );
+	}
+
+	/**
+	 * Every record of a given type this tutor may open: anything on one of
+	 * their students, plus anything they wrote or were added to.
+	 */
 	public static function visible_report_ids( $user_id, $post_type ) {
+		$students = self::visible_student_ids( $user_id );
+		$theirs   = $students ? get_posts( array(
+			'post_type'      => $post_type,
+			'post_status'    => 'any',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'meta_query'     => array( array(
+				'key'     => BFTD_CPT::STUDENT_KEY,
+				'value'   => array_map( 'absint', $students ),
+				'compare' => 'IN',
+			) ),
+		) ) : array();
 		$assigned = get_posts( array(
 			'post_type'      => $post_type,
 			'post_status'    => 'any',
@@ -80,7 +94,7 @@ class BFTD_Access {
 			'fields'         => 'ids',
 			'author'         => (int) $user_id,
 		) );
-		return array_values( array_unique( array_merge( $assigned, $authored ) ) );
+		return array_values( array_unique( array_map( 'absint', array_merge( $theirs, $assigned, $authored ) ) ) );
 	}
 
 	/**
@@ -205,7 +219,8 @@ class BFTD_Access {
 			return;
 		}
 
-		// Reports and lessons list by their own assignment, not the student's.
+		// The same rule as opening one: the tutor's students, plus anything
+		// they wrote or were added to.
 		$ids = self::visible_report_ids( $user_id, $pt );
 		$query->set( 'post__in', $ids ? $ids : array( 0 ) );
 	}

@@ -55,6 +55,8 @@ function esc_textarea($v) { return htmlspecialchars((string) $v); }
 
 require BFTD_PATH . 'includes/class-bftd-library.php';
 require BFTD_PATH . 'includes/class-bftd-skills.php';
+require BFTD_PATH . 'includes/class-bftd-library-view.php';
+if (!function_exists('get_post_type_object')) { function get_post_type_object($t){ return (object) array('cap' => (object) array('edit_others_posts' => 'edit_others_'.$t.'s')); } }
 require BFTD_PATH . 'includes/class-bftd-activities.php';
 /* The real field code, not a stand-in. The sanitiser is half of what makes an
  * activity a pointer rather than a typed word, and a stubbed one would have

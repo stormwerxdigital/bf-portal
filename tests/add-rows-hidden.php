@@ -71,6 +71,8 @@ check(array() === $bad, 'and none of them takes back an add row: ' . implode(' |
 $allowed = 0;
 foreach ($calls as $call) {
   if (false !== strpos($call, 'HUB_SLUG') || false !== strpos($call, "'edit.php?post_type='")) $allowed++;
+  // The library's read page is admin.php?page=, safe for the same reason as the hub.
+  elseif (0 === strpos($call, 'class-bftd-library-view.php:') && false !== strpos($call, 'self::SLUG')) $allowed++;
 }
 check($allowed === count($calls),
   'and every removal is one of the two that are safe: ' . implode(' | ', $calls));

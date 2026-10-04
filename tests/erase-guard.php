@@ -113,15 +113,27 @@ check(isset($actions['delete']), 'a senior manager is');
 $audit = BFTD_Roles::audit_capabilities();
 $senior_n  = $audit[BFTD_Roles::SENIOR_ROLE]['expected'];
 $manager_n = $audit[BFTD_Roles::MANAGER_ROLE]['expected'];
-/* Three capabilities of their own, plus the two libraries. Counted rather
- * than listed, so adding a library to one side and forgetting the other shows
- * up here rather than as a tutor manager quietly editing the curriculum. */
-$libs  = count(array_unique(array_merge(
-  BFTD_Roles::activity_caps(),
-  BFTD_Roles::caps_for('bftd_resource', 'bftd_resources', true)
-)));
+/* Three capabilities of their own, plus the resources library. Skills and
+ * activities are the tutor manager's as well. Counted rather than listed, so
+ * a library granted to one side and forgotten on the other shows up here. */
+$libs  = count(array_unique(BFTD_Roles::caps_for('bftd_resource', 'bftd_resources', true)));
 check(3 + $libs === $senior_n - $manager_n,
-  'a senior manager holds what a manager does not: team, erase, administer, and both libraries');
+  'a senior manager holds what a manager does not: team, erase, administer, and the resources library');
+$exp = BFTD_Roles::expected_caps();
+check(array() === array_diff(BFTD_Roles::activity_caps(), $exp[BFTD_Roles::MANAGER_ROLE]),
+  'a tutor manager writes the skills and activities');
+check(array() === array_diff(BFTD_Roles::library_read_caps(), $exp[BFTD_Roles::TUTOR_ROLE])
+  && array() === array_intersect(array_diff(BFTD_Roles::activity_caps(), BFTD_Roles::library_read_caps()), $exp[BFTD_Roles::TUTOR_ROLE]),
+  'a tutor gets the two lists and nothing that creates, edits, publishes or deletes');
+foreach (BFTD_Roles::erasable_library_types() as $lt) {
+  $GLOBALS['POSTS'][990] = (object) array('ID' => 990, 'post_type' => $lt, 'post_status' => 'trash');
+  /* Now a tutor manager writes the library, they may trash from it, and the
+     same line as everywhere else stops them erasing. */
+  check($deny === BFTD_Roles::guard_permanent_delete($allow, 'delete_post', $MANAGER, array(990)),
+    "a trashed $lt is safe from a tutor manager");
+  check($allow === BFTD_Roles::guard_permanent_delete($allow, 'delete_post', $SENIOR, array(990)),
+    "and a senior manager may erase it");
+}
 check(count(BFTD_Roles::activity_caps()) > 0 && !in_array('bftd_manage_all', BFTD_Roles::activity_caps(), true),
   'and the library capabilities are their own set, not a rename of an existing one');
 /*

@@ -109,7 +109,7 @@ check('8' === taught_by(41), 'a name already on the record is left alone, becaus
 /* ---- whoever creates the session taught it ----
  * Karl's rule. A senior manager or administrator who starts a session is its
  * tutor by default, the same as anybody else, and the Taught by box beside
- * Who can see this changes it. */
+ * Also shared with changes it. */
 $GLOBALS['ME'] = 9;
 a_session(42, 'publish', 9);
 MB::claim_session(42);

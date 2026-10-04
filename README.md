@@ -3,7 +3,7 @@
 The parent portal and the tutor back end for bftutoring.com. Built on the
 Stormwerx Client Dashboard architecture, adapted to a tutoring practice.
 
-Version 1.129.0 · text domain `bftd` · prefix `BFTD_` · meta prefix `_bftd_`
+Version 1.130.0 · text domain `bftd` · prefix `BFTD_` · meta prefix `_bftd_`
 
 Source of truth: <https://github.com/stormwerxdigital/bf-portal>, branch `main`.
 The plugin header carries `GitHub Plugin URI` and `Primary Branch`, so Git
@@ -433,10 +433,13 @@ name, that somebody can go and look at.
 
 ## The two libraries
 
-The numbered activity programme and the skills those activities teach. Senior
-managers maintain them, tutors point at them from a session, and nothing in
-either is ever typed out by hand, because the same thing typed twice is two
-things on a family's report.
+The numbered activity programme and the skills those activities teach. Tutor
+managers and above maintain them; only senior managers and administrators can
+erase from them. Tutors read them: the lists open for them with each name
+linked to a read-only page (`BFTD_Library_View`), no checkboxes and no bulk
+actions, and they point at them from a session. Nothing in either is ever
+typed out by hand, because the same thing typed twice is two things on a
+family's report.
 
 `BFTD_Library` holds only the picker, and only because the picker is the part
 with behaviour: the search, the list of matches, and the difference between
@@ -512,28 +515,25 @@ and that is the bug this project keeps rediscovering.
 
 ## Who can open a report
 
-A student's tutor list and a report's tutor list answer two different
-questions, so they are two different lists.
+Everything on a student follows the student. A tutor assigned to a child
+(or who created the child's record) opens all of that child's sessions,
+progress reports and diagnostics.
 
-The **student's** list decides who a family's message reaches. The **report's**
-list decides who may read that particular piece of work, a narrower question.
-A tutor who covered a term for someone should not automatically gain the
-diagnostic another tutor wrote two years earlier, just because both are
-attached to the same child.
+A record also carries a tutor list of its own, shown as **Also shared with**.
+It only adds people: whoever wrote the record and whoever is listed can open
+it even without being on the student. It never takes the student's tutors
+away.
 
-- Whoever creates a report is assigned to it on the first save, so nobody is
-  ever locked out of their own work.
-- Any number of tutors can be on a report. Managers, Senior Managers and
-  Administrators can open every one regardless.
-- The list is edited with a chip list over a hidden multi-select and a search
-  box, the same pattern as the parent plugin. The select is still what posts,
-  so the form works with JavaScript off and nothing about saving depends on
-  the widget.
+- Whoever creates a record is added to its list on the first save.
+- Managers, Senior Managers and Administrators open every record regardless.
+- The list is a chip list over a hidden multi-select and a search box. The
+  select is still what posts, so the form works with JavaScript off.
 - Adding someone emails them and puts it in their notifications; both
   directions are written to the activity log.
+- Changing the list is for managers, the author, and people already on it.
 
-A tutor who is neither the author nor assigned cannot edit the list either,
-so nobody can quietly add themselves to a colleague's report.
+Clients never reach wp-admin. They see the portal, and only the students
+their account is linked to.
 
 ## Tests
 

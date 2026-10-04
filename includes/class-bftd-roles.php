@@ -14,12 +14,14 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  *                                 a parent and a teacher still has one account.
  *   Tutor (bftd_tutor)            teaches. Create and edit on the students
  *                                 assigned to them, and nothing about anyone
- *                                 else's students.
+ *                                 else's students. Reads the skills and
+ *                                 activities lists without changing them.
  *   Tutor Manager                 runs the teaching side. Everything a tutor
  *   (bftd_tutor_manager)          has, on every student, plus assigning
  *                                 tutors, the settings, the email wording and
  *                                 the full activity log. Manages tutors and
- *                                 families.
+ *                                 families, and writes the skills and
+ *                                 activities library.
  *   Senior Manager                runs the practice. Everything a manager has,
  *   (bftd_senior_manager)         plus adding and removing managers.
  *   Administrator                 everything, including WordPress itself.
@@ -89,7 +91,7 @@ class BFTD_Roles {
 	 */
 	const ADMIN_CAP = 'bftd_administer';
 
-	const CAPS_VERSION = 9;
+	const CAPS_VERSION = 10;
 
 	/**
 	 * The ladder. Rank is the only thing that decides who may manage whom, so
@@ -163,7 +165,7 @@ class BFTD_Roles {
 		add_filter( 'map_meta_cap', array( __CLASS__, 'protect_admin_accounts' ), 10, 4 );
 		add_filter( 'map_meta_cap', array( __CLASS__, 'guard_permanent_delete' ), 10, 4 );
 		add_filter( 'editable_roles', array( __CLASS__, 'hide_administrator_role' ) );
-		foreach ( self::post_types() as $pt ) {
+		foreach ( array_merge( self::post_types(), self::erasable_library_types() ) as $pt ) {
 			add_filter( 'bulk_actions-edit-' . $pt, array( __CLASS__, 'strip_delete_bulk_action' ) );
 		}
 		// Priority 1 on init, which fires before the post types register and
@@ -284,14 +286,33 @@ class BFTD_Roles {
 	 * Kept out of all_caps() on purpose. That list is granted to every staff
 	 * tier, and the library is the practice's curriculum rather than a
 	 * tutor's notes: a tutor inventing an activity mid-lesson is exactly the
-	 * drift the library exists to end. Senior managers and administrators
-	 * only, and nobody else holds so much as create_.
+	 * drift the library exists to end. Tutor managers and above write it.
+	 * Tutors read it: see library_read_caps().
 	 */
 	public static function activity_caps() {
 		return array_merge(
 			self::caps_for( 'bftd_activity', 'bftd_activities', true ),
 			self::caps_for( 'bftd_skill', 'bftd_skills', true )
 		);
+	}
+
+	/**
+	 * What a tutor holds on the skills and activities: the list, and nothing
+	 * that changes it.
+	 *
+	 * edit_bftd_skills is the capability WordPress asks for to show the list
+	 * screen. Without edit_others_ and edit_published_, every record on it was
+	 * written by somebody else and is refused, so the edit screen, quick edit
+	 * and bulk edit are all closed. Without create_, nothing new can be
+	 * started. What is left is reading, which is the point.
+	 */
+	public static function library_read_caps() {
+		return array( 'edit_bftd_skills', 'edit_bftd_activities' );
+	}
+
+	/** The library types a tutor manager may trash but only a senior manager may erase. */
+	public static function erasable_library_types() {
+		return array( 'bftd_skill', 'bftd_activity' );
 	}
 
 	/**
@@ -353,12 +374,11 @@ class BFTD_Roles {
 	 * compared.
 	 */
 	public static function audit_capabilities() {
-		$expected = array(
-			self::CLIENT_ROLE  => array( 'read', 'bftd_view_dashboard' ),
-			self::TUTOR_ROLE   => array_merge( array( 'read', 'bftd_view_dashboard', self::STAFF_CAP, 'upload_files' ), self::all_caps( false ) ),
-			self::MANAGER_ROLE => array_merge( array( 'read', 'bftd_view_dashboard', self::STAFF_CAP, self::MANAGE_CAP, 'upload_files' ), self::all_caps( true ) ),
-			self::SENIOR_ROLE  => array_merge( array( 'read', 'bftd_view_dashboard', self::STAFF_CAP, self::MANAGE_CAP, self::TEAM_CAP, self::ERASE_CAP, self::ADMIN_CAP, 'upload_files' ), self::all_caps( true ), self::library_caps() ),
-		);
+		// The same definition the grant uses, so the check and the grant can
+		// never be two lists that drift apart. The client role is created
+		// rather than reconciled, so its own two are listed here.
+		$expected = array( self::CLIENT_ROLE => array( 'read', 'bftd_view_dashboard' ) ) + self::expected_caps();
+		unset( $expected['administrator'] );
 
 		$out = array();
 		foreach ( $expected as $slug => $caps ) {
@@ -404,7 +424,8 @@ class BFTD_Roles {
 
 		// A manager gets the delete capabilities a tutor does not, because
 		// tidying up a mistyped session or a duplicate report is their job.
-		$manager = array_merge( $base, array( self::MANAGE_CAP ), self::all_caps( true ) );
+		// And the skills and activities, which they write.
+		$manager = array_merge( $base, array( self::MANAGE_CAP ), self::all_caps( true ), self::activity_caps() );
 
 		$senior = array_merge(
 			$manager,
@@ -417,7 +438,7 @@ class BFTD_Roles {
 		// are missing: whatever is absent here is absent in practice, which is
 		// why they are the tier a drift shows up on first.
 		return array(
-			self::TUTOR_ROLE   => array_values( array_unique( array_merge( $base, self::all_caps( false ) ) ) ),
+			self::TUTOR_ROLE   => array_values( array_unique( array_merge( $base, self::all_caps( false ), self::library_read_caps() ) ) ),
 			self::MANAGER_ROLE => array_values( array_unique( $manager ) ),
 			self::SENIOR_ROLE  => array_values( array_unique( $senior ) ),
 			'administrator'    => array_values( array_unique( $senior ) ),
@@ -604,7 +625,7 @@ class BFTD_Roles {
 
 		$post = get_post( (int) $args[0] );
 		if ( ! $post ) return $caps;
-		if ( ! in_array( $post->post_type, self::post_types(), true ) ) return $caps;
+		if ( ! in_array( $post->post_type, array_merge( self::post_types(), self::erasable_library_types() ), true ) ) return $caps;
 		if ( 'trash' !== $post->post_status ) return $caps;   // trashing is still theirs
 		if ( self::can_erase( $user_id ) ) return $caps;
 

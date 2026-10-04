@@ -1361,3 +1361,20 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
 @media (max-width:782px){
   .tablenav .bftd-ses-regular{display:inline-flex;align-items:center;min-height:40px;margin:6px 0 0}
 }
+
+/* ==========================================================================
+   Reading a skill or activity
+
+   What a tutor sees in place of the editor: the record, and nothing that
+   saves. Laid out as a short page rather than a form, because there is
+   nothing to fill in.
+   ========================================================================== */
+.bftd-libview-back{margin:10px 0 0}
+.bftd-libview-facts{display:flex;flex-wrap:wrap;gap:8px 28px;margin:16px 0 4px}
+.bftd-libview-facts div{display:flex;gap:8px;align-items:baseline}
+.bftd-libview-facts dt{font:600 12px/1.4 var(--bftd-b);color:var(--bftd-muted);letter-spacing:.02em}
+.bftd-libview-facts dd{margin:0;font:400 14px/1.45 var(--bftd-b);color:var(--bftd-body)}
+.bftd-libview h2{margin:22px 0 8px}
+.bftd-libview-skills{margin:0;padding-left:20px;list-style:disc}
+.bftd-libview-skills li{margin:4px 0;font:400 14px/1.45 var(--bftd-b)}
+.bftd-libview-body{max-width:760px;font:400 14.5px/1.6 var(--bftd-b);color:var(--bftd-body)}

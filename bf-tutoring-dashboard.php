@@ -5,7 +5,7 @@
  * Primary Branch: main
  * Plugin URI:  https://bftutoring.com
  * Description: The parent portal and the tutor back end for Brilliant Futures Tutoring. Reading diagnostics, living progress reports, lesson records, per-section conversations, a full activity log, and customisable email with send rules.
- * Version:     1.129.0
+ * Version:     1.130.0
  * Author:      Stormwerx Digital
  * Author URI:  https://stormwerxdigital.com
  * Text Domain: bftd
@@ -13,13 +13,13 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'BFTD_VERSION', '1.129.0' );
+define( 'BFTD_VERSION', '1.130.0' );
 define( 'BFTD_PATH', plugin_dir_path( __FILE__ ) );
 define( 'BFTD_URL', plugin_dir_url( __FILE__ ) );
 
 foreach ( array(
 	'time', 'schema', 'roles', 'cpt', 'access', 'audit', 'access-log',
-	'emails', 'notices', 'attachments', 'threads', 'fields', 'library', 'skills', 'activities', 'items',
+	'emails', 'notices', 'attachments', 'threads', 'fields', 'library', 'skills', 'activities', 'library-view', 'items',
 	'schedule', 'change-notify', 'autosave', 'crm', 'prefill', 'derived', 'charts', 'sample', 'report-view', 'preview', 'metaboxes', 'brand', 'admin-experience',
 	'pay-period', 'stat-holidays', 'pay', 'stat-pay', 'pay-profile',
 	'admin', 'students', 'sessions', 'oversight', 'timecards', 'settings', 'dashboard', 'ajax',
@@ -72,6 +72,7 @@ final class BFTD_Plugin {
 		BFTD_MetaBoxes::init();
 		BFTD_Skills::init();
 		BFTD_Activities::init();
+		BFTD_Library_View::init();
 		BFTD_Items::init();
 		BFTD_Schedule::init();
 		BFTD_CRM::init();
@@ -119,7 +120,9 @@ final class BFTD_Plugin {
 						'name'  => $r['name'],
 						'num'   => $r['num'],
 						'track' => $tracks[ $r['track'] ] ?? '',
-						'url'   => (string) get_edit_post_link( $id, 'raw' ),
+						// The editor for those who may edit it, the read-only page
+						// for a tutor, who may not.
+						'url'   => BFTD_Library_View::link_for( $id ),
 					);
 				}
 				wp_add_inline_script( 'bftd-admin', 'window.BFTD_LIBRARY = ' . wp_json_encode( $rows ) . ';', 'before' );

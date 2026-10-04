@@ -229,6 +229,10 @@ class BFTD_Admin {
 							<p><a class="button<?php echo BFTD_CPT::STUDENT === $pt ? ' button-primary' : ''; ?>" href="<?php echo esc_url( admin_url( 'post-new.php?post_type=' . $pt ) ); ?>"><?php echo esc_html( $label ); ?></a></p>
 						<?php endforeach; ?>
 					</div>
+					<?php
+					// The practice's activity log in brief, so it answers to the
+					// same rule as the log: senior managers and administrators.
+					if ( BFTD_Roles::can_administer() ) : ?>
 					<div class="bftd-card">
 						<h3>Recently</h3>
 						<?php
@@ -246,6 +250,7 @@ class BFTD_Admin {
 						?>
 						<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=' . BFTD_Audit::PAGE_SLUG ) ); ?>">Full activity log</a></p>
 					</div>
+					<?php endif; ?>
 				</div>
 			</div>
 		</div>

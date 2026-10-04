@@ -168,9 +168,10 @@ foreach(array(1=>'administrator',2=>'senior manager',3=>'tutor manager') as $uid
 want(can_do(4,'edit_bftd_student',100), true,  'the assigned tutor opens their student');
 want(can_do(5,'edit_bftd_student',100), false, 'an unassigned tutor CANNOT open the student');
 
-/* A report carries its own assignment list, which is empty here, and tutor 4
-   did not write it. Being on the student is deliberately not enough. */
-want(can_do(4,'edit_bftd_assessment',101), false, 'the student\'s tutor cannot open a diagnostic they are not on');
+/* A report follows the student. Its own list, empty here, only adds people;
+   the student's tutor opens it without being on it. */
+want(can_do(4,'edit_bftd_assessment',101), true, 'the student\'s tutor opens the student\'s diagnostic without being on it');
+want(can_do(4,'edit_bftd_progress',102), true, 'and the student\'s progress report');
 want(can_do(5,'edit_bftd_assessment',101), false, 'an unassigned tutor cannot open a diagnostic');
 
 /* Settings, the email wording, the practice-wide log, pay and erasure are the

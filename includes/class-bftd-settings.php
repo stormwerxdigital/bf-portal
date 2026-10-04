@@ -921,11 +921,12 @@ class BFTD_Settings {
 				<?php
 				$rows = array(
 					array( 'See every student',                    'manage', 'manage', 'manage', 'no' ),
-					array( 'Open any report, session or resource',  'yes',    'yes',    'yes',    'assigned only' ),
+					array( 'Open any report or session',            'yes',    'yes',    'yes',    'their students only' ),
+					array( 'Add and edit skills and activities',    'yes',    'yes',    'yes',    'read only' ),
 					array( 'Delete a report or session',            'yes',    'yes',    'yes',    'no' ),
 					array( 'Assign tutors to a student',           'yes',    'yes',    'yes',    'no' ),
-					array( 'Change settings and email wording',    'yes',    'yes',    'yes',    'no' ),
-					array( 'Read the whole activity log',          'yes',    'yes',    'yes',    'own students' ),
+					array( 'Change settings and email wording',    'yes',    'yes',    'no',     'no' ),
+					array( 'Read the whole activity log',          'yes',    'yes',    'no',     'no' ),
 					array( 'Add or remove a Tutor Manager',        'yes',    'yes',    'no',     'no' ),
 					array( 'Add or remove a Senior Manager',       'yes',    'no',     'no',     'no' ),
 					array( 'Repair capabilities on this screen',   'yes',    'no',     'no',     'no' ),
