@@ -27,7 +27,8 @@ $GLOBALS['QUERIES'] = 0;
 
 function add_action(...$a) {} function add_filter(...$a) {}
 $GLOBALS['CAN_PUBLISH'] = true;
-function get_post_type_object($t){ return (object) array('cap' => (object) array('publish_posts' => 'publish_'.$t.'s')); }
+$GLOBALS['TYPE_OBJ'] = (object) array('cap' => (object) array('publish_posts' => 'publish_bftd_sessions'), 'labels' => (object) array('name' => 'Sessions'));
+function get_post_type_object($t){ return $GLOBALS['TYPE_OBJ']; }
 function current_user_can($c,$id=0){ return 0 !== strpos($c,'publish_') || $GLOBALS['CAN_PUBLISH']; }
 function get_post($id=null){ return $GLOBALS['POSTS'][(int)$id] ?? null; }
 function get_post_type($id){ $p=get_post($id); return $p?$p->post_type:''; }
@@ -192,6 +193,72 @@ $GLOBALS['CAN_PUBLISH'] = false;
 ob_start(); BFTD_Sessions::drawer(1001, 3); $nopub = ob_get_clean();
 $GLOBALS['CAN_PUBLISH'] = true;
 check(0 === substr_count($nopub, '>Publish</a>'), 'someone who may not publish is not offered it');
+
+/* ---- between the regular view and the advanced view ---- */
+check(1 === preg_match('#>View preview</a>\s*<a class="bftd-ses-adv" href="[^"]*edit\.php\?post_type=bftd_session&(amp;)?bftd_student=1001">View advanced</a>\s*<a class="bftd-ses-publish"#', $page3),
+  'a draft row reads Open, View preview, View advanced, Publish, the advanced link narrowed to this student');
+check(substr_count($page1, '>View advanced</a>') === substr_count($page1, '>Open</a>'), 'and every row has View advanced, published or not');
+
+/* The advanced view's two new columns are the drawer's own cells, so the
+   two views cannot disagree about a session. */
+$a_sid = BFTD_CPT::sessions_of(array(1001), true)[1001][1];
+$nums  = BFTD_Sessions::numbers_for(1001);
+ob_start(); BFTD_Sessions::number_cell($a_sid, $nums); $num_cell = ob_get_clean();
+ob_start(); BFTD_Sessions::happened_cell($a_sid); $what_cell = ob_get_clean();
+check(false !== strpos($page1, '<td class="bftd-ses-num">' . $num_cell . '</td>'), 'the drawer\'s session number is the shared cell: ' . $num_cell);
+check(false !== strpos($page1, '<td data-l="What happened">' . $what_cell . '</td>'), 'and so is what happened: ' . strip_tags($what_cell));
+$cols = BFTD_CPT::session_columns(array('cb' => 'x'));
+check(array('cb', 'bftd_student', 'bftd_number', 'bftd_client', 'bftd_tutor', 'bftd_when', 'bftd_what') === array_keys($cols)
+  && 'Session number' === $cols['bftd_number'] && 'What happened' === $cols['bftd_what'],
+  'the advanced view lists the session number after the student, and what happened last');
+ob_start(); BFTD_CPT::session_column('bftd_number', $a_sid); $c1 = ob_get_clean();
+ob_start(); BFTD_CPT::session_column('bftd_what', $a_sid); $c2 = ob_get_clean();
+check($c1 === $num_cell && $c2 === $what_cell, 'drawn by the same cells as the drawer');
+
+/* Arriving on the regular view for one student: that student alone, their
+   sessions already open, drawn by the server rather than fetched. */
+$_GET = array('student' => '1001');
+ob_start(); BFTD_Sessions::render(); $one = ob_get_clean();
+$_GET = array();
+check(1 === substr_count($one, 'class="bftd-ses-r"'), 'the regular view for one student shows that student only, got ' . substr_count($one, 'class="bftd-ses-r"'));
+check(false !== strpos($one, 'aria-expanded="true"') && 1 === preg_match('#<tr class="bftd-ses-drawer" id="bftd-ses-1001">#', $one)
+  && false !== strpos($one, 'data-loaded="1"') && false !== strpos($one, '>View advanced</a>'),
+  'with their sessions open and already there');
+$GLOBALS['USERS'][6] = (object) array('ID' => 6, 'display_name' => 'Second Tutor');
+$keep = $GLOBALS['META'][1001][BFTD_CPT::STAFF_KEY] ?? null;
+$GLOBALS['META'][1001][BFTD_CPT::STAFF_KEY] = array_merge((array) $keep, array(6));
+$_GET = array('student' => '1001');
+ob_start(); BFTD_Sessions::render(); $twice = ob_get_clean();
+$_GET = array();
+$GLOBALS['META'][1001][BFTD_CPT::STAFF_KEY] = $keep;
+preg_match_all('#<tr class="bftd-ses-drawer" id="([^"]+)"(\s*hidden)?>#', $twice, $dm);
+check(count($dm[1]) > 1 && count(array_unique($dm[1])) === count($dm[1]) && 1 === count(array_filter($dm[2], function ($h) { return '' === $h; })),
+  'a student under two tutors opens once, and each copy has its own drawer: ' . implode(', ', $dm[1]));
+check(false !== strpos($one, 'class="bftd-ses-one"') && false !== strpos($one, 'page=bftd-sessions">Every student</a>'), 'saying so, with the way back to every student');
+check(1 === preg_match('#href="[^"]*edit\.php\?post_type=bftd_session&(amp;)?bftd_student=1001">Advanced view</a>#', $one), 'and the advanced view for the same student');
+$_GET = array('student' => '999999');
+ob_start(); BFTD_Sessions::render(); $other = ob_get_clean();
+$_GET = array();
+check(0 === substr_count($other, 'class="bftd-ses-r"'), 'a student who is not yours shows nobody, not everybody');
+ob_start(); BFTD_Sessions::render(); $everyone = ob_get_clean();
+check(substr_count($everyone, 'class="bftd-ses-r"') > 1 && false === strpos($everyone, 'aria-expanded="true"') && false === strpos($everyone, 'bftd-ses-one'),
+  'and with nobody named, every student, every row closed');
+check(1 === preg_match('#href="[^"]*edit\.php\?post_type=bftd_session">Advanced view</a>#', $everyone), 'pointing at the advanced view for everyone');
+
+/* The advanced view names itself and links back. */
+$GLOBALS['typenow'] = 'bftd_session'; $GLOBALS['pagenow'] = 'edit.php';
+BFTD_Sessions::advanced_heading();
+check('Sessions: advanced view' === $GLOBALS['TYPE_OBJ']->labels->name, 'the WordPress list is headed Sessions: advanced view');
+$_GET = array('bftd_student' => '1001');
+ob_start(); BFTD_Sessions::regular_link('top'); $back = ob_get_clean();
+ob_start(); BFTD_Sessions::regular_link('bottom'); $back2 = ob_get_clean();
+$_GET = array();
+check(1 === preg_match('#<a class="bftd-ses-regular" href="[^"]*admin\.php\?page=bftd-sessions&(amp;)?student=1001">Regular view</a>#', $back), 'with Regular view back to the same student');
+check('' === $back2, 'once, above the list, not again below it');
+$GLOBALS['typenow'] = 'bftd_student'; $GLOBALS['TYPE_OBJ']->labels->name = 'Sessions';
+BFTD_Sessions::advanced_heading();
+ob_start(); BFTD_Sessions::regular_link('top'); $elsewhere = ob_get_clean();
+check('Sessions' === $GLOBALS['TYPE_OBJ']->labels->name && '' === $elsewhere, 'and no other list is touched');
 
 /* Asking for a page that is not there lands on the last one rather than on
    an empty drawer. */

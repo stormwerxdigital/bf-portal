@@ -179,6 +179,22 @@ check(1 === preg_match('#class="bftd-stu-drafts" href="[^"]*post_status=draft[^"
   'and says so under the status, linked to those drafts');
 ob_start(); $draw->invoke(null, $rows[1002]); $tr2 = ob_get_clean();
 check(false === strpos($tr2, 'bftd-stu-drafts'), 'while a student with none says nothing');
+/* The student record's own state, in its own column, in the same pills the
+   Sessions screen uses for a session. */
+check(1 === preg_match('#<td data-l="Record"><span class="bftd-pill is-active">Published</span></td>#', $tr),
+  'a finished student record reads Published in the Record column');
+$GLOBALS['POSTS'][1002]->post_status = 'draft';
+$draft_row = BFTD_Students::rows(array(1002))[1002];
+ob_start(); $draw->invoke(null, $draft_row); $tr3 = ob_get_clean();
+$GLOBALS['POSTS'][1002]->post_status = 'publish';
+check(1 === preg_match('#<td data-l="Record"><span class="bftd-pill is-past">Draft</span></td>#', $tr3),
+  'and one still in draft reads Draft');
+check(false === strpos($tr3, 'bftd-stu-draft"'), 'said once, in the column, not again beside the name');
+$sec = new ReflectionMethod('BFTD_Students', 'section'); $sec->setAccessible(true);
+ob_start(); $sec->invoke(null, 0, array('name' => 'Unassigned', 'rows' => array($one)), array('tutor' => 0)); $table = ob_get_clean();
+check(1 === preg_match('#<th>Status</th>\s*<th>Record</th>#', $table), 'with Record as a column of its own beside Status');
+check(preg_match_all('#<th[ >]#', $table) === substr_count(explode('</tr>', explode('<tbody>', $table)[1])[0], '<td'),
+  'and every row has a cell for every heading');
 check('Student 000' === $one['name'], 'the row is named');
 check('Client 100' === $one['client'], 'and names the client');
 check(isset($one['tutors'][5]), 'and the tutor');

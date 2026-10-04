@@ -32,6 +32,7 @@ class BFTD_Students {
 
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ), 21 );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'hide_list_row' ), 0 );
 	}
 
 	/**
@@ -67,10 +68,21 @@ class BFTD_Students {
 			array( __CLASS__, 'render' ),
 			$at
 		);
-		// Spelled out rather than passed in a variable: a rule elsewhere
-		// reads these calls to check that no post-new row is ever taken back,
-		// and it can only read what is written here.
-		if ( null !== $at ) remove_submenu_page( $parent, 'edit.php?post_type=' . BFTD_CPT::STUDENT );
+	}
+
+	/**
+	 * The WordPress list's own row comes out of the menu here, not in
+	 * menu(). WordPress decides who may open edit.php?post_type=... by
+	 * finding that row in the menu; with the row already gone it judges the
+	 * page against Posts instead, which staff cannot see, and the list (the
+	 * advanced view, and every link to it) refused everyone but an
+	 * administrator. admin_enqueue_scripts runs after that check and before
+	 * the sidebar or the command palette reads the menu.
+	 */
+	public static function hide_list_row() {
+		// Spelled out rather than passed in a variable: a rule elsewhere reads
+		// these calls to check that no post-new row is ever taken back.
+		remove_submenu_page( BFTD_Admin::MENU_SLUG, 'edit.php?post_type=' . BFTD_CPT::STUDENT );
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -256,6 +268,7 @@ class BFTD_Students {
 				'purchased' => $purchased,
 				'used'      => $spent,
 				'left'      => max( 0, $purchased - $spent ),
+				'record'    => (string) get_post_status( $id ),
 				'draft'     => ( 'publish' !== get_post_status( $id ) ),
 				'drafts'    => isset( $records[ $id ] ) ? (int) $records[ $id ]['draft'] : 0,
 			);
@@ -420,6 +433,7 @@ class BFTD_Students {
 						<th>Tutors</th>
 						<th class="num">Sessions left</th>
 						<th>Status</th>
+						<th>Record</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -445,7 +459,6 @@ class BFTD_Students {
 		<tr>
 			<td class="bftd-stu-name">
 				<a href="<?php echo esc_url( $hub ); ?>"><?php echo esc_html( $row['name'] ); ?></a>
-				<?php if ( $row['draft'] ) : ?><span class="bftd-stu-draft">Draft</span><?php endif; ?>
 				<span class="bftd-stu-acts">
 					<a href="<?php echo esc_url( (string) get_edit_post_link( $row['id'] ) ); ?>">Edit</a>
 					<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=' . BFTD_CPT::SESSION . '&student=' . (int) $row['id'] ) ); ?>">Record a session</a>
@@ -470,6 +483,7 @@ class BFTD_Students {
 					);
 				}
 			?></td>
+			<td data-l="Record"><?php self::record_cell( $row['record'] ); ?></td>
 		</tr>
 		<?php
 	}
@@ -501,6 +515,19 @@ class BFTD_Students {
 		$low = ( $row['left'] <= 2 );
 		echo '<b class="bftd-stu-left' . ( $low ? ' is-low' : '' ) . '">' . (int) $row['left'] . '</b>';
 		echo '<span class="bftd-stu-of">/ ' . (int) $row['purchased'] . '</span>';
+	}
+
+	/**
+	 * Where the student record itself stands, in the same pills the Sessions
+	 * screen uses for a session. Status says where the family is; this says
+	 * whether the record is finished. A draft student is somebody's entry in
+	 * progress, and a family cannot sign in to it.
+	 */
+	private static function record_cell( $state ) {
+		$words = array( 'publish' => 'Published', 'pending' => 'Pending review', 'private' => 'Private', 'future' => 'Scheduled' );
+		echo 'publish' === $state
+			? '<span class="bftd-pill is-active">Published</span>'
+			: '<span class="bftd-pill is-past">' . esc_html( isset( $words[ $state ] ) ? $words[ $state ] : 'Draft' ) . '</span>';
 	}
 
 	private static function status_cell( $status ) {

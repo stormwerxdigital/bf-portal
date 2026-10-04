@@ -3,7 +3,7 @@
 The parent portal and the tutor back end for bftutoring.com. Built on the
 Stormwerx Client Dashboard architecture, adapted to a tutoring practice.
 
-Version 1.127.0 · text domain `bftd` · prefix `BFTD_` · meta prefix `_bftd_`
+Version 1.129.0 · text domain `bftd` · prefix `BFTD_` · meta prefix `_bftd_`
 
 Source of truth: <https://github.com/stormwerxdigital/bf-portal>, branch `main`.
 The plugin header carries `GitHub Plugin URI` and `Primary Branch`, so Git

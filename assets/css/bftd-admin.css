@@ -884,9 +884,6 @@ input[type=search]:focus,input[type=date]:focus,input[type=time]:focus,select:fo
 .bftd-stu-t th.num,.bftd-stu-t td.num{text-align:right;white-space:nowrap}
 
 .bftd-stu-name a{font:600 14px/1.35 var(--bftd-b);text-decoration:none}
-.bftd-stu-draft{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:3px;
-  background:var(--bftd-stone-pale);border:1px solid var(--bftd-stone-line);
-  font:600 10.5px/1.5 var(--bftd-b);color:var(--bftd-stone-deep)}
 /* The row actions, the way WordPress hides its own: there on hover and on
    keyboard focus, so they are reachable without a mouse.
    OPACITY, NOT VISIBILITY. A visibility:hidden link cannot be focused at
@@ -1028,6 +1025,9 @@ input[type=search]:focus,input[type=date]:focus,input[type=time]:focus,select:fo
   /* Open, View preview and Publish sit close together, so each is a full
      thumb high on a phone. */
   .bftd-ses-go a{display:inline-flex;align-items:center;min-height:40px}
+  /* Four of them do not fit across a small phone, so they wrap. */
+  .bftd-ses-inner td.bftd-ses-go{display:flex;flex-wrap:wrap;column-gap:14px;white-space:normal}
+  .bftd-ses-inner .bftd-ses-go a + a{margin-left:0}
 }
 
 /* ==========================================================================
@@ -1132,7 +1132,6 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
      — which client, how many sessions are left, whether a record is a draft. */
   .bftd-is-client,
   .bftd-stu-of,
-  .bftd-stu-draft,
   .bftd-pill,
   .bftd-att-b,
   .bftd-ov-flag,
@@ -1354,3 +1353,11 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
 
 /* Publish beside Open and View preview, on a draft session. */
 .bftd-ses-go .bftd-ses-publish{font-weight:700;color:var(--bftd-sage-deep)}
+/* Between the two views of the sessions. In the advanced view's filter row,
+   after Filter; on the regular view, a line saying it is narrowed to one. */
+.tablenav .bftd-ses-regular{display:inline-block;margin:0 0 0 10px;line-height:30px;font-weight:600}
+.bftd-ses-one{margin:12px 0 0;font:400 13.5px/1.45 var(--bftd-b);color:var(--bftd-body)}
+.bftd-ses-one a{margin-left:8px;font-weight:600}
+@media (max-width:782px){
+  .tablenav .bftd-ses-regular{display:inline-flex;align-items:center;min-height:40px;margin:6px 0 0}
+}

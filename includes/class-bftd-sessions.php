@@ -24,15 +24,50 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 class BFTD_Sessions {
 
 	const SLUG     = 'bftd-sessions';
+
+	/** Rows drawn so far on this screen, per student, and whether one has opened. */
+	private static $drawn  = array();
+	private static $opened = false;
 	const PREVIEW  = 25;
 	/** Sessions in one page of an opened row. */
 	const PER_PAGE = 20;
 
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ), 21 );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'hide_list_row' ), 0 );
 		add_action( 'wp_ajax_bftd_student_sessions', array( __CLASS__, 'ajax_sessions' ) );
 		add_action( 'admin_post_bftd_publish_session', array( __CLASS__, 'publish_from_list' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'published_notice' ) );
+		// The WordPress list of sessions is the advanced view, and says so.
+		add_action( 'load-edit.php', array( __CLASS__, 'advanced_heading' ) );
+		add_action( 'manage_posts_extra_tablenav', array( __CLASS__, 'regular_link' ) );
+	}
+
+	/** True on the WordPress list of sessions. */
+	private static function on_advanced() {
+		return isset( $GLOBALS['typenow'] ) && BFTD_CPT::SESSION === $GLOBALS['typenow']
+			&& isset( $GLOBALS['pagenow'] ) && 'edit.php' === $GLOBALS['pagenow'];
+	}
+
+	/**
+	 * Named on the page itself. The heading and the browser tab both read the
+	 * post type's name, and this runs before either is drawn, so the change
+	 * is for this screen only.
+	 */
+	public static function advanced_heading() {
+		if ( ! self::on_advanced() ) return;
+		$type = get_post_type_object( BFTD_CPT::SESSION );
+		if ( $type ) $type->labels->name = 'Sessions: advanced view';
+	}
+
+	/** Back to the regular view, for the same student if the list is narrowed to one. */
+	public static function regular_link( $which ) {
+		if ( 'top' !== $which || ! self::on_advanced() ) return;
+		$student = isset( $_GET['bftd_student'] ) ? (int) $_GET['bftd_student'] : 0;
+		printf(
+			'<a class="bftd-ses-regular" href="%s">Regular view</a>',
+			esc_url( self::regular_url( $student ) )
+		);
 	}
 
 	/** May the current person publish this session from the list? */
@@ -127,9 +162,21 @@ class BFTD_Sessions {
 			array( __CLASS__, 'render' ),
 			$at
 		);
+	}
+
+	/**
+	 * The WordPress list's own row comes out of the menu here, not in
+	 * menu(). WordPress decides who may open edit.php?post_type=... by
+	 * finding that row in the menu; with the row already gone it judges the
+	 * page against Posts instead, which staff cannot see, and the list (the
+	 * advanced view, and every link to it) refused everyone but an
+	 * administrator. admin_enqueue_scripts runs after that check and before
+	 * the sidebar or the command palette reads the menu.
+	 */
+	public static function hide_list_row() {
 		// Spelled out rather than passed in a variable: a rule elsewhere reads
 		// these calls to check that no post-new row is ever taken back.
-		if ( null !== $at ) remove_submenu_page( $parent, 'edit.php?post_type=' . BFTD_CPT::SESSION );
+		remove_submenu_page( BFTD_Admin::MENU_SLUG, 'edit.php?post_type=' . BFTD_CPT::SESSION );
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -179,11 +226,18 @@ class BFTD_Sessions {
 	public static function render() {
 		if ( ! BFTD_Roles::is_staff() ) return;
 
+		self::$drawn  = array();
+		self::$opened = false;
+
 		$f      = BFTD_Students::filters();
 		$ids    = BFTD_Students::student_ids( $f );
+		// Arriving from the advanced view, or anywhere else that names one
+		// student: that student alone, with their sessions already open.
+		$one    = isset( $_GET['student'] ) ? (int) $_GET['student'] : 0;
+		if ( $one ) $ids = in_array( $one, array_map( 'absint', (array) $ids ), true ) ? array( $one ) : array();
 		$rows   = self::rows( $ids );
 		$groups = BFTD_Students::by_tutor( $rows );
-		$narrow = ( '' !== $f['q'] || $f['tutor'] || $f['client'] );
+		$narrow = ( '' !== $f['q'] || $f['tutor'] || $f['client'] || $one );
 		?>
 		<div class="wrap bftd-wrap bftd-stu">
 			<h1 class="wp-heading-inline">Sessions</h1>
@@ -191,6 +245,11 @@ class BFTD_Sessions {
 			<hr class="wp-header-end">
 
 			<?php BFTD_Students::filter_bar( $f, count( $rows ), self::SLUG, false ); ?>
+
+			<?php if ( $one && $rows ) : ?>
+				<p class="bftd-ses-one">Showing <?php echo esc_html( get_the_title( $one ) ); ?> only.
+					<a href="<?php echo esc_url( self::regular_url() ); ?>">Every student</a></p>
+			<?php endif; ?>
 
 			<?php if ( ! $rows ) : ?>
 				<div class="bftd-stu-empty">
@@ -200,12 +259,12 @@ class BFTD_Sessions {
 						: 'Sessions are listed under the child they belong to, so a student comes first.'; ?></p>
 				</div>
 			<?php else : ?>
-				<?php foreach ( $groups as $uid => $group ) self::section( $uid, $group, $f ); ?>
+				<?php foreach ( $groups as $uid => $group ) self::section( $uid, $group, $f, $one ); ?>
 			<?php endif; ?>
 
 			<p class="bftd-stu-foot description">
-				The plain WordPress list is still there if you want it:
-				<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . BFTD_CPT::SESSION ) ); ?>">all sessions, one flat list</a>.
+				Every session in one WordPress list, with bulk actions:
+				<a href="<?php echo esc_url( self::advanced_url( $one ) ); ?>">Advanced view</a>.
 			</p>
 		</div>
 		<?php
@@ -223,7 +282,7 @@ class BFTD_Sessions {
 		return $rows;
 	}
 
-	private static function section( $uid, $group, $f ) {
+	private static function section( $uid, $group, $f, $open = 0 ) {
 		$rows  = isset( $group['rows'] ) ? $group['rows'] : array();
 		$total = count( $rows );
 		$full  = ( $f['tutor'] && (int) $f['tutor'] === (int) $uid ) || $total <= self::PREVIEW;
@@ -248,7 +307,7 @@ class BFTD_Sessions {
 					</tr>
 				</thead>
 				<tbody>
-					<?php foreach ( $shown as $row ) self::row( $row ); ?>
+					<?php foreach ( $shown as $row ) self::row( $row, (int) $row['id'] === (int) $open ); ?>
 				</tbody>
 			</table>
 
@@ -266,13 +325,21 @@ class BFTD_Sessions {
 	 * somebody asks, because the alternative is a screen that reads fifty
 	 * thousand records in case one row is opened.
 	 */
-	private static function row( $row ) {
+	private static function row( $row, $open = false ) {
+		// A student with three tutors is listed under each of them. Their
+		// sessions open under the first, not three times over.
+		if ( $open && self::$opened ) $open = false;
+		if ( $open ) self::$opened = true;
 		$rec   = $row['record'];
-		$panel = 'bftd-ses-' . (int) $row['id'];
+		// Each copy of the row gets its own drawer id. Sharing one, the
+		// button under the second tutor opened the drawer under the first.
+		$id    = (int) $row['id'];
+		self::$drawn[ $id ] = isset( self::$drawn[ $id ] ) ? self::$drawn[ $id ] + 1 : 1;
+		$panel = 'bftd-ses-' . $id . ( self::$drawn[ $id ] > 1 ? '-' . self::$drawn[ $id ] : '' );
 		?>
 		<tr class="bftd-ses-r" data-student="<?php echo (int) $row['id']; ?>">
 			<td class="bftd-stu-name">
-				<button type="button" class="bftd-ses-open" aria-expanded="false" aria-controls="<?php echo esc_attr( $panel ); ?>">
+				<button type="button" class="bftd-ses-open" aria-expanded="<?php echo $open ? 'true' : 'false'; ?>" aria-controls="<?php echo esc_attr( $panel ); ?>">
 					<span class="bftd-ses-chev" aria-hidden="true"></span>
 					<span class="bftd-ses-who"><?php echo esc_html( $row['name'] ); ?></span>
 				</button>
@@ -286,8 +353,12 @@ class BFTD_Sessions {
 				: '<span class="bftd-none">Nobody yet</span>'; ?></td>
 			<td data-l="Attendance"><?php self::record_cell( $rec ); ?></td>
 		</tr>
-		<tr class="bftd-ses-drawer" id="<?php echo esc_attr( $panel ); ?>" hidden>
-			<td colspan="3"><div class="bftd-ses-body" data-loaded="0"></div></td>
+		<tr class="bftd-ses-drawer" id="<?php echo esc_attr( $panel ); ?>"<?php echo $open ? '' : ' hidden'; ?>>
+			<td colspan="3"><div class="bftd-ses-body" data-loaded="<?php echo $open ? '1' : '0'; ?>"><?php
+				// Opened on arrival, so drawn here rather than fetched: the
+				// server decides how the screen starts.
+				if ( $open ) self::drawer( (int) $row['id'], 1 );
+			?></div></td>
 		</tr>
 		<?php
 	}
@@ -338,8 +409,7 @@ class BFTD_Sessions {
 		// screens agree about which session is which. sessions_in_order()
 		// hands them back oldest first, which is what numbering counts along;
 		// reversing it here would number the newest session one.
-		$report  = BFTD_CPT::report_for( $student, BFTD_CPT::PROGRESS );
-		$numbers = $report ? BFTD_CPT::lesson_numbers( BFTD_CPT::sessions_in_order( $report ) ) : array();
+		$numbers = self::numbers_for( $student );
 		?>
 		<table class="bftd-ses-inner">
 			<thead>
@@ -368,20 +438,59 @@ class BFTD_Sessions {
 		<?php endif;
 	}
 
+	/**
+	 * The number each published session carries on the family's report, for
+	 * one student, worked out once however many rows ask. sessions_in_order()
+	 * hands them back oldest first, which is what numbering counts along.
+	 */
+	public static function numbers_for( $student ) {
+		static $seen = array();
+		$student = (int) $student;
+		if ( ! isset( $seen[ $student ] ) ) {
+			$report = $student ? BFTD_CPT::report_for( $student, BFTD_CPT::PROGRESS ) : 0;
+			$seen[ $student ] = $report ? BFTD_CPT::lesson_numbers( BFTD_CPT::sessions_in_order( $report ) ) : array();
+		}
+		return $seen[ $student ];
+	}
+
+	/**
+	 * Session N, the way the family's report numbers it. Shared by the
+	 * drawer and the advanced view so the two can never disagree.
+	 */
+	public static function number_cell( $sid, $numbers ) {
+		echo isset( $numbers[ $sid ] ) && $numbers[ $sid ]
+			? esc_html( 'Session ' . (int) $numbers[ $sid ] )
+			: '<span class="bftd-none">Not numbered yet</span>';
+	}
+
+	/** Attended, rescheduled or missed. Shared by the drawer and the advanced view. */
+	public static function happened_cell( $sid ) {
+		$status = (string) BFTD_Fields::get( $sid, 'session', 'status' );
+		$words  = array( 'held' => 'Attended', 'rescheduled' => 'Rescheduled', 'missed' => 'Missed' );
+		$kind   = array( 'held' => 'held', 'rescheduled' => 'moved', 'missed' => 'missed' );
+		echo isset( $words[ $status ] )
+			? '<span class="bftd-att-b is-' . esc_attr( $kind[ $status ] ) . '">' . esc_html( $words[ $status ] ) . '</span>'
+			: '<span class="bftd-none">Not recorded</span>';
+	}
+
+	/** The WordPress list of every session, called the advanced view, for one student or all. */
+	public static function advanced_url( $student = 0 ) {
+		return admin_url( 'edit.php?post_type=' . BFTD_CPT::SESSION . ( $student ? '&bftd_student=' . (int) $student : '' ) );
+	}
+
+	/** This screen, for one student with their sessions open, or for everyone. */
+	public static function regular_url( $student = 0 ) {
+		return admin_url( 'admin.php?page=' . self::SLUG . ( $student ? '&student=' . (int) $student : '' ) );
+	}
+
 	private static function session_row( $sid, $numbers ) {
 		$date   = (string) BFTD_Fields::get( $sid, 'session', 'session_date' );
 		$time   = (string) BFTD_Fields::get( $sid, 'session', 'session_time' );
-		$status = (string) BFTD_Fields::get( $sid, 'session', 'status' );
 		$live   = ( 'publish' === get_post_status( $sid ) );
-		$words  = array( 'held' => 'Attended', 'rescheduled' => 'Rescheduled', 'missed' => 'Missed' );
-		$kind   = array( 'held' => 'held', 'rescheduled' => 'moved', 'missed' => 'missed' );
+		$owner  = (int) BFTD_CPT::student_id( $sid );
 		?>
 		<tr>
-			<td class="bftd-ses-num"><?php
-				echo isset( $numbers[ $sid ] ) && $numbers[ $sid ]
-					? esc_html( 'Session ' . (int) $numbers[ $sid ] )
-					: '<span class="bftd-none">Not numbered yet</span>';
-			?></td>
+			<td class="bftd-ses-num"><?php self::number_cell( $sid, $numbers ); ?></td>
 			<td data-l="Date"><?php
 				if ( '' === $date ) {
 					echo '<span class="bftd-none">No date yet</span>';
@@ -391,11 +500,7 @@ class BFTD_Sessions {
 					if ( '' !== $time ) echo '<span class="bftd-ses-t">' . esc_html( BFTD_Schedule::pretty_time( $time ) ) . '</span>';
 				}
 			?></td>
-			<td data-l="What happened"><?php
-				echo isset( $words[ $status ] )
-					? '<span class="bftd-att-b is-' . esc_attr( $kind[ $status ] ) . '">' . esc_html( $words[ $status ] ) . '</span>'
-					: '<span class="bftd-none">Not recorded</span>';
-			?></td>
+			<td data-l="What happened"><?php self::happened_cell( $sid ); ?></td>
 			<td data-l="Record"><?php
 				// Published is what a family can see. A draft is a tutor's
 				// notes in progress and reaches nobody, which is the one
@@ -412,6 +517,9 @@ class BFTD_Sessions {
 				// link as the session screen's own preview button.
 				?>
 				<a href="<?php echo esc_url( BFTD_Preview::url( $sid ) ); ?>" target="_blank" rel="noopener">View preview</a>
+				<?php if ( $owner ) : ?>
+					<a class="bftd-ses-adv" href="<?php echo esc_url( self::advanced_url( $owner ) ); ?>">View advanced</a>
+				<?php endif; ?>
 				<?php if ( ! $live && self::can_publish( $sid ) ) : ?>
 					<a class="bftd-ses-publish" href="<?php echo esc_url( self::publish_url( $sid ) ); ?>">Publish</a>
 				<?php endif; ?>

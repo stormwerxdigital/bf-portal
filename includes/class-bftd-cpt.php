@@ -1056,9 +1056,11 @@ class BFTD_CPT {
 		$out = array();
 		if ( isset( $cols['cb'] ) ) $out['cb'] = $cols['cb'];
 		$out['bftd_student'] = 'Student';
+		$out['bftd_number']  = 'Session number';
 		$out['bftd_client']  = 'Client';
 		$out['bftd_tutor']   = 'Tutor';
 		$out['bftd_when']    = 'Session';
+		$out['bftd_what']    = 'What happened';
 		return $out;
 	}
 
@@ -1115,6 +1117,17 @@ class BFTD_CPT {
 				if ( $u ) $names[] = $u->display_name;
 			}
 			echo $names ? esc_html( implode( ', ', $names ) ) : '<span class="bftd-none">Nobody yet</span>';
+			return;
+		}
+
+		// The same two cells the regular view draws in its drawer, so the two
+		// views say the same thing about the same session.
+		if ( 'bftd_number' === $col ) {
+			BFTD_Sessions::number_cell( $post_id, BFTD_Sessions::numbers_for( self::student_id( $post_id ) ) );
+			return;
+		}
+		if ( 'bftd_what' === $col ) {
+			BFTD_Sessions::happened_cell( $post_id );
 			return;
 		}
 
