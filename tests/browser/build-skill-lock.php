@@ -41,14 +41,17 @@ $GLOBALS['TITLES'] = array(
   101 => 'Mapping sounds to letters',
   102 => 'Splitting a syllable',
   103 => 'Spelling a plural',
+  104 => 'said',
 );
 foreach (array_keys($GLOBALS['TITLES']) as $id) $GLOBALS['TYPE'][$id] = 'bftd_skill';
 $GLOBALS['META'][100] = array('_bftd_skill_track'=>'t1');
 $GLOBALS['META'][101] = array('_bftd_skill_track'=>'t1');
 $GLOBALS['META'][102] = array('_bftd_skill_track'=>'t23');
 // 103 has no track stored, so it is read as the default, Tracks 2 and 3.
+// 104 is a Wordwall entry with Track 1 still stored on it: in no track.
+$GLOBALS['META'][104] = array('_bftd_skill_track'=>'t1','_bftd_skill_group'=>'wordwall');
 $GLOBALS['TITLES'][88] = 'Activity 1'; $GLOBALS['TYPE'][88] = 'bftd_activity';
-$GLOBALS['META'][88] = array('_bftd_activity_number'=>1,'_bftd_activity_track'=>'t1','_bftd_activity_skills'=>array(103));
+$GLOBALS['META'][88] = array('_bftd_activity_number'=>1,'_bftd_activity_track'=>'t1','_bftd_activity_skills'=>array(103,104));
 
 $post = (object) array('ID'=>88,'post_type'=>'bftd_activity');
 $css  = file_get_contents(BFTD_PATH.'assets/css/bftd-admin.css');
@@ -64,7 +67,7 @@ file_put_contents(__DIR__.'/skill-lock.html',
   . '<textarea id="content" name="content"></textarea></div></form>'
   . '<script src="' . BFTD_PATH . 'tests/browser/jquery.js"></script>'
   . '<script>window.BFTD={ajax_url:"/ajax",nonce:"n",post_id:88,autosave:1,tracks:'
-  . json_encode(BFTD_Activities::tracks()) . '};</script>'
+  . json_encode(BFTD_Activities::tracks()) . ',groups:' . json_encode(BFTD_Skills::groups()) . '};</script>'
   . '<script>' . $js . '</script>');
 
 echo __DIR__ . '/skill-lock.html' . "\n";

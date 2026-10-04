@@ -767,10 +767,22 @@ check(array(402, 401, 404, 403) === array_keys(BFTD_Skills::all()),
   'Track 1 by number, then Tracks 2 and 3 by number, got ' . implode(',', array_keys(BFTD_Skills::all())));
 
 check(2 === BFTD_Skills::count_in_track('t1'), 'Track 1 has two numbered skills');
-check(1 === BFTD_Skills::count_in_track('t23'), 'and Tracks 2 and 3 have one');
+check(0 === BFTD_Skills::count_in_track('t23'), 'and Tracks 2 and 3 have none: 404 is Wordwall, which is in no track, whatever track is stored on it');
 check(array(1 => 402, 2 => 401) === BFTD_Skills::sequence('t1'),
   'the sequence is number => id, in order, numbered only');
-check(array(1 => 404) === BFTD_Skills::sequence('t23'), 'per track, counting from one in each');
+check(array() === BFTD_Skills::sequence('t23'), 'and a numbered Wordwall entry is not a position in any track');
+$GLOBALS['META'][404]['_bftd_skill_group'] = 'skill';
+BFTD_Skills::flush();
+check(array(1 => 404) === BFTD_Skills::sequence('t23'), 'the same entry made an ordinary skill is: per track, counting from one in each');
+$GLOBALS['META'][404]['_bftd_skill_group'] = 'wordwall';
+BFTD_Skills::flush();
+
+/* Three places, chosen in one dropdown: Track 1, Tracks 2 and 3, Wordwall. */
+check(array('t1' => 'Track 1', 't23' => 'Track 2 & 3', 'wordwall' => 'Wordwall') === BFTD_Skills::places(),
+  'a skill is in Track 1, Tracks 2 and 3, or Wordwall');
+check(array('t1', 't23') === array_keys(BFTD_Activities::tracks()), 'and the programme still has two tracks');
+check('wordwall' === BFTD_Skills::place_of(404) && 'wordwall' === BFTD_Skills::place_of(403), 'a Wordwall entry is in Wordwall');
+check('t1' === BFTD_Skills::place_of(401), 'and an ordinary skill is in its track');
 check('1 · could' === BFTD_Skills::numbered_label(404), 'a numbered label says which number it is');
 check('said' === BFTD_Skills::numbered_label(403), 'and an unnumbered one is just its name');
 
@@ -796,8 +808,10 @@ check('Wordwall' === BFTD_Skills::group_label('wordwall'), 'Wordwall is one word
 $sk = BFTD_Skills::picker('bftd_rows[activity][skills][0][id]', 0);
 check(false !== strpos($sk, 'data-bucket="t1"'), 'the skill picker can be narrowed to Track 1');
 check(false !== strpos($sk, 'data-bucket="t23"'), 'and to Tracks 2 and 3');
-check(3 === substr_count($sk, 'class="bftd-actpick-t'), 'three buttons: all, and one per track');
-check(1 === preg_match('/<option value="404"[^>]*data-bucket="t23"/', $sk), 'each option says which track it is in');
+check(false !== strpos($sk, 'data-bucket="wordwall"'), 'and to Wordwall');
+check(4 === substr_count($sk, 'class="bftd-actpick-t'), 'four buttons: all, one per track, and Wordwall');
+check(1 === preg_match('/<option value="401"[^>]*data-bucket="t1"/', $sk), 'each option says which track it is in');
+check(1 === preg_match('/<option value="404"[^>]*data-bucket="wordwall"/', $sk), 'or that it is Wordwall');
 check(2 === substr_count($sk, '<optgroup'), 'and the plain select is sectioned by track');
 check(false !== strpos($sk, 'Search by number or name'), 'and says numbers are searchable');
 

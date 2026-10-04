@@ -85,6 +85,38 @@ class BFTD_Skills {
 	}
 
 	/**
+	 * The three places a skill can be: Track 1, Tracks 2 and 3, or Wordwall.
+	 *
+	 * One list for the one dropdown that chooses between them. Wordwall is
+	 * not a track of the programme, so it stays out of tracks(): activities,
+	 * the starting point and the report's sequence all ask about tracks and
+	 * mean only the two. A Wordwall entry is filed under its group, and this
+	 * is where the two questions meet.
+	 */
+	public static function places() {
+		return self::tracks() + array( 'wordwall' => self::groups()['wordwall'] );
+	}
+
+	/** Where one skill is: its track, or 'wordwall' for a Wordwall entry. */
+	public static function place_of( $id ) {
+		if ( null !== self::$fixture ) {
+			$one = self::$fixture[ (int) $id ] ?? null;
+			if ( is_array( $one ) && 'wordwall' === ( $one['group'] ?? '' ) ) return 'wordwall';
+			return self::track_of( $id );
+		}
+		return 'wordwall' === self::group_of( $id ) ? 'wordwall' : self::track_of( $id );
+	}
+
+	/**
+	 * The place actually chosen for a skill, or '' when none has been. A
+	 * Wordwall entry has been placed whatever track is stored on it.
+	 */
+	public static function stored_place( $id ) {
+		$stored = (string) get_post_meta( (int) $id, self::GROUP_KEY, true );
+		return 'wordwall' === $stored ? 'wordwall' : self::stored_track( $id );
+	}
+
+	/**
 	 * The track of one skill, always one of the two.
 	 *
 	 * A skill with no track stored is a Tracks 2 and 3 skill. Answering
@@ -131,6 +163,7 @@ class BFTD_Skills {
 	public static function count_in_track( $track ) {
 		$n = 0;
 		foreach ( self::all() as $row ) {
+			if ( 'wordwall' === ( $row['group'] ?? '' ) ) continue;   // not in a track
 			if ( $row['track'] === $track && $row['number'] ) $n++;
 		}
 		return $n;
@@ -145,6 +178,7 @@ class BFTD_Skills {
 	public static function sequence( $track ) {
 		$out = array();
 		foreach ( self::all() as $id => $row ) {
+			if ( 'wordwall' === ( $row['group'] ?? '' ) ) continue;   // not in a track
 			if ( $row['track'] !== $track || ! $row['number'] ) continue;
 			$out[ (int) $row['number'] ] = (int) $id;
 		}
@@ -316,10 +350,13 @@ class BFTD_Skills {
 		self::flush();
 	}
 
-	/** Is this a skill edit-screen save that posted a real track? */
-	private static function posted_track() {
+	/**
+	 * Is this a skill edit-screen save that posted a real place? The field
+	 * keeps its old name, bftd_skill_track, and now also offers Wordwall.
+	 */
+	private static function posted_place() {
 		$t = isset( $_POST['bftd_skill_track'] ) ? sanitize_key( wp_unslash( $_POST['bftd_skill_track'] ) ) : '';
-		return isset( self::tracks()[ $t ] ) ? $t : '';
+		return isset( self::places()[ $t ] ) ? $t : '';
 	}
 
 	/**
@@ -331,7 +368,7 @@ class BFTD_Skills {
 	public static function hold_without_track( $data, $postarr ) {
 		if ( self::POST_TYPE !== ( $data['post_type'] ?? '' ) ) return $data;
 		if ( empty( $_POST['bftd_skill_nonce'] ) ) return $data;
-		if ( '' !== self::posted_track() ) return $data;
+		if ( '' !== self::posted_place() ) return $data;
 		if ( in_array( $data['post_status'], array( 'publish', 'future', 'pending', 'private' ), true ) ) {
 			$data['post_status'] = 'draft';
 			self::$held = true;
@@ -349,7 +386,7 @@ class BFTD_Skills {
 
 	public static function held_notice() {
 		if ( empty( $_GET['bftd_skill_held'] ) ) return;
-		echo '<div class="notice notice-error"><p><strong>Choose a track for this skill.</strong> It has been kept as a draft and will not be offered to any activity until it has one.</p></div>';
+		echo '<div class="notice notice-error"><p><strong>Choose a track or Wordwall for this skill.</strong> It has been kept as a draft and will not be offered anywhere until it has one.</p></div>';
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -357,8 +394,9 @@ class BFTD_Skills {
 	/* ------------------------------------------------------------------ */
 
 	public static function boxes() {
+		// One box. Track 1, Tracks 2 and 3 and Wordwall are chosen in the same
+		// dropdown, because a skill is in exactly one of the three.
 		add_meta_box( 'bftd_skill_place', 'Where this sits', array( __CLASS__, 'box_place' ), self::POST_TYPE, 'side', 'high' );
-		add_meta_box( 'bftd_skill_group', 'Which group', array( __CLASS__, 'box_group' ), self::POST_TYPE, 'side', 'default' );
 	}
 
 	/**
@@ -370,45 +408,27 @@ class BFTD_Skills {
 	 */
 	public static function box_place( $post ) {
 		wp_nonce_field( 'bftd_skill_' . $post->ID, 'bftd_skill_nonce' );
-		$track = self::stored_track( $post->ID );
+		$track = self::stored_place( $post->ID );
 		$n     = self::number_of( $post->ID );
 		?>
 		<p>
 			<label for="bftd_skill_track"><strong>Track</strong></label><br>
 			<select name="bftd_skill_track" id="bftd_skill_track" style="width:100%" required>
-				<option value="" <?php selected( $track, '' ); ?> disabled>Choose a track</option>
-				<?php foreach ( self::tracks() as $key => $label ) : ?>
+				<option value="" <?php selected( $track, '' ); ?> disabled>Choose a track or Wordwall</option>
+				<?php foreach ( self::places() as $key => $label ) : ?>
 					<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $track, $key ); ?>><?php
 						echo esc_html( $label );
 					?></option>
 				<?php endforeach; ?>
 			</select>
 		</p>
-		<p class="description">Which part of the programme this skill belongs to. Required: an activity only offers the skills in its own track.</p>
+		<p class="description">Which part of the programme this skill belongs to, or Wordwall for a word a child can read on sight. Required: an activity only offers the skills in its own track, and Wordwall entries are in neither.</p>
 		<p style="margin-top:14px">
 			<label for="bftd_skill_number"><strong>Number in that track</strong></label><br>
 			<input type="number" min="1" step="1" style="width:100%" name="bftd_skill_number"
 				id="bftd_skill_number" value="<?php echo esc_attr( $n ? $n : '' ); ?>" placeholder="e.g. 12">
 		</p>
 		<p class="description">Where this sits in its own track's sequence. Each track counts from one, so there is a 12 in both and the track above is what tells them apart. A student's starting point is a number in this sequence, so a skill with no number is in the library but not in the programme, and is listed last.</p>
-		<?php
-	}
-
-	public static function box_group( $post ) {
-		// The nonce is printed once, by the box above. Both post into the same
-		// save, so a second copy would be one more thing to keep in step.
-		$now = self::group_of( $post->ID );
-		?>
-		<p>
-			<select name="bftd_skill_group" style="width:100%">
-				<?php foreach ( self::groups() as $key => $label ) : ?>
-					<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $now, $key ); ?>><?php
-						echo esc_html( $label );
-					?></option>
-				<?php endforeach; ?>
-			</select>
-		</p>
-		<p class="description">Wordwall entries are words a child can read on sight. They are kept as their own group so the two lists stay readable.</p>
 		<?php
 	}
 
@@ -419,16 +439,10 @@ class BFTD_Skills {
 		if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['bftd_skill_nonce'] ) ), 'bftd_skill_' . $post_id ) ) return;
 		if ( ! current_user_can( 'edit_post', $post_id ) ) return;
 
-		// Always one of the two. Anything else posted from anywhere falls back
-		// to the ordinary group rather than inventing a third.
-		$group = isset( $_POST['bftd_skill_group'] ) ? sanitize_key( wp_unslash( $_POST['bftd_skill_group'] ) ) : '';
-		if ( ! isset( self::groups()[ $group ] ) ) $group = self::GROUP_DEFAULT;
-		update_post_meta( $post_id, self::GROUP_KEY, $group );
-
-		// No track chosen: nothing is written for it, and the skill was kept
-		// a draft by hold_without_track(). The number is still saved.
-		$track = self::posted_track();
-		if ( '' !== $track ) self::store_track( $post_id, $track );
+		// Nothing chosen: nothing is written for it, and the skill was kept a
+		// draft by hold_without_track(). The number is still saved.
+		$place = self::posted_place();
+		if ( '' !== $place ) self::store_choice( $post_id, $place );
 		self::store_number( $post_id, isset( $_POST['bftd_skill_number'] ) ? wp_unslash( $_POST['bftd_skill_number'] ) : '' );
 
 		self::flush();
@@ -439,8 +453,24 @@ class BFTD_Skills {
 	 * edit, so the two cannot disagree about what a track or a number is.
 	 */
 	public static function store_place( $post_id, $track, $number ) {
-		self::store_track( $post_id, $track );
+		self::store_choice( $post_id, $track );
 		self::store_number( $post_id, $number );
+	}
+
+	/**
+	 * Write what the one dropdown chose. Wordwall is the group and leaves the
+	 * stored track alone, since a Wordwall entry is read as in no track. A
+	 * track makes it an ordinary skill in that track. Anything else falls
+	 * back to the default track, as store_track() always has.
+	 */
+	public static function store_choice( $post_id, $place ) {
+		$place = sanitize_key( (string) $place );
+		if ( 'wordwall' === $place ) {
+			update_post_meta( $post_id, self::GROUP_KEY, 'wordwall' );
+			return;
+		}
+		update_post_meta( $post_id, self::GROUP_KEY, self::GROUP_DEFAULT );
+		self::store_track( $post_id, $place );
 	}
 
 	/**
@@ -466,7 +496,8 @@ class BFTD_Skills {
 	}
 
 	/**
-	 * Quick edit on the skills list: the track and the number, nothing else.
+	 * Quick edit on the skills list: the track (or Wordwall) and the number,
+	 * nothing else.
 	 *
 	 * One box serves every row, so it carries its own nonce rather than the
 	 * per-skill one the edit screen uses. The script fills it from the row.
@@ -480,7 +511,7 @@ class BFTD_Skills {
 				<label>
 					<span class="title">Track</span>
 					<select name="bftd_skill_track">
-						<?php foreach ( self::tracks() as $key => $label ) : ?>
+						<?php foreach ( self::places() as $key => $label ) : ?>
 							<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
 						<?php endforeach; ?>
 					</select>
@@ -495,9 +526,8 @@ class BFTD_Skills {
 	}
 
 	/**
-	 * Save from quick edit. Only the track and the number are written, and
-	 * only when they were posted: quick edit does not send the group, so the
-	 * group is left exactly as it was.
+	 * Save from quick edit. Only the track (or Wordwall) and the number are
+	 * written, and only when both were posted.
 	 */
 	public static function save_quick( $post_id, $post ) {
 		if ( empty( $_POST['bftd_skill_qe_nonce'] ) ) return;
@@ -535,7 +565,7 @@ class BFTD_Skills {
 		// What quick edit opens with. Read by the script, never shown.
 		printf(
 			'<span class="bftd-skill-place" hidden data-track="%s" data-number="%s"></span>',
-			esc_attr( self::track_of( $post_id ) ),
+			esc_attr( self::place_of( $post_id ) ),
 			$n ? (int) $n : ''
 		);
 	}
@@ -911,11 +941,11 @@ class BFTD_Skills {
 			// The number in front of the name, the way the activity picker
 			// reads, because a tutor looking for skill forty looks for "40".
 			$options[ $id ] = $row['number'] ? $row['number'] . ' · ' . $row['name'] : $row['name'];
-			// Narrowed by track rather than by group. Two tracks of numbered
-			// skills is the division a tutor is working within; Skills against
-			// Wordwall is a division of the library's own housekeeping, and
-			// only one row of buttons fits above the box.
-			$groups[ $id ]  = $row['track'];
+			// Narrowed by where the skill is: Track 1, Tracks 2 and 3, or
+			// Wordwall. One row of buttons, the same three the skill's own
+			// dropdown offers. An activity's box is locked to one track, so
+			// Wordwall entries are not offered there.
+			$groups[ $id ]  = 'wordwall' === ( $row['group'] ?? '' ) ? 'wordwall' : $row['track'];
 			$numbers[ $id ] = $row['number'] ? (string) $row['number'] : '';
 			$names[ $id ]   = $row['name'];
 		}
@@ -927,7 +957,7 @@ class BFTD_Skills {
 			'names'        => $names,
 			'numbers'      => $numbers,
 			'groups'       => $groups,
-			'buckets'      => self::tracks(),
+			'buckets'      => self::places(),
 			'bucket_label' => 'Filter by track',
 			'chosen_label' => self::numbered_label( $selected ),
 			'noun'         => 'skill',

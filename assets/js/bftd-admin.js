@@ -3295,7 +3295,8 @@ jQuery( function ( $ ) {
 
 	function mark( $box ) {
 		var lock  = $box.attr( 'data-bftd-lock' ) || '';
-		var names = ( window.BFTD && BFTD.tracks ) || {};
+		// The tracks and Wordwall, so a Wordwall entry is named as one.
+		var names = $.extend( {}, ( window.BFTD && BFTD.groups ) || {}, ( window.BFTD && BFTD.tracks ) || {} );
 		$box.find( '.bftd-actpick' ).each( function () {
 			var $w   = $( this );
 			var $opt = $w.find( '.bftd-actpick-s option:selected' );

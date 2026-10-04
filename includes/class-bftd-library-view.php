@@ -118,6 +118,11 @@ class BFTD_Library_View {
 		$noun  = ( 'bftd_skill' === $type ) ? 'Skill' : 'Activity';
 		$list  = admin_url( 'edit.php?post_type=' . $type );
 		$track = call_user_func( array( $cls, 'track_label' ), call_user_func( array( $cls, 'track_of' ), $id ) );
+		// A skill is in Track 1, Tracks 2 and 3, or Wordwall: one line says which.
+		if ( 'BFTD_Skills' === $cls ) {
+			$places = BFTD_Skills::places();
+			$track  = $places[ BFTD_Skills::place_of( $id ) ] ?? $track;
+		}
 		$num   = ( 'bftd_skill' === $type )
 			? (int) BFTD_Skills::number_of( $id )
 			: (int) get_post_meta( $id, BFTD_Activities::NUMBER_KEY, true );
@@ -135,10 +140,6 @@ class BFTD_Library_View {
 			<dl class="bftd-libview-facts">
 				<?php if ( '' !== $track ) : ?><div><dt>Track</dt><dd><?php echo esc_html( $track ); ?></dd></div><?php endif; ?>
 				<div><dt>Number</dt><dd><?php echo $num ? (int) $num : '<span class="bftd-none">Not numbered</span>'; ?></dd></div>
-				<?php if ( 'bftd_skill' === $type ) :
-					$groups = BFTD_Skills::groups(); $g = BFTD_Skills::group_of( $id ); ?>
-					<div><dt>Group</dt><dd><?php echo esc_html( isset( $groups[ $g ] ) ? $groups[ $g ] : $g ); ?></dd></div>
-				<?php endif; ?>
 				<?php if ( 'publish' !== $post->post_status ) : ?>
 					<div><dt>Record</dt><dd><span class="bftd-pill is-past">Draft</span></dd></div>
 				<?php endif; ?>

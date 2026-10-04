@@ -508,7 +508,39 @@ HTML,
 	}
 
 	/**
-	 * The sample's skill library: id => name, in first-taught order.
+	 * The sample's skill library, in the shape BFTD_Skills::all() returns:
+	 * id => array( number, name, track, group ), in first-taught order.
+	 *
+	 * Each skill takes the track of the first activity that teaches it, and
+	 * is numbered in that track from one. The ones still ahead are Track 1.
+	 * It used to be id => name, which stopped working when skills gained
+	 * numbers and tracks: the real skills code reads a row, and the sample
+	 * preview died on the first skill name it looked up.
+	 */
+	public static function sample_skills_library() {
+		$t23   = self::sample_t23();
+		$track = array();
+		foreach ( self::teaches() as $activity => $skills ) {
+			foreach ( $skills as $name ) {
+				if ( ! isset( $track[ $name ] ) ) $track[ $name ] = isset( $t23[ $activity ] ) ? 't23' : 't1';
+			}
+		}
+		$out = array();
+		$n   = array( 't1' => 0, 't23' => 0 );
+		foreach ( self::sample_skill_names() as $id => $name ) {
+			$t = isset( $track[ $name ] ) ? $track[ $name ] : 't1';
+			$out[ $id ] = array(
+				'number' => ++$n[ $t ],
+				'name'   => $name,
+				'track'  => $t,
+				'group'  => 'skill',
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * The sample's skill names: id => name, in first-taught order.
 	 *
 	 * The ones the sample's activities build, and then the ones still ahead of
 	 * this child. Without the second group the library was exactly the list
@@ -516,7 +548,7 @@ HTML,
 	 * eight weeks into a year being shown a finished programme, which is the
 	 * one thing a sample must not say.
 	 */
-	public static function sample_skills_library() {
+	private static function sample_skill_names() {
 		$out = array();
 		$id  = self::SKILL_BASE;
 		foreach ( self::teaches() as $skills ) {
@@ -541,18 +573,25 @@ HTML,
 
 	/** The id the sample's library holds for a skill name. */
 	private static function skill_id( $name ) {
-		$found = array_search( $name, self::sample_skills_library(), true );
+		$found = array_search( $name, self::sample_skill_names(), true );
 		return $found ? (int) $found : 0;
 	}
 
-	private static function sample_activities() {
-		// name => track. Everything not named here is Track 1, which is the
-		// foundational programme and most of what a first term is.
-		$t23 = array(
+	/**
+	 * The sample activities in Tracks 2 and 3, by name. Everything not named
+	 * here is Track 1, which is the foundational programme and most of what a
+	 * first term is. Read by the activities and by the skills they teach.
+	 */
+	private static function sample_t23() {
+		return array(
 			'Sound Search Activity'         => true,
 			'Key word, Action, Thing (KAT)' => true,
 			'Homophones'                    => true,
 		);
+	}
+
+	private static function sample_activities() {
+		$t23 = self::sample_t23();
 
 		$about   = self::activity_notes();
 		$teaches = self::teaches();

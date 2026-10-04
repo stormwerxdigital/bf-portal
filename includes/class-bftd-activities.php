@@ -581,10 +581,11 @@ class BFTD_Activities {
 		foreach ( (array) ( $rows['skills'] ?? array() ) as $row ) {
 			$sid = is_array( $row ) && isset( $row['id'] ) ? (int) $row['id'] : 0;
 			if ( ! $sid || '' === BFTD_Skills::label( $sid ) ) continue;
-			// A skill from the other track is not added. One that was already
-			// on this activity is kept, so nothing attached before skills had
-			// tracks is dropped by a save; the box marks it for a person to fix.
-			if ( BFTD_Skills::track_of( $sid ) !== $track && ! in_array( $sid, $before, true ) ) continue;
+			// A skill from the other track, or a Wordwall entry, is not added.
+			// One that was already on this activity is kept, so nothing
+			// attached before is dropped by a save; the box marks it for a
+			// person to fix.
+			if ( BFTD_Skills::place_of( $sid ) !== $track && ! in_array( $sid, $before, true ) ) continue;
 			$skills[] = $sid;
 		}
 		update_post_meta( $post_id, self::SKILLS_KEY, array_values( array_unique( $skills ) ) );

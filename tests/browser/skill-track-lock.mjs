@@ -38,6 +38,12 @@ check(await page.locator(old + '.is-offtrack').count() === 1, 'and is marked as 
 const note = await page.locator(old + ' .bftd-actpick-off').textContent().catch(() => '');
 check(/Tracks? 2 (&|and) 3/.test(note) && /Track 1/.test(note), 'saying which track it is in and which it should be, got ' + JSON.stringify(note));
 
+/* 104 is a Wordwall entry attached earlier. Wordwall is in no track. */
+const ww = '.bftd-skillpull .bftd-actpick:has(option[value="104"]:checked)';
+check(await page.locator(ww + '.is-offtrack').count() === 1, 'an attached Wordwall entry is marked too, though Track 1 is stored on it');
+const wnote = await page.locator(ww + ' .bftd-actpick-off').textContent().catch(() => '');
+check(/is in Wordwall, not Track 1/.test(wnote), 'saying it is in Wordwall, got ' + JSON.stringify(wnote));
+
 check(await page.locator('.bftd-skillpull .bftd-actpick-b').first().isVisible() === false,
   'the track buttons are gone, because the track is not a choice here');
 
@@ -53,6 +59,8 @@ const offered = async term => {
 };
 const s1 = await offered('s');
 check(s1.length > 0 && s1.every(v => v === '100' || v === '101'), 'a Track 1 activity offers only Track 1 skills, got ' + s1);
+const said = await offered('said');
+check(said.length === 0, 'and not a Wordwall entry, got ' + said);
 const plural = await offered('plural');
 check(plural.length === 0, 'and a search for a Tracks 2 and 3 skill finds nothing, got ' + plural);
 await fresh.locator('.bftd-actpick-q').fill('');
@@ -67,6 +75,7 @@ await page.waitForTimeout(100);
 const s2 = await offered('s');
 check(s2.length > 0 && s2.every(v => v === '102' || v === '103'), 'switching the track switches what is offered, got ' + s2);
 check(await page.locator(old + '.is-offtrack').count() === 0, 'and the attached skill is no longer marked, because it now matches');
+check(await page.locator(ww + '.is-offtrack').count() === 1, 'while the Wordwall entry stays marked in either track');
 
 check(errors.length === 0, 'no script errors ' + errors.join(' | '));
 await browser.close();

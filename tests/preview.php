@@ -172,6 +172,25 @@ check($resc >= 1, 'a session that did not go ahead, or the missed table and the 
 $library = BFTD_Sample::sample_skills_library();
 check(count($library) > 8, 'enough distinct skills for a spiral, got ' . count($library));
 
+/* In the shape the real skills code reads: a row per skill, not a bare name.
+   A bare name crashed the sample preview on the first label() it asked for. */
+$shaped = true;
+foreach ($library as $sid => $row) {
+  if (!is_array($row) || !isset($row['name'], $row['number'], $row['track'], $row['group'])
+      || !in_array($row['track'], array('t1', 't23'), true) || 'skill' !== $row['group']) { $shaped = false; break; }
+}
+check($shaped, 'each sample skill is a row with a name, a number, a track and a group');
+$per = array();
+foreach ($library as $row) $per[$row['track']][] = $row['number'];
+$counts = true;
+foreach ($per as $nums) if ($nums !== range(1, count($nums))) $counts = false;
+check($counts, 'numbered from one within each track');
+if (!class_exists('BFTD_Skills')) { require BFTD_PATH . 'includes/class-bftd-skills.php'; }
+BFTD_Skills::use_fixture($library);
+$first = array_key_first($library);
+check($library[$first]['name'] === BFTD_Skills::label($first), 'and the real skills code reads a name off it');
+BFTD_Skills::clear_fixture();
+
 /* The library has to hold skills this child has NOT reached yet, or the stat
    tile reads "14 of 14" and shows a family eight weeks in a finished
    programme. */

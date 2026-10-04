@@ -63,6 +63,8 @@ $_POST['bftd_skill_track'] = 'invented';
 check('draft' === BFTD_Skills::hold_without_track($skill, array())['post_status'], 'and so does a track that is not real');
 $_POST['bftd_skill_track'] = 't1';
 check('publish' === BFTD_Skills::hold_without_track($skill, array())['post_status'], 'a skill with a track publishes');
+$_POST['bftd_skill_track'] = 'wordwall';
+check('publish' === BFTD_Skills::hold_without_track($skill, array())['post_status'], 'and so does one placed in Wordwall');
 $_POST = array('bftd_skill_track' => '');
 check('publish' === BFTD_Skills::hold_without_track($skill, array())['post_status'], 'only the edit screen is held, not every save');
 $_POST = array('bftd_skill_nonce' => 'x', 'bftd_skill_track' => '');
@@ -70,7 +72,7 @@ $act = array('post_type' => 'bftd_activity', 'post_status' => 'publish');
 check('publish' === BFTD_Skills::hold_without_track($act, array())['post_status'], 'and only skills');
 
 $META[40] = array();
-$_POST = array('bftd_skill_nonce' => wp_create_nonce('bftd_skill_40'), 'bftd_skill_group' => 'skill', 'bftd_skill_track' => '', 'bftd_skill_number' => '7');
+$_POST = array('bftd_skill_nonce' => wp_create_nonce('bftd_skill_40'), 'bftd_skill_track' => '', 'bftd_skill_number' => '7');
 BFTD_Skills::save(40, null);
 check(!isset($META[40][$T]), 'saving with no track chosen writes no track');
 check(7 === $META[40][BFTD_Skills::NUMBER_KEY], 'but still keeps the number that was typed');
@@ -81,6 +83,7 @@ BFTD_Skills::use_fixture(array(
   62 => array('number' => 2, 'name' => 'Another Track 1', 'track' => 't1',  'group' => 'skill'),
   71 => array('number' => 1, 'name' => 'Track 2 3 skill', 'track' => 't23', 'group' => 'skill'),
   72 => array('number' => 2, 'name' => 'Old attachment',  'track' => 't23', 'group' => 'skill'),
+  81 => array('number' => 0, 'name' => 'said',            'track' => 't1',  'group' => 'wordwall'),
 ));
 $SK = BFTD_Activities::SKILLS_KEY;
 $META[88] = array($SK => array(72));
@@ -88,13 +91,14 @@ $rows = function ($ids) { return array_map(function ($i) { return array('id' => 
 $_POST = array(
   'bftd_activity_nonce' => wp_create_nonce('bftd_activity_88'),
   'bftd_activity_track' => 't1',
-  'bftd_rows' => array('activity' => array('skills' => $rows(array(61, 71, 72)))),
+  'bftd_rows' => array('activity' => array('skills' => $rows(array(61, 71, 72, 81)))),
 );
 BFTD_Activities::save(88, null);
 $saved = $META[88][$SK];
 check(in_array(61, $saved, true), 'a Track 1 activity takes a Track 1 skill');
 check(!in_array(71, $saved, true), 'and refuses a newly added Tracks 2 and 3 skill');
 check(in_array(72, $saved, true), 'but keeps the Tracks 2 and 3 skill it already had');
+check(!in_array(81, $saved, true), 'and refuses a newly added Wordwall entry, even one with Track 1 stored on it');
 
 $_POST['bftd_activity_track'] = 't23';
 $_POST['bftd_rows']['activity']['skills'] = $rows(array(62, 71, 72));
