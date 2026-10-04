@@ -9,6 +9,9 @@ require BFTD_PATH . 'tests/wp-stubs.php';
 
 $GLOBALS['POSTS']=array(); $GLOBALS['META']=array(); $GLOBALS['USERS']=array();
 function add_action(...$a){} function add_filter(...$a){}
+$GLOBALS['CAN_PUBLISH'] = true;
+function get_post_type_object($t){ return (object) array('cap' => (object) array('publish_posts' => 'publish_'.$t.'s')); }
+function current_user_can($c,$id=0){ return 0 !== strpos($c,'publish_') || $GLOBALS['CAN_PUBLISH']; }
 function get_post($id=null){ return $GLOBALS['POSTS'][(int)$id] ?? null; }
 function get_post_type($id){ $p=get_post($id); return $p?$p->post_type:''; }
 function get_the_title($id){ $p=get_post($id); return $p?$p->post_title:''; }

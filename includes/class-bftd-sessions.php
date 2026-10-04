@@ -31,6 +31,77 @@ class BFTD_Sessions {
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ), 21 );
 		add_action( 'wp_ajax_bftd_student_sessions', array( __CLASS__, 'ajax_sessions' ) );
+		add_action( 'admin_post_bftd_publish_session', array( __CLASS__, 'publish_from_list' ) );
+		add_action( 'admin_notices', array( __CLASS__, 'published_notice' ) );
+	}
+
+	/** May the current person publish this session from the list? */
+	public static function can_publish( $sid ) {
+		$type = get_post_type_object( BFTD_CPT::SESSION );
+		return $type && current_user_can( 'edit_post', $sid ) && current_user_can( $type->cap->publish_posts );
+	}
+
+	public static function publish_url( $sid ) {
+		return wp_nonce_url(
+			admin_url( 'admin-post.php?action=bftd_publish_session&session=' . (int) $sid ),
+			'bftd_publish_session_' . (int) $sid
+		);
+	}
+
+	/**
+	 * Publish a draft session straight from the Sessions screen.
+	 *
+	 * Through the same checks the session screen's Publish button runs, in
+	 * the same order: Taught by filled in from whoever created it, then held
+	 * at draft if it duplicates another draft, is a cancellation with no
+	 * reason, or still has nobody to pay. A held session opens on its own
+	 * screen, where the notice says why; a published one comes back here.
+	 */
+	public static function publish_from_list() {
+		$sid = isset( $_GET['session'] ) ? absint( $_GET['session'] ) : 0;
+		check_admin_referer( 'bftd_publish_session_' . $sid );
+		if ( ! $sid || BFTD_CPT::SESSION !== get_post_type( $sid ) || ! self::can_publish( $sid ) ) {
+			wp_die( 'You cannot publish this session.', 403 );
+		}
+		$back = wp_get_referer() ? wp_get_referer() : admin_url( 'admin.php?page=' . self::SLUG );
+		if ( 'publish' === get_post_status( $sid ) ) {
+			wp_safe_redirect( $back );
+			exit;
+		}
+
+		BFTD_MetaBoxes::claim_session( $sid );
+
+		// The checks run before anything is published, against the session as
+		// it would be once published, so a session that is going to be held
+		// never reaches a family, not even for a moment. Each one that holds
+		// keeps it a draft and leaves the reason for its own screen to show.
+		$as_published = clone get_post( $sid );
+		$as_published->post_status = 'publish';
+		$held = BFTD_MetaBoxes::hold_duplicate_draft( $sid, $as_published )
+			|| BFTD_MetaBoxes::hold_unexplained( $sid, $as_published )
+			|| BFTD_MetaBoxes::hold_unclaimed( $sid, $as_published );
+
+		if ( ! $held ) wp_update_post( array( 'ID' => $sid, 'post_status' => 'publish' ) );
+
+		if ( $held || 'publish' !== get_post_status( $sid ) ) {
+			wp_safe_redirect( (string) get_edit_post_link( $sid, 'raw' ) );
+			exit;
+		}
+		wp_safe_redirect( add_query_arg( 'bftd_published', $sid, remove_query_arg( 'bftd_published', $back ) ) );
+		exit;
+	}
+
+	public static function published_notice() {
+		if ( empty( $_GET['bftd_published'] ) ) return;
+		$sid = absint( $_GET['bftd_published'] );
+		if ( ! $sid || 'publish' !== get_post_status( $sid ) ) return;
+		$student = BFTD_CPT::student_id( $sid );
+		$date    = (string) BFTD_Fields::get( $sid, 'session', 'session_date' );
+		$when    = '' !== $date ? BFTD_Time::format( 'D j M Y', BFTD_Time::stamp( $date, '12:00' ) ) : '';
+		printf(
+			'<div class="notice notice-success is-dismissible"><p><strong>Published.</strong> %s</p></div>',
+			esc_html( trim( 'The session' . ( $student ? ' for ' . get_the_title( $student ) : '' ) . ( $when ? ' on ' . $when : '' ) ) . ' is now on the progress report.' )
+		);
 	}
 
 	/** In place of the WordPress list, at the index it occupies. */
@@ -341,6 +412,9 @@ class BFTD_Sessions {
 				// link as the session screen's own preview button.
 				?>
 				<a href="<?php echo esc_url( BFTD_Preview::url( $sid ) ); ?>" target="_blank" rel="noopener">View preview</a>
+				<?php if ( ! $live && self::can_publish( $sid ) ) : ?>
+					<a class="bftd-ses-publish" href="<?php echo esc_url( self::publish_url( $sid ) ); ?>">Publish</a>
+				<?php endif; ?>
 			</td>
 		</tr>
 		<?php

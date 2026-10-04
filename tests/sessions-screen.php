@@ -26,6 +26,9 @@ $GLOBALS['POSTS'] = array(); $GLOBALS['META'] = array(); $GLOBALS['USERS'] = arr
 $GLOBALS['QUERIES'] = 0;
 
 function add_action(...$a) {} function add_filter(...$a) {}
+$GLOBALS['CAN_PUBLISH'] = true;
+function get_post_type_object($t){ return (object) array('cap' => (object) array('publish_posts' => 'publish_'.$t.'s')); }
+function current_user_can($c,$id=0){ return 0 !== strpos($c,'publish_') || $GLOBALS['CAN_PUBLISH']; }
 function get_post($id=null){ return $GLOBALS['POSTS'][(int)$id] ?? null; }
 function get_post_type($id){ $p=get_post($id); return $p?$p->post_type:''; }
 function get_the_title($id){ $p=get_post($id); return $p?$p->post_title:''; }
@@ -175,6 +178,20 @@ check(false !== strpos($page1,'is-on'), 'and the page you are on marked');
 ob_start(); BFTD_Sessions::drawer(1001, 3); $page3 = ob_get_clean();
 check(7 === substr_count($page3,'<tr>') - 1, 'the last page is the remainder, got ' . (substr_count($page3,'<tr>')-1));
 check(false !== strpos($page3,'41–47 of 47'), 'and says so');
+
+/* A draft can be published from the row, by someone allowed to publish. A
+   published session has nothing to publish. */
+$drafts_on_3 = substr_count($page3, '>Draft</span>');
+check($drafts_on_3 > 0 && $drafts_on_3 === substr_count($page3, '>Publish</a>'),
+  'every draft row has Publish beside View preview, got ' . substr_count($page3, '>Publish</a>') . ' for ' . $drafts_on_3 . ' drafts');
+check(0 === substr_count($page1, '>Publish</a>') || substr_count($page1, '>Draft</span>') === substr_count($page1, '>Publish</a>'),
+  'and a published row has none');
+check(1 === preg_match('#href="[^"]*admin-post\.php\?action=bftd_publish_session&(amp;)?session=\d+&(amp;)?_wpnonce=[^"]+"[^>]*>Publish</a>#', $page3),
+  'publishing through a signed request for that session');
+$GLOBALS['CAN_PUBLISH'] = false;
+ob_start(); BFTD_Sessions::drawer(1001, 3); $nopub = ob_get_clean();
+$GLOBALS['CAN_PUBLISH'] = true;
+check(0 === substr_count($nopub, '>Publish</a>'), 'someone who may not publish is not offered it');
 
 /* Asking for a page that is not there lands on the last one rather than on
    an empty drawer. */
