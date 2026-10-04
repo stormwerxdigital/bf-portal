@@ -171,10 +171,21 @@ class BFTD_Students {
 	 * fetched in one go and the sessions counted in one, so the cost of this
 	 * does not grow with the number of rows.
 	 */
-	public static function rows( $ids ) {
+	/**
+	 * $drafts counts each student's unpublished sessions. The Sessions screen
+	 * passes false, because it counts every session itself and asking twice
+	 * would be the same query twice.
+	 */
+	public static function rows( $ids, $drafts = true ) {
 		if ( ! $ids ) return array();
 
 		$used = BFTD_Schedule::used_counts( $ids );
+
+		// Sessions written up but not published, counted in the same batch
+		// the Sessions screen uses. A draft reaches no family and pays no
+		// tutor, and a student marked Active with six of them waiting looked
+		// exactly like one with none.
+		$records = ( $drafts && class_exists( 'BFTD_Sessions' ) ) ? BFTD_Sessions::records( $ids ) : array();
 
 		// Every account named on any of them, primed in one query, so the
 		// names below cost nothing.
@@ -246,6 +257,7 @@ class BFTD_Students {
 				'used'      => $spent,
 				'left'      => max( 0, $purchased - $spent ),
 				'draft'     => ( 'publish' !== get_post_status( $id ) ),
+				'drafts'    => isset( $records[ $id ] ) ? (int) $records[ $id ]['draft'] : 0,
 			);
 		}
 		return $out;
@@ -448,7 +460,16 @@ class BFTD_Students {
 				? esc_html( implode( ', ', $row['tutors'] ) )
 				: '<span class="bftd-none">Unassigned</span>'; ?></td>
 			<td class="num" data-l="Sessions left"><?php self::bank_cell( $row ); ?></td>
-			<td data-l="Status"><?php self::status_cell( $row['status'] ); ?></td>
+			<td data-l="Status"><?php
+				self::status_cell( $row['status'] );
+				if ( ! empty( $row['drafts'] ) ) {
+					printf(
+						'<a class="bftd-stu-drafts" href="%s">%s</a>',
+						esc_url( admin_url( 'edit.php?post_type=' . BFTD_CPT::SESSION . '&post_status=draft&bftd_student=' . (int) $row['id'] ) ),
+						esc_html( 1 === (int) $row['drafts'] ? '1 session in draft' : (int) $row['drafts'] . ' sessions in draft' )
+					);
+				}
+			?></td>
 		</tr>
 		<?php
 	}

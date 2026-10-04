@@ -76,6 +76,8 @@ function get_posts($a) {
   return empty($a['fields']) ? $out : wp_list_pluck($out, 'ID');
 }
 
+function get_edit_post_link($id){ return 'https://example.test/wp-admin/post.php?post='.(int)$id.'&action=edit'; }
+class BFTD_Sessions { public static function records($ids) { $o=array(); foreach((array)$ids as $i) $o[(int)$i]=array('draft'=>(1001===(int)$i)?3:0); return $o; } }
 class BFTD_Admin { const MENU_SLUG = 'bftd'; const HUB_SLUG = 'bftd-student'; }
 class BFTD_Roles {
   const STAFF_CAP = 'bftd_manage_students';
@@ -167,6 +169,16 @@ check($GLOBALS['QUERIES'] === $small, 'ten rows and a hundred rows cost the same
 
 /* ---- what a row says ---- */
 $one = $rows[1001];
+/* Sessions written up but not published show on the row, so a student marked
+   Active with drafts waiting does not look like one with none. Counted by the
+   Sessions screen's own batch, stood in for here. */
+check(3 === $one['drafts'], 'the row knows how many sessions are still drafts, got ' . var_export($one['drafts'], true));
+$draw = new ReflectionMethod('BFTD_Students', 'row'); $draw->setAccessible(true);
+ob_start(); $draw->invoke(null, $one); $tr = ob_get_clean();
+check(1 === preg_match('#class="bftd-stu-drafts" href="[^"]*post_status=draft[^"]*bftd_student=1001">3 sessions in draft</a>#', $tr),
+  'and says so under the status, linked to those drafts');
+ob_start(); $draw->invoke(null, $rows[1002]); $tr2 = ob_get_clean();
+check(false === strpos($tr2, 'bftd-stu-drafts'), 'while a student with none says nothing');
 check('Student 000' === $one['name'], 'the row is named');
 check('Client 100' === $one['client'], 'and names the client');
 check(isset($one['tutors'][5]), 'and the tutor');

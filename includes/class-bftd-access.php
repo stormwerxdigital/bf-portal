@@ -46,7 +46,15 @@ class BFTD_Access {
 
 		if ( in_array( $type, self::report_types(), true ) ) {
 			if ( (int) get_post_field( 'post_author', $post_id ) === $user_id ) return true;
-			return in_array( $user_id, BFTD_CPT::staff_ids( $post_id ), true );
+			if ( in_array( $user_id, BFTD_CPT::staff_ids( $post_id ), true ) ) return true;
+			// A session belongs to the student's tutors as well, whoever
+			// started it. Otherwise a session a manager drafted for a tutor's
+			// own student refused that tutor outright.
+			if ( BFTD_CPT::SESSION === $type ) {
+				$student = BFTD_CPT::student_id( $post_id );
+				return $student && in_array( $user_id, BFTD_CPT::staff_ids( $student ), true );
+			}
+			return false;
 		}
 
 		$student_id = BFTD_CPT::student_id( $post_id );

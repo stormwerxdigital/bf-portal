@@ -142,7 +142,7 @@ class BFTD_Sessions {
 
 	/** The student rows, with the attendance record already worked out. */
 	public static function rows( $ids ) {
-		$rows = BFTD_Students::rows( $ids );
+		$rows = BFTD_Students::rows( $ids, false );
 		if ( ! $rows ) return array();
 
 		$records = self::records( $ids );

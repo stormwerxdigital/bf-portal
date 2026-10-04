@@ -112,6 +112,7 @@ class BFTD_MetaBoxes {
 
 		add_meta_box( 'bftd_parent', 'Student', array( __CLASS__, 'box_parent' ), BFTD_Access::report_types(), 'side', 'high' );
 		add_meta_box( 'bftd_report_staff', 'Who can see this', array( __CLASS__, 'box_report_staff' ), BFTD_Access::report_types(), 'side', 'high' );
+		add_meta_box( 'bftd_taught_by', 'Taught by', array( __CLASS__, 'box_taught_by' ), BFTD_CPT::SESSION, 'side', 'high' );
 		add_meta_box( 'bftd_preview', 'See it as a family does', array( __CLASS__, 'box_preview' ), BFTD_Access::report_types(), 'side', 'high' );
 
 		add_meta_box( 'bftd_report', 'The report, section by section', array( __CLASS__, 'box_report' ), array( BFTD_CPT::ASSESSMENT, BFTD_CPT::PROGRESS ), 'normal', 'high' );
@@ -1185,17 +1186,13 @@ class BFTD_MetaBoxes {
 				'missed'      => 'Missed',
 			) ),
 			// Whose hour this was, and so whose time card it lands on.
-			//
-			// Not the student's assigned tutor, because covering a
-			// colleague's lesson is exactly the case that pays the wrong
-			// person. A tutor publishing their own lesson never sees this
-			// filled in by hand: it is set to them on the way through. It is
-			// asked of a manager because a manager publishing somebody's
-			// backlog would otherwise be paying themselves.
+			// Whoever creates the session, unless somebody changes it in the
+			// Taught by box beside Who can see this. Drawn there by
+			// box_taught_by(), not in the session record.
 			'delivered_by'   => array(
 				'type'  => 'staff',
 				'label' => 'Taught by',
-				'help'  => 'Required to publish. Who gets paid for this session.',
+				'help'  => 'Whoever created the session, unless changed here. Required to publish: this is who gets paid for it.',
 			),
 			'notes'          => array( 'type' => 'rich',   'label' => 'Session notes' ),
 			'homework'       => array( 'type' => 'rich',   'label' => 'Homework' ),
@@ -1912,16 +1909,37 @@ class BFTD_MetaBoxes {
 		$have = (int) BFTD_Fields::get( $post_id, 'session', 'delivered_by' );
 		if ( $have ) return;
 
+		// Whoever created the session taught it, unless the Taught by box
+		// says otherwise. Failing that, whoever is saving it.
+		$author = (int) get_post_field( 'post_author', $post_id );
+		if ( $author && BFTD_Roles::is_staff( $author ) ) {
+			BFTD_Fields::set( $post_id, 'session', 'delivered_by', (string) $author );
+			return;
+		}
 		$me = get_current_user_id();
-		if ( ! $me ) return;
+		if ( $me && BFTD_Roles::is_staff( $me ) ) {
+			BFTD_Fields::set( $post_id, 'session', 'delivered_by', (string) $me );
+		}
+	}
 
-		// Somebody who can approve pay is not claiming it by typing. The
-		// separation is the point: the person who decides what is paid does
-		// not also get to be the default answer to who is owed it.
-		if ( BFTD_Pay::can_approve( $me ) ) return;
-		if ( ! BFTD_Roles::is_staff( $me ) ) return;
-
-		BFTD_Fields::set( $post_id, 'session', 'delivered_by', (string) $me );
+	/**
+	 * The Taught by box, beside Who can see this.
+	 *
+	 * The field was defined and required to publish, but never drawn, so a
+	 * session nobody had claimed could not be fixed from its own screen. A
+	 * new session shows its creator chosen, which is what saving will store.
+	 */
+	public static function box_taught_by( $post ) {
+		$fields = self::session_fields( $post->ID );
+		if ( ! isset( $fields['delivered_by'] ) ) return;
+		$value = (int) BFTD_Fields::get( $post->ID, 'session', 'delivered_by' );
+		if ( ! $value ) {
+			$creator = 'auto-draft' === $post->post_status ? get_current_user_id() : (int) $post->post_author;
+			if ( $creator && BFTD_Roles::is_staff( $creator ) ) $value = $creator;
+		}
+		echo '<div class="bftd-box">';
+		BFTD_Fields::render_field( $post->ID, 'session', 'delivered_by', $fields['delivered_by'], $value ? (string) $value : '' );
+		echo '</div>';
 	}
 
 	/**

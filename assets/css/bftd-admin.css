@@ -387,11 +387,18 @@ body.wp-admin,#wpbody-content{font-family:var(--bftd-b)}
 #wpadminbar #adminbarsearch:before,#wpadminbar .ab-icon:before,#wpadminbar .ab-item:before{color:rgba(255,255,255,.66)}
 
 /* buttons */
-.wp-core-ui .button-primary{background:var(--bftd-sage);border-color:var(--bftd-sage);color:#22260B;
+/* Primary buttons (Update, Publish, Save): white on the deep green, about
+   6:1, readable at a glance. The lighter sage they used carried dark text. */
+.wp-core-ui .button-primary{background:var(--bftd-sage-deep);border-color:var(--bftd-sage-deep);color:#fff;
   text-shadow:none;box-shadow:none;border-radius:3px;font-weight:600}
-.wp-core-ui .button-primary:hover,.wp-core-ui .button-primary:focus{background:var(--bftd-sage-deep);border-color:var(--bftd-sage-deep);color:#fff;box-shadow:none}
+.wp-core-ui .button-primary:hover,.wp-core-ui .button-primary:focus{background:#47561F;border-color:#47561F;color:#fff;box-shadow:none}
 .wp-core-ui .button-primary:disabled,.wp-core-ui .button-primary.disabled{background:#D6D8BC!important;border-color:#D6D8BC!important;color:#6d6d6d!important}
 .wp-core-ui .button,.wp-core-ui .button-secondary{border-radius:3px;border-color:var(--bftd-line);color:var(--bftd-purple-deep)}
+/* The rule above gives every button purple text, and a primary button is also
+   a .button, so without this its text came out purple on green. */
+.wp-core-ui .button.button-primary,.wp-core-ui .button.button-primary:hover,.wp-core-ui .button.button-primary:focus{color:#fff}
+.wp-core-ui .button.button-primary{border-color:var(--bftd-sage-deep)}
+.wp-core-ui .button.button-primary:hover,.wp-core-ui .button.button-primary:focus{border-color:#47561F}
 .wp-core-ui .button:hover{border-color:var(--bftd-purple-mid);color:var(--bftd-purple-deep)}
 .wp-core-ui .button-link{color:var(--bftd-purple-deep)}
 a{color:var(--bftd-purple-deep)}
@@ -445,9 +452,9 @@ input[type=search]:focus,input[type=date]:focus,input[type=time]:focus,select:fo
 /* Core puts .wp-core-ui on <body>, but a handful of screens render buttons
    outside that scope. Repeating the button rules unscoped keeps the brand
    consistent rather than leaving a stray blue button on one screen. */
-.button-primary{background:var(--bftd-sage);border-color:var(--bftd-sage);color:#22260B;
+.button-primary{background:var(--bftd-sage-deep);border-color:var(--bftd-sage-deep);color:#fff;
   text-shadow:none;box-shadow:none;border-radius:3px;font-weight:600}
-.button-primary:hover,.button-primary:focus{background:var(--bftd-sage-deep);border-color:var(--bftd-sage-deep);color:#fff}
+.button-primary:hover,.button-primary:focus{background:#47561F;border-color:#47561F;color:#fff}
 .button,.button-secondary{border-radius:3px}
 .bftd-item-fields textarea,.bftd-item-fields input{font-family:var(--bftd-b);font-size:14px}
 .bftd-rows-table textarea,.bftd-rows-table input{font-family:var(--bftd-b)}
@@ -1336,3 +1343,8 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
 .tablenav .search-box.is-inline #post-search-input{width:240px;margin:0}
 .tablenav .search-box.is-inline .bftd-libsug{left:0;right:auto}
 @media (max-width:782px){.tablenav .search-box.is-inline{display:flex;margin:8px 0 0;width:100%}.tablenav .search-box.is-inline #post-search-input{flex:1;width:auto}}
+
+/* Sessions still in draft, on the Students screen and the student overview. */
+.bftd-stu-drafts{display:block;margin-top:6px;font-size:12px;font-weight:600;color:#8a4b08}
+.bftd-hub-drafts{margin:6px 0 0;font-weight:600;color:#8a4b08}
+.bftd-hub-drafts a{color:inherit}

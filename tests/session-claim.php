@@ -80,10 +80,11 @@ eval('class MB { '
 $fail = 0;
 function check($ok, $msg) { global $fail; echo ($ok ? "  ok   " : "FAIL  ") . $msg . "\n"; if (!$ok) $fail++; }
 
-function a_session($id, $status = 'publish') {
-  $GLOBALS['POSTS'][$id] = (object) array('ID' => $id, 'post_type' => 'bftd_session', 'post_status' => $status);
+function a_session($id, $status = 'publish', $author = 0) {
+  $GLOBALS['POSTS'][$id] = (object) array('ID' => $id, 'post_type' => 'bftd_session', 'post_status' => $status, 'post_author' => $author);
   $GLOBALS['SM'][$id] = array();
 }
+function get_post_field($f, $id) { $p = $GLOBALS['POSTS'][(int) $id] ?? null; return $p ? ($p->$f ?? '') : ''; }
 function taught_by($id) { return (string) ($GLOBALS['SM'][$id]['delivered_by'] ?? ''); }
 
 /* Laurel is a tutor. The boss can approve pay. */
@@ -93,7 +94,7 @@ $GLOBALS['CAPS'][3] = array();   // somebody with no business here at all
 
 /* ---- a tutor writing up their own ---- */
 $GLOBALS['ME'] = 5;
-a_session(40);
+a_session(40, 'publish', 5);
 MB::claim_session(40);
 check('5' === taught_by(40), 'a tutor publishing a session is the tutor who taught it');
 check(false === MB::hold_unclaimed(40, get_post(40)), 'so nothing is held back');
@@ -105,19 +106,31 @@ BFTD_Fields::set(41, 'session', 'delivered_by', '8');
 MB::claim_session(41);
 check('8' === taught_by(41), 'a name already on the record is left alone, because covering is real');
 
-/* ---- an approver publishing somebody else's ---- */
+/* ---- whoever creates the session taught it ----
+ * Karl's rule. A senior manager or administrator who starts a session is its
+ * tutor by default, the same as anybody else, and the Taught by box beside
+ * Who can see this changes it. */
 $GLOBALS['ME'] = 9;
-a_session(42);
+a_session(42, 'publish', 9);
 MB::claim_session(42);
-check('' === taught_by(42), 'somebody who can approve pay is never the default answer to who is owed it');
-check(true === MB::hold_unclaimed(42, get_post(42)), 'so a session with nobody on it is held');
-check('draft' === get_post(42)->post_status, 'as a draft, which keeps every word the tutor wrote');
-check(false !== strpos((string) get_transient('bftd_held_9'), 'unclaimed'), 'and says why');
+check('9' === taught_by(42), 'a senior manager who creates a session taught it');
+check(false === MB::hold_unclaimed(42, get_post(42)), 'so it publishes');
 
-/* The same manager, having named the tutor, publishes it. */
-BFTD_Fields::set(42, 'session', 'delivered_by', '5');
-$GLOBALS['POSTS'][42]->post_status = 'publish';
-check(false === MB::hold_unclaimed(42, get_post(42)), 'named, it publishes');
+$GLOBALS['ME'] = 9;
+a_session(46, 'publish', 5);
+MB::claim_session(46);
+check('5' === taught_by(46), 'the creator, not whoever presses Publish, when somebody else publishes it');
+
+/* With nobody on it at all it is still held, and says why. */
+$GLOBALS['ME'] = 3;
+a_session(47, 'publish', 3);
+MB::claim_session(47);
+check(true === MB::hold_unclaimed(47, get_post(47)), 'a session with nobody to pay is held');
+check('draft' === get_post(47)->post_status, 'as a draft, which keeps every word the tutor wrote');
+check(false !== strpos((string) get_transient('bftd_held_3'), 'unclaimed'), 'and says why');
+BFTD_Fields::set(47, 'session', 'delivered_by', '5');
+$GLOBALS['POSTS'][47]->post_status = 'publish';
+check(false === MB::hold_unclaimed(47, get_post(47)), 'named in the Taught by box, it publishes');
 
 /* ---- a draft is nobody's problem yet ---- */
 a_session(43, 'draft');
@@ -135,5 +148,6 @@ a_session(45);
 MB::claim_session(45);
 check('' === taught_by(45), 'and neither does nobody');
 check(true === MB::hold_unclaimed(45, get_post(45)), 'an unattributable session does not go out');
+
 
 exit($fail ? 1 : 0);

@@ -300,6 +300,17 @@ class BFTD_Admin {
 					<div>
 						<h3>Sessions</h3>
 						<p class="description">One record per session. These build the session stream, the activity map and the texts read.</p>
+						<?php
+						// Unpublished sessions, said plainly, because a draft
+						// reaches no family and pays no tutor.
+						$rec    = class_exists( 'BFTD_Sessions' ) ? BFTD_Sessions::records( array( $student_id ) ) : array();
+						$drafts = isset( $rec[ $student_id ] ) ? (int) $rec[ $student_id ]['draft'] : 0;
+						if ( $drafts ) :
+							?>
+							<p class="bftd-hub-drafts"><a href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . BFTD_CPT::SESSION . '&post_status=draft&bftd_student=' . (int) $student_id ) ); ?>"><?php
+								echo esc_html( 1 === $drafts ? '1 session is still a draft' : $drafts . ' sessions are still drafts' );
+							?></a>, not yet on the progress report.</p>
+						<?php endif; ?>
 					</div>
 					<div>
 						<a class="button" href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . BFTD_CPT::SESSION . '&bftd_student=' . (int) $student_id ) ); ?>">All sessions</a>

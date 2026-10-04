@@ -59,5 +59,18 @@ foreach(array_keys($actors) as $a){
   printf("%-15s",$got?'yes':'NO');
 }
 echo "\n\nExpected: everyone but the student's own tutor, who is not on this report.\n";
+
+/* A session is different: it belongs to the student's tutors as well, whoever
+   started it. A session a manager drafted for a tutor's own student used to
+   refuse that tutor outright, so they could not open it, let alone publish. */
+mkpost(102,'bftd_session',3,array(3),100);              // the manager started it
+$sexpect=array(1=>true,2=>true,3=>true,4=>false,5=>false,6=>true);
+printf("%-30s",'Can open the session');
+foreach(array_keys($actors) as $a){
+  $got=BFTD_Access::can_staff_view(102,$a);
+  if($got!==$sexpect[$a])$fail++;
+  printf("%-15s",$got?'yes':'NO');
+}
+echo "\nExpected: managers, and the student's own tutor; not tutors of other students.\n";
 echo $fail?"FAIL: $fail mismatch(es)\n":"PASS\n";
 exit($fail?1:0);
