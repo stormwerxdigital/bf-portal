@@ -91,8 +91,9 @@ s = await state();
 check(s.shown === 10, 'and folds them away again, got ' + s.shown);
 check(s.expanded === 'false', 'announcing that too');
 
-/* The two states are told apart by more than colour: a filled mark, and words
-   that say which is which. */
+/* The two states are told apart by the bullet: filled for reached, empty for
+   ahead. Nothing is written to the right of the name: Karl removed that
+   column. */
 await p.mouse.move(0, 0);
 await p.waitForTimeout(100);
 const told = await p.evaluate(() => {
@@ -102,13 +103,11 @@ const told = await p.evaluate(() => {
   return {
     onMark: cs(on.querySelector('.skl-mark')).backgroundColor,
     ahMark: cs(ah.querySelector('.skl-mark')).backgroundColor,
-    ahWords: ah.querySelector('.skl-m').textContent.trim(),
-    onWords: on.querySelector('.skl-m').textContent.trim(),
+    words: document.querySelectorAll('.skl-r .skl-m, .skl-r svg').length,
   };
 });
 check(told.onMark !== told.ahMark, 'the mark on a reached row is filled differently');
-check(told.ahWords === 'Not yet introduced', 'and the row says so in words, got ' + JSON.stringify(told.ahWords));
-check(/^Session \d/.test(told.onWords), 'while a reached one says when, got ' + JSON.stringify(told.onWords));
+check(told.words === 0, 'and no words or ticks to the right of a name, got ' + told.words);
 
 check(errors.length === 0, 'and nothing threw: ' + JSON.stringify(errors));
 

@@ -100,16 +100,16 @@ echo "\nHistory survives the move:\n";
 /* Nothing is secure yet at this point: the only two done skills are both on
    this report's own session, so they are listed with the session that reached
    them rather than as history. */
-check(false === strpos($out, 'Already secure'),
-  'a skill reached on THIS report is credited to its session, not to history');
+check(false === strpos($out, 'Already secure') && false === strpos($out, 'class="skl-m"'),
+  'no words to the right of a skill: Karl removed that column');
 
 /* Now one that was finished before the move, with no session here to show. */
 $GLOBALS['DONE'] = array(11=>true, 12=>true, 13=>true);
 $out = BFTD_Charts::coverage(1);
 check(false !== strpos($out, '3. Forming letters'),
   'a Track 1 skill completed before the move is still listed as done');
-check(false !== strpos($out, 'Already secure'),
-  'and shown as history, because no session on this report reached it');
+check(1 === preg_match('/class="skl-r is-on[^"]*">\s*(?:<\?php[^>]*>\s*)?<span class="skl-mark is-done"[^>]*><\/span>\s*<span class="screen-reader-text">Done\. <\/span>\s*<span class="skl-n">3\. Forming letters/', $out),
+  'and drawn as done, a filled bullet');
 check(false === strpos($out, 'class="skl-r is-ahead">' . "\n" . '3. Forming letters'),
   'and not as outstanding');
 
@@ -131,7 +131,7 @@ check(1 === substr_count($out, 'class="skl-r is-ahead'),
 check(false !== strpos($out, '2. Spelling a plural'), 'and it is the right one');
 check(false !== strpos($out, 'Splitting a syllable'),
   'the finished one still appears, as something already done');
-check(false !== strpos($out, 'Already secure'), 'labelled as history rather than as a session on this report');
+check(1 === preg_match('/<span class="skl-mark is-done"[^>]*><\/span>\s*<span class="screen-reader-text">Done\. <\/span>\s*<span class="skl-n">[^<]*Splitting a syllable/', $out), 'drawn as done, a filled bullet');
 
 /* ---- nobody placed on a track ---- */
 echo "\nNobody placed on a track yet:\n";

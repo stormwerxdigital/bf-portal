@@ -824,31 +824,15 @@ class BFTD_Charts {
 
 		$out = array_merge( $out, $behind, $ahead );
 
-		$done = count( $rows ) + count( $behind );
-		$back = 0;
-		// A history row has no sessions on this report, so it has no repeat
-		// count either. Asked for with a default rather than assumed: the rows
-		// in this list no longer all come from the same place.
-		foreach ( $out as $c ) { if ( ! empty( $c['reached'] ) && ( $c['times'] ?? 0 ) > 1 ) $back++; }
-
 		$total  = count( $out );
 		$folded = max( 0, $total - self::SKILL_ROWS );
 
 		ob_start();
 		?>
-		<p class="skl-lede">
-			<?php
-			// The headline, in the words a parent would use. Said before the
-			// list rather than after it, because it is the answer and the list
-			// is the working.
-			echo esc_html( sprintf(
-				'%d of %d skill%s reached so far%s.',
-				$done, $total, 1 === $total ? '' : 's',
-				$back ? sprintf( ', and %d %s come back in a later session', $back, 1 === $back ? 'has' : 'have' ) : ''
-			) );
-			?>
-		</p>
-
+		<?php
+		// No count line above the list: Karl removed it. The section shows
+		// the skills and nothing else.
+		?>
 		<?php
 		/*
 		 * The other track, said in one line rather than listed.
@@ -894,54 +878,21 @@ class BFTD_Charts {
 				?>">
 					<?php
 					/*
-					 * A tick for something done, a plain mark for something
-					 * still ahead. Drawn rather than written so it reads at a
-					 * glance down a long list, and labelled for a screen reader
-					 * because a shape is not a word.
+					 * A filled bullet for something done, an empty one for
+					 * something still ahead, labelled for a screen reader
+					 * because a shape is not a word. A bullet only: no tick
+					 * beside or over it. Ticks appear in a report only where
+					 * Karl has asked for them.
 					 */
 					?>
 					<?php if ( ! empty( $c['reached'] ) ) : ?>
-						<span class="skl-mark is-done" aria-hidden="true">
-							<svg viewBox="0 0 16 16" width="13" height="13" focusable="false"><path d="M2.5 8.5l3.5 3.5 7.5-8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-						</span>
+						<span class="skl-mark is-done" aria-hidden="true"></span>
 						<span class="screen-reader-text">Done. </span>
 					<?php else : ?>
 						<span class="skl-mark" aria-hidden="true"></span>
 					<?php endif; ?>
 					<span class="skl-n"><?php echo esc_html( $c['name'] ); ?></span>
-					<?php if ( empty( $c['reached'] ) ) : ?>
-						<span class="skl-m">Not yet introduced</span>
-					<?php elseif ( ! empty( $c['earlier'] ) ) : ?>
-						<span class="skl-m">Already secure</span>
-					<?php else : ?>
-						<span class="skl-m"><?php
-							echo esc_html( 'Session ' . ( $c['first'] + 1 )
-								. ( '' !== $c['when'] ? ' · ' . $c['when'] : '' ) );
-						?></span>
-						<?php
-						/*
-						 * One pip per session, filled where this skill was
-						 * worked on: the row of the grid, drawn small and
-						 * without the grid around it, so the spacing is
-						 * visible on a phone. Left off on a report with one
-						 * session, because a single pip is a dot rather than
-						 * a pattern.
-						 */
-						?>
-						<?php if ( $n > 1 ) : ?>
-							<span class="skl-p" aria-hidden="true"><?php
-								for ( $k = 0; $k < $n; $k++ ) {
-									$mark = isset( $c['marks'][ $k ] ) ? $c['marks'][ $k ] : '';
-									echo '<i class="' . esc_attr( $mark ? 'p ' . $mark : 'p' ) . '"></i>';
-								}
-							?></span>
-							<span class="skl-t"><?php
-								echo esc_html( 1 === $c['times']
-									? 'once'
-									: (int) $c['times'] . ' sessions' );
-							?></span>
-						<?php endif; ?>
-					<?php endif; ?>
+					<?php // Nothing to the right of the name: Karl removed that column. ?>
 				</li>
 			<?php endforeach; ?>
 		</ul>

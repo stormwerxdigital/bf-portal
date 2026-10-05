@@ -702,7 +702,6 @@
  *
  * Every row ships visible and the script folds the tail away, so a printed
  * report is the whole library rather than ten rows and a dead button. */
-.bf-report .skl-lede{font-size:13.5px; color:var(--ink); margin:0 0 13px}
 .bf-report .skl{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px;
   border:1px solid var(--line); border-radius:7px; overflow:hidden; background:var(--line)}
 .bf-report .skl-r{display:flex; align-items:center; gap:11px; flex-wrap:wrap;
@@ -713,13 +712,6 @@
 .bf-report .skl-r.is-on .skl-mark{border-color:var(--bf-purple); background:var(--bf-purple)}
 .bf-report .skl-n{font-family:var(--font-d); font-weight:700; font-size:13.5px; color:var(--ink); line-height:1.35}
 .bf-report .skl-r.is-ahead .skl-n{font-weight:600; color:var(--muted)}
-.bf-report .skl-m{font-family:var(--font-m); font-size:11px; color:var(--muted); margin-left:auto; white-space:nowrap}
-.bf-report .skl-r.is-ahead .skl-m{font-family:var(--font-b); font-style:italic}
-.bf-report .skl-p{display:flex; gap:3px; flex-wrap:wrap; flex:0 0 auto}
-.bf-report .skl-p .p{width:7px; height:7px; border-radius:2px; background:var(--line)}
-.bf-report .skl-p .p.new{background:var(--bf-clay)}
-.bf-report .skl-p .p.again{background:var(--bf-purple-pale)}
-.bf-report .skl-t{font-size:11.5px; color:var(--muted); flex:0 0 auto; min-width:64px}
 
 /* The control is only drawn once the script can make it do something. */
 .bf-report .skl-all{display:none; margin:12px 0 0; cursor:pointer;
@@ -1536,7 +1528,6 @@
   .bf-report .miss-tag,
   .bf-report .miss-n,
   .bf-report .miss-meta,
-  .bf-report .skl-m,
   .bf-report .bk-lv,
   .bf-report .bk-d,
   .bf-report .block-h,
@@ -1551,7 +1542,6 @@
   .bf-report .rung.base .tag,
   .bf-report .bank,
   .bf-report .scope-chip,
-  .bf-report .skl-t,
   .bf-report thead th,
   .bf-report td{font-size:12px}
 

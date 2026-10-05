@@ -232,14 +232,17 @@ $grid = BFTD_Charts::coverage(1);
    the report to ask, and it was the one thing the section did not say: the
    only answer on the page was a grid of coloured squares to be decoded. */
 check($grid !== '', 'sessions that reached a skill draw something');
-check(strpos($grid, '3 of 3 skills reached so far') !== false, 'the skills are counted in words');
-check(strpos($grid, '1 has come back in a later session') !== false,
-  'and the spiral is stated, not only drawn');
+/* No count line above the list, and nothing on the right of a row but where
+   the skill was first reached: Karl removed the count, the pips and the
+   "N sessions" column. The section shows the skills. */
+check(strpos($grid, 'reached so far') === false && strpos($grid, 'skl-lede') === false, 'no count line above the list');
+check(strpos($grid, 'come back in a later session') === false, 'nor a count of skills that came back');
+check(strpos($grid, 'skl-p') === false && strpos($grid, 'class="p') === false, 'no pips on a row');
+check(strpos($grid, 'skl-t') === false && strpos($grid, '>3 sessions<') === false && strpos($grid, '>once<') === false, 'no count of sessions on a row');
 foreach (array('Mapping sounds', 'Forming letters', 'Reading a pattern') as $nm) {
   check(substr_count($grid, '<span class="skl-n">' . $nm . '</span>') === 1, "$nm is named once, on its own row");
 }
-check(strpos($grid, 'Session 1 · 7 Jul 2026') !== false, 'each row says where the skill was first reached');
-check(strpos($grid, '>3 sessions<') !== false, 'and how often it has come back');
+check(strpos($grid, 'class="skl-m"') === false && strpos($grid, 'Session 1 · 7 Jul 2026') === false, 'and nothing to the right of a skill\'s name: Karl removed that column');
 
 /* ---- what is still ahead, which is now a track and not the library ----
  *
@@ -263,8 +266,8 @@ $GLOBALS['LIB'] = array(
 /* With no student, and so no track, nothing is claimed about what is
    outstanding. The report says what was reached and stops, which is true. */
 $whole = BFTD_Charts::coverage(1);
-check(strpos($whole, '3 of 3 skills reached so far') !== false,
-  'with nobody placed on a track, only what was reached is counted');
+check(substr_count($whole, 'class="skl-r is-on') === 3,
+  'with nobody placed on a track, only what was reached is listed');
 check(substr_count($whole, 'class="skl-r is-ahead') === 0,
   'and nothing is listed as outstanding, because there is no sequence to count against');
 check(strpos($whole, 'skl-next') === false, 'nor is a next track promised');
@@ -282,14 +285,14 @@ unset($GLOBALS['LIB']['Forming letters']);
 $gone = BFTD_Charts::coverage(1);
 check(substr_count($gone, 'class="skl-r is-on') === 3, 'a retired skill a child reached is still theirs');
 
-/* And a tick rather than a bullet for anything done. */
-check(substr_count($whole, 'skl-mark is-done') === 3, 'each reached skill is marked with a tick');
+/* A bullet for anything done, and no tick with it: ticks appear in a report
+   only where Karl asked for them. */
+check(substr_count($whole, '<span class="skl-mark is-done" aria-hidden="true"></span>') === 3, 'each reached skill has a plain filled bullet');
+check(strpos($whole, '<svg') === false, 'and no tick drawn on or beside it');
 check(substr_count($whole, '<span class="skl-mark" aria-hidden="true">') === 0,
-  'and nothing still ahead here, so no plain marks');
+  'and nothing still ahead here, so no empty bullets');
 
 $GLOBALS['LIB'] = array();
-check(substr_count($grid, 'class="p new"') === 3, 'one first-reached pip per skill');
-check(substr_count($grid, 'class="p again"') === 2, 'and one repeat pip per repeat');
 
 /* The grid is the spiral, and a spiral needs room. Three sessions is three
    columns of squares: all of the furniture of a chart and none of the picture,
@@ -300,7 +303,7 @@ $GLOBALS['GRID']['lessons'][] = array('id'=>805,'label'=>'16 Jul 2026','skills'=
 $GLOBALS['GRID']['rows']['Mapping sounds'][3] = 'again';
 $grid4 = BFTD_Charts::coverage(1);
 check(strpos($grid4, 'covtab') !== false, 'a fourth session brings the grid out');
-check(strpos($grid4, '3 skills reached so far') !== false, 'with the list still above it');
+check(substr_count($grid4, '<span class="skl-n">') === 3, 'with the list still above it');
 check(substr_count($grid4, 'class="cell new"') === 4, 'three skills first reached, plus the key');
 check(substr_count($grid4, '<th title=') === 4, 'one column per session');
 check(strpos($grid4, 'First reached in session 1') !== false, 'the first appearance of a skill is where it was reached');
@@ -309,15 +312,14 @@ check(strpos($grid4, '>Skill</th>') !== false, 'the rows are skills, not activit
 array_pop($GLOBALS['GRID']['lessons']);
 unset($GLOBALS['GRID']['rows']['Mapping sounds'][3]);
 
-/* One session: a row of one pip is a dot, not a pattern. */
+/* One session. */
 $GLOBALS['GRID'] = array(
   'lessons' => array(array('id'=>801,'label'=>'7 Jul 2026','skills'=>array('Mapping sounds'=>$skill('Mapping sounds')))),
   'rows'    => array('Mapping sounds' => array(0=>'new')),
   'names'   => array('Mapping sounds'=>'Mapping sounds'),
 );
 $one = BFTD_Charts::coverage(1);
-check(strpos($one, '1 skill reached so far.') !== false, 'one skill is one skill, not 1 skills');
-check(strpos($one, 'class="p') === false, 'and no pips, because one pip is a dot rather than a pattern');
+check(substr_count($one, '<span class="skl-n">') === 1, 'one skill, one row');
 check(strpos($one, 'covtab') === false, 'nor a grid');
 
 /* ---- schedule and attendance ---- */

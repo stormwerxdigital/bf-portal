@@ -199,22 +199,11 @@ check(false === strpos($html, 'these cards are taken from'), 'rather than descri
 
 /* ---- the stat tiles ---- */
 
-/* Skills have a length and activities do not. There is a fixed list of things
-   this practice claims to teach, so "5 of 20" places a child on it; the
-   activity library is the WAYS of teaching them, and no child is meant to go
-   through all of it. A tile reading "2 of 280" told a family their child was
-   under one per cent of the way through a programme nobody completes. */
-$of = new ReflectionMethod('BFTD_Report_View', 'of'); $of->setAccessible(true);
-check('5<span style="font-size:15px;color:var(--muted)">/20</span>' === $of->invoke(null, 5, 20),
-  'a count with a length behind it shows both');
-check('20<span style="font-size:15px;color:var(--muted)">/20</span>' === $of->invoke(null, 20, 20),
-  'and reaching all of them still says so');
-
-/* The total is only worth printing when there is one. */
-check('5' === $of->invoke(null, 5, 0),
-  'a practice that has not filled its library in is not told its child reached 5 of 0');
-check('5' === $of->invoke(null, 5, 3),
-  'nor 5 of 3, which is a library somebody has been pruning');
+/* The skills tile is the number reached, with no "/N" out of the library:
+   Karl removed the denominator. */
+$rv = file_get_contents(BFTD_PATH . 'includes/class-bftd-report-view.php');
+check(false === method_exists('BFTD_Report_View', 'of') && false === strpos($rv, 'color:var(--muted)">/'), 'no count out of a total is drawn on a tile');
+check(1 === preg_match("/array\\( \\(int\\) \\\$skills, 'skills we/", $rv), 'the skills tile is the plain number reached');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

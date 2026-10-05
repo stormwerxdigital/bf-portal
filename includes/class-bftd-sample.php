@@ -72,7 +72,7 @@ class BFTD_Sample {
 				// nobody goes through all of it.
 				'kpis'    => array(
 					array( 16, 'sessions recorded' ),
-					array( '14<span style="font-size:15px;color:var(--muted)">/' . count( self::sample_skills_library() ) . '</span>', 'skills we\'re building' ),
+					array( 14, 'skills we\'re building' ),
 					array( 6, 'texts read, up to Grade 4' ),
 					array( 18, 'activities completed' ),
 				),

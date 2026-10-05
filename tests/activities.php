@@ -369,8 +369,8 @@ check(false === strpos($rv, 'bftd_programme_activities'),
   'nothing invents a programme length any more');
 check(0 === preg_match('/self::of\( \$done/', $rv),
   'and the activity tile is a plain count');
-check(1 === preg_match('/self::of\( \$skills, \$skills_total \)/', $rv),
-  'while the skills tile is a count out of the library, which does have a length');
+check(false === strpos($rv, 'skills_total'),
+  'and so is the skills tile: Karl removed the "/N" out of the library');
 check(false !== strpos($rv, "skills we\\'re building"), 'and is labelled as what it is');
 
 /* ================================================================== */

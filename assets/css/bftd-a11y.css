@@ -536,14 +536,9 @@ body.bftd-a11y .bf-report{line-height:1.6}
 body.bftd-a11y .bf-report :is(h1, h2, h3, h4){font-weight:700}
 body.bftd-a11y .bf-report :is(.card, .kpit, .sec, .section){background:#FFF}
 
-/* The skills list's row of pips and the skills grid. Normally "practised
-   again" is a pale lilac next to a pale grey, which is the first difference
-   to vanish. Here: not yet is an empty box, practised again is solid purple,
-   first reached is solid clay with its letter. */
-body.bftd-a11y .bf-report .skl-p{gap:4px}
-body.bftd-a11y .bf-report .skl-p .p{width:11px;height:11px;background:#FFF;border:1.5px solid #6E6E6E}
-body.bftd-a11y .bf-report .skl-p .p.again{background:#4A3157;border-color:#4A3157}
-body.bftd-a11y .bf-report .skl-p .p.new{background:#8A3A12;border-color:#8A3A12}
+/* The skills grid. Normally "practised again" is a pale lilac, the first
+   difference to vanish. Here practised again is solid purple and first
+   reached is solid clay with its letter. */
 body.bftd-a11y .bf-report .cell{width:28px;height:28px;background:#6E5680;border-radius:3px}
 body.bftd-a11y .bf-report .cell.new{background:#8A3A12;color:#FFF;font-size:16px !important;line-height:28px !important;font-weight:700}
 

@@ -835,38 +835,15 @@ class BFTD_Report_View {
 			if ( ! empty( $t['level'] ) ) $top = BFTD_Charts::text_level_label( $t['level'] );
 		}
 
-		/*
-		 * Skills are a set length; activities are not.
-		 *
-		 * There is a fixed list of things this practice claims to teach, so a
-		 * child is somewhere along it and "5 of 20" is the useful shape. The
-		 * activity library is the ways of teaching them, and no child is meant
-		 * to go through all of it — a tile reading "2 of 280" told a family
-		 * their child was less than one per cent of the way through a
-		 * programme nobody completes. So that one is a plain count of what has
-		 * been covered.
-		 */
-		$skills_total = BFTD_Skills::total();
+		// The skills tile is the number reached and nothing else: no "/N"
+		// out of the library. Karl removed the denominator.
 
 		$tiles = array();
 		if ( $lessons ) $tiles[] = array( $lessons, 'sessions recorded' );
-		if ( $skills )  $tiles[] = array( self::of( $skills, $skills_total ), 'skills we\'re building' );
+		if ( $skills )  $tiles[] = array( (int) $skills, 'skills we\'re building' );
 		if ( $texts )   $tiles[] = array( count( $texts ), $top ? 'texts read, up to ' . $top : 'texts read' );
 		if ( $done )    $tiles[] = array( $done, 1 === $done ? 'activity completed' : 'activities completed' );
 		self::kpi_strip( $tiles );
-	}
-
-	/**
-	 * "5" on its own, or "5" with a quiet "/20" after it.
-	 *
-	 * The total is only worth printing when there is one: a practice that has
-	 * not filled its library in yet would otherwise be telling families their
-	 * child had reached five skills out of none.
-	 */
-	private static function of( $done, $total ) {
-		$done = (int) $done;
-		if ( $total <= 0 || $total < $done ) return (string) $done;
-		return $done . '<span style="font-size:15px;color:var(--muted)">/' . (int) $total . '</span>';
 	}
 
 	private static function kpi_strip( $tiles ) {
