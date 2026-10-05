@@ -878,15 +878,14 @@ class BFTD_Charts {
 				?>">
 					<?php
 					/*
-					 * A filled bullet for something done, an empty one for
-					 * something still ahead, labelled for a screen reader
-					 * because a shape is not a word. A bullet only: no tick
-					 * beside or over it. Ticks appear in a report only where
-					 * Karl has asked for them.
+					 * A checkmark for a skill reached, on its own with no
+					 * bullet (Karl asked for this). An empty bullet for one
+					 * still ahead. Labelled for a screen reader because a
+					 * shape is not a word.
 					 */
 					?>
 					<?php if ( ! empty( $c['reached'] ) ) : ?>
-						<span class="skl-mark is-done" aria-hidden="true"></span>
+						<span class="skl-mark is-done" aria-hidden="true"><svg viewBox="0 0 16 16" width="16" height="16" focusable="false"><path d="M2.5 8.5l3.5 3.5 7.5-8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
 						<span class="screen-reader-text">Done. </span>
 					<?php else : ?>
 						<span class="skl-mark" aria-hidden="true"></span>
@@ -899,9 +898,9 @@ class BFTD_Charts {
 
 		<?php if ( $folded ) : ?>
 			<button type="button" class="skl-all" aria-expanded="true"
-				data-more="<?php echo esc_attr( 'Show all ' . $total . ' skills' ); ?>"
+				data-more="Show all skills"
 				data-less="Show fewer"><?php
-				echo esc_html( 'Show all ' . $total . ' skills' );
+				echo esc_html( 'Show all skills' );
 			?></button>
 		<?php endif; ?>
 		<?php

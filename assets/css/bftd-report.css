@@ -709,7 +709,11 @@
 .bf-report .skl-mark{flex:0 0 auto; width:9px; height:9px; border-radius:50%;
   border:1.5px solid var(--line); background:var(--card)}
 .bf-report .skl-r.is-on{background:var(--bf-purple-wash)}
-.bf-report .skl-r.is-on .skl-mark{border-color:var(--bf-purple); background:var(--bf-purple)}
+/* A reached skill is a checkmark alone: no dot behind it, no border round it. */
+.bf-report .skl-mark.is-done{width:16px; height:16px; border:0; border-radius:0; background:none; color:var(--bf-purple); display:inline-flex}
+.bf-report .skl-mark.is-done svg{display:block; width:16px; height:16px}
+/* An empty bullet takes the same width as a checkmark, so names line up. */
+.bf-report .skl-mark:not(.is-done){margin:0 2px}
 .bf-report .skl-n{font-family:var(--font-d); font-weight:700; font-size:13.5px; color:var(--ink); line-height:1.35}
 .bf-report .skl-r.is-ahead .skl-n{font-weight:600; color:var(--muted)}
 

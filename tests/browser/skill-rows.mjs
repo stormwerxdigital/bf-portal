@@ -66,7 +66,7 @@ let s = await state();
 check(s.total === 18, 'every skill in the library has a row, got ' + s.total);
 check(s.shown === 10, 'ten of them show, got ' + s.shown);
 check(s.btnShown, 'and the button appears once it can do something');
-check(/Show all 18 skills/.test(s.label), 'saying how many there are, got ' + JSON.stringify(s.label));
+check(s.label.trim() === 'Show all skills', 'reading "Show all skills", got ' + JSON.stringify(s.label));
 
 /* The two states have to be visibly different, or the list is just a list. */
 check(s.on === 5 && s.ahead === 13, `five being built, thirteen ahead, got ${s.on} and ${s.ahead}`);
@@ -91,9 +91,8 @@ s = await state();
 check(s.shown === 10, 'and folds them away again, got ' + s.shown);
 check(s.expanded === 'false', 'announcing that too');
 
-/* The two states are told apart by the bullet: filled for reached, empty for
-   ahead. Nothing is written to the right of the name: Karl removed that
-   column. */
+/* A reached skill is a checkmark, one still ahead an empty bullet. Nothing
+   is written to the right of the name: Karl removed that column. */
 await p.mouse.move(0, 0);
 await p.waitForTimeout(100);
 const told = await p.evaluate(() => {
@@ -103,11 +102,16 @@ const told = await p.evaluate(() => {
   return {
     onMark: cs(on.querySelector('.skl-mark')).backgroundColor,
     ahMark: cs(ah.querySelector('.skl-mark')).backgroundColor,
-    words: document.querySelectorAll('.skl-r .skl-m, .skl-r svg').length,
+    words: document.querySelectorAll('.skl-r .skl-m').length,
+    onTick: !!on.querySelector('.skl-mark svg'),
+    ahTick: !!ah.querySelector('.skl-mark svg'),
+    onDot: cs(on.querySelector('.skl-mark')).backgroundColor,
   };
 });
 check(told.onMark !== told.ahMark, 'the mark on a reached row is filled differently');
-check(told.words === 0, 'and no words or ticks to the right of a name, got ' + told.words);
+check(told.words === 0, 'and no words to the right of a name, got ' + told.words);
+check(told.onTick && !told.ahTick, 'a reached skill is a checkmark, one ahead is not');
+check(/rgba\(0, 0, 0, 0\)|transparent/.test(told.onDot), 'and the checkmark has no dot behind it, got ' + told.onDot);
 
 check(errors.length === 0, 'and nothing threw: ' + JSON.stringify(errors));
 

@@ -285,10 +285,11 @@ unset($GLOBALS['LIB']['Forming letters']);
 $gone = BFTD_Charts::coverage(1);
 check(substr_count($gone, 'class="skl-r is-on') === 3, 'a retired skill a child reached is still theirs');
 
-/* A bullet for anything done, and no tick with it: ticks appear in a report
-   only where Karl asked for them. */
-check(substr_count($whole, '<span class="skl-mark is-done" aria-hidden="true"></span>') === 3, 'each reached skill has a plain filled bullet');
-check(strpos($whole, '<svg') === false, 'and no tick drawn on or beside it');
+/* A checkmark for a skill reached, on its own: Karl asked for checkmarks
+   here, with no bullet. */
+check(3 === preg_match_all('#<span class="skl-mark is-done" aria-hidden="true"><svg[^>]*><path d="M2\.5 8\.5l3\.5 3\.5 7\.5-8"#', $whole), 'each reached skill is a checkmark');
+$rcss = file_get_contents(BFTD_PATH . 'assets/css/bftd-report.css');
+check(1 === preg_match('/\.skl-mark\.is-done\{[^}]*border:0;[^}]*background:none/', $rcss), 'with no dot or ring behind it');
 check(substr_count($whole, '<span class="skl-mark" aria-hidden="true">') === 0,
   'and nothing still ahead here, so no empty bullets');
 

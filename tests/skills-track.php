@@ -108,8 +108,8 @@ $GLOBALS['DONE'] = array(11=>true, 12=>true, 13=>true);
 $out = BFTD_Charts::coverage(1);
 check(false !== strpos($out, '3. Forming letters'),
   'a Track 1 skill completed before the move is still listed as done');
-check(1 === preg_match('/class="skl-r is-on[^"]*">\s*(?:<\?php[^>]*>\s*)?<span class="skl-mark is-done"[^>]*><\/span>\s*<span class="screen-reader-text">Done\. <\/span>\s*<span class="skl-n">3\. Forming letters/', $out),
-  'and drawn as done, a filled bullet');
+check(1 === preg_match('/class="skl-r is-on[^"]*">\s*(?:<\?php[^>]*>\s*)?<span class="skl-mark is-done"[^>]*><svg.*?<\/svg><\/span>\s*<span class="screen-reader-text">Done\. <\/span>\s*<span class="skl-n">3\. Forming letters/', $out),
+  'and drawn as done, a checkmark');
 check(false === strpos($out, 'class="skl-r is-ahead">' . "\n" . '3. Forming letters'),
   'and not as outstanding');
 
@@ -131,7 +131,7 @@ check(1 === substr_count($out, 'class="skl-r is-ahead'),
 check(false !== strpos($out, '2. Spelling a plural'), 'and it is the right one');
 check(false !== strpos($out, 'Splitting a syllable'),
   'the finished one still appears, as something already done');
-check(1 === preg_match('/<span class="skl-mark is-done"[^>]*><\/span>\s*<span class="screen-reader-text">Done\. <\/span>\s*<span class="skl-n">[^<]*Splitting a syllable/', $out), 'drawn as done, a filled bullet');
+check(1 === preg_match('/<span class="skl-mark is-done"[^>]*><svg.*?<\/svg><\/span>\s*<span class="screen-reader-text">Done\. <\/span>\s*<span class="skl-n">[^<]*Splitting a syllable/', $out), 'drawn as done, a checkmark');
 
 /* ---- nobody placed on a track ---- */
 echo "\nNobody placed on a track yet:\n";
