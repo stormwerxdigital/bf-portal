@@ -4,8 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 /**
  * Panels stay where they were put.
  *
- * On the edit screens for students, diagnostics, sessions, skills and
- * activities, the panels can be opened and closed but not moved. Karl asked
+ * On the edit screens for students, diagnostics, progress reports, sessions,
+ * resources, skills and activities, the panels can be opened and closed but not moved. Karl asked
  * for this: the up and down arrows in each panel's header are gone, dragging a
  * panel by its header does nothing, and any arrangement somebody saved before
  * this is ignored, so everyone sees the panels in the order the plugin lays
@@ -22,7 +22,9 @@ class BFTD_Panels {
 		return array(
 			BFTD_CPT::STUDENT,
 			BFTD_CPT::ASSESSMENT,
+			BFTD_CPT::PROGRESS,
 			BFTD_CPT::SESSION,
+			BFTD_CPT::RESOURCE,
 			BFTD_Skills::POST_TYPE,
 			BFTD_Activities::POST_TYPE,
 		);

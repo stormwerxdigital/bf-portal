@@ -2,8 +2,8 @@
 /*
  * Panels on the edit screens can be opened and closed but not moved.
  *
- * Karl asked for this on students, diagnostics, sessions, skills and
- * activities: no up and down arrows, no dragging, and an order somebody saved
+ * Karl asked for this on students, diagnostics, progress reports, sessions,
+ * resources, skills and activities: no up and down arrows, no dragging, and an order somebody saved
  * before is ignored. Other screens are left alone.
  */
 $FILTERS = array(); $ACTIONS = array();
@@ -19,13 +19,13 @@ $fail = 0;
 function check( $ok, $msg ) { global $fail; if ( $ok ) { echo "  ok  $msg\n"; } else { echo "FAIL  $msg\n"; $fail++; } }
 function scr( $base, $pt ) { return (object) array( 'base' => $base, 'post_type' => $pt, 'id' => $pt ); }
 
-foreach ( array( 'bftd_student', 'bftd_assessment', 'bftd_session', 'bftd_skill', 'bftd_activity' ) as $pt ) {
+foreach ( array( 'bftd_student', 'bftd_assessment', 'bftd_progress', 'bftd_session', 'bftd_resource', 'bftd_skill', 'bftd_activity' ) as $pt ) {
 	$FILTERS = array(); $ACTIONS = array();
 	BFTD_Panels::screen( scr( 'post', $pt ) );
 	check( isset( $FILTERS[ 'get_user_option_meta-box-order_' . $pt ] ) && '__return_false' === $FILTERS[ 'get_user_option_meta-box-order_' . $pt ][0], "$pt: a saved panel order is ignored" );
 	check( ! empty( $ACTIONS['admin_head'] ) && ! empty( $ACTIONS['admin_print_footer_scripts'] ), "$pt: the arrows are hidden and dragging is switched off" );
 }
-foreach ( array( array( 'edit', 'bftd_student' ), array( 'post', 'post' ), array( 'post', 'bftd_resource' ) ) as $c ) {
+foreach ( array( array( 'edit', 'bftd_student' ), array( 'post', 'post' ), array( 'post', 'page' ) ) as $c ) {
 	$FILTERS = array(); $ACTIONS = array();
 	BFTD_Panels::screen( scr( $c[0], $c[1] ) );
 	check( ! $FILTERS && ! $ACTIONS, "{$c[0]} screen for {$c[1]} is left alone" );
