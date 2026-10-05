@@ -102,10 +102,9 @@ $html = $draw(901);
 check(false === strpos($html, '[#901]'), 'a family never reads the session\'s own title');
 check(1 === preg_match('/class="session-title">Session \d/', $html), 'they read which session it is');
 
-check(false !== strpos($html, 'Skills practiced'), 'a session says what it practiced');
-check(false !== strpos($html, 'Mapping sounds to their spellings'), 'and names them');
-check(false !== strpos($html, 'Writing every sound heard'), 'all of them');
-check(false !== strpos($html, 'Unprompted today.'), 'with what the tutor wrote against one');
+/* No "Skills practiced" list on a session: Karl removed it. */
+check(false === strpos($html, 'Skills practiced') && false === strpos($html, 'blk-skills'), 'a session has no Skills practiced list');
+check(false === strpos($html, 'Unprompted today.'), 'nor the notes that went with it');
 
 check(false !== strpos($html, 'What we read'), 'and says what was read');
 
@@ -162,7 +161,6 @@ $GLOBALS['SESS'][902] = array('session_date' => '2026-09-16', 'status' => 'held'
 $GLOBALS['ACTS'][902] = array();
 $GLOBALS['SKILLS'][902] = array();
 $bare = $draw(902);
-check(false === strpos($bare, 'Skills practiced'), 'a session that reached nothing says nothing about skills');
 check(false === strpos($bare, 'What we read'), 'and one that read nothing says nothing about reading');
 check(false !== strpos($bare, 'Quiet one.'), 'while what was written is still there');
 

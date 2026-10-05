@@ -911,80 +911,16 @@ class BFTD_Charts {
 		$grid = BFTD_Derived::skills( $report_id );
 		if ( ! $grid ) return '';
 
-		$lessons = $grid['lessons'];
-		$rows    = $grid['rows'];
-		$names   = $grid['names'];
-		$n       = count( $lessons );
-
 		ob_start();
 
-		/*
-		 * The list first, the grid after — and the grid only once it has
-		 * something to show.
-		 *
-		 * A spiral needs several sessions before it looks like one. On a first
-		 * report the grid was a single column of squares beside a column of
-		 * names: all of the furniture of a chart and none of the picture, on
-		 * the report a family reads most carefully because it is their first.
-		 *
-		 * So what is always here is the plain answer to what a parent is
-		 * actually asking — what has my child learned — and the spiral appears
-		 * underneath it once there are enough sessions for the spacing to be
-		 * visible.
-		 */
+		// The plain list of skills reached is the whole section.
 		// Guarded, because a fixture may render this section without the whole
 		// plugin loaded, and a chart is not the place to insist on it.
 		$student = class_exists( 'BFTD_CPT' ) ? (int) BFTD_CPT::student_id( $report_id ) : 0;
 		echo self::skill_list( $grid, $student );
-		if ( $n < self::SPIRAL_MIN ) return ob_get_clean();
-		?>
-		<div class="howto">
-			<span><b>How to read this:</b> each row is one skill and each column is one session.
-			The orange square is the session it was first reached; every pale square after it is a
-			session it came back in.</span>
-		</div>
-
-		<div class="cov">
-			<div class="cov-scroll">
-				<table class="covtab">
-					<thead>
-						<tr>
-							<th class="cn">Skill</th>
-							<?php foreach ( $lessons as $i => $lesson ) : ?>
-								<th title="<?php echo esc_attr( $lesson['label'] ); ?>"><span><?php echo (int) ( $i + 1 ); ?></span></th>
-							<?php endforeach; ?>
-						</tr>
-					</thead>
-					<tbody>
-						<?php foreach ( $rows as $key => $marks ) : ?>
-							<tr>
-								<th class="cn"><?php echo esc_html( $names[ $key ] ); ?></th>
-								<?php foreach ( $lessons as $i => $lesson ) :
-									$mark = isset( $marks[ $i ] ) ? $marks[ $i ] : '';
-									?>
-									<td>
-										<?php if ( 'new' === $mark ) : ?>
-											<i class="cell new" title="<?php
-												echo esc_attr( 'First reached in session ' . ( $i + 1 ) . ', ' . $lesson['label'] );
-											?>">N</i>
-										<?php elseif ( 'again' === $mark ) : ?>
-											<i class="cell" title="<?php
-												echo esc_attr( 'Practised again in session ' . ( $i + 1 ) . ', ' . $lesson['label'] );
-											?>"></i>
-										<?php endif; ?>
-									</td>
-								<?php endforeach; ?>
-							</tr>
-						<?php endforeach; ?>
-					</tbody>
-				</table>
-			</div>
-			<p class="cov-key">
-				<span><i class="cell new">N</i> first time it was reached</span>
-				<span><i class="cell"></i> practised again</span>
-			</p>
-		</div>
-		<?php
+		// The skill-by-session grid that used to follow the list ("How to read
+		// this", the orange and pale squares and their key) was removed at
+		// Karl's direction. The list is the whole section now.
 		return ob_get_clean();
 	}
 }

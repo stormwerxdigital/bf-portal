@@ -295,21 +295,15 @@ check(substr_count($whole, '<span class="skl-mark" aria-hidden="true">') === 0,
 
 $GLOBALS['LIB'] = array();
 
-/* The grid is the spiral, and a spiral needs room. Three sessions is three
-   columns of squares: all of the furniture of a chart and none of the picture,
-   on the report a family reads most carefully because it is their first. */
-check(strpos($grid, 'covtab') === false, 'three sessions is too few for the grid to say anything');
-
+/* The skill-by-session grid is gone at Karl's direction, however many
+   sessions there are: no "How to read this", no squares, no key. */
 $GLOBALS['GRID']['lessons'][] = array('id'=>805,'label'=>'16 Jul 2026','skills'=>array('Mapping sounds'=>$skill('Mapping sounds')));
 $GLOBALS['GRID']['rows']['Mapping sounds'][3] = 'again';
 $grid4 = BFTD_Charts::coverage(1);
-check(strpos($grid4, 'covtab') !== false, 'a fourth session brings the grid out');
-check(substr_count($grid4, '<span class="skl-n">') === 3, 'with the list still above it');
-check(substr_count($grid4, 'class="cell new"') === 4, 'three skills first reached, plus the key');
-check(substr_count($grid4, '<th title=') === 4, 'one column per session');
-check(strpos($grid4, 'First reached in session 1') !== false, 'the first appearance of a skill is where it was reached');
-check(strpos($grid4, 'Practised again in session 2') !== false, 'a repeat is marked as a repeat');
-check(strpos($grid4, '>Skill</th>') !== false, 'the rows are skills, not activities');
+check(substr_count($grid4, '<span class="skl-n">') === 3, 'four sessions still show the list');
+foreach (array('covtab', 'How to read this', 'class="cell', 'cov-key', 'practised again', 'first time it was reached') as $gone) {
+  check(strpos($grid4, $gone) === false, "and no grid: no $gone");
+}
 array_pop($GLOBALS['GRID']['lessons']);
 unset($GLOBALS['GRID']['rows']['Mapping sounds'][3]);
 

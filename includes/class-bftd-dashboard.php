@@ -930,12 +930,8 @@ class BFTD_Dashboard {
 			if ( BFTD_Fields::has_value( $get( $k ) ) ) $blocks++;
 		}
 
-		// What the session reached and what was read in it. Both were being
-		// counted into the report's own summaries and neither was shown on the
-		// session itself, so a parent reading one session could see the
-		// activity and the tutor's notes but not the skills behind them or the
-		// book in front of the child.
-		$skills = BFTD_Skills::for_session( $session_id );
+		// What was read in the session. (A "Skills practiced" list used to sit
+		// here too; Karl removed it from the session record.)
 		$texts  = array();
 		foreach ( (array) $get( 'texts' ) as $row ) {
 			if ( ! is_array( $row ) ) continue;
@@ -949,7 +945,6 @@ class BFTD_Dashboard {
 				'level' => BFTD_Charts::text_level_label( isset( $row['level'] ) ? $row['level'] : '' ),
 			);
 		}
-		if ( $skills ) $blocks++;
 		if ( $texts )  $blocks++;
 		?>
 		<article class="session" id="session-<?php echo (int) $session_id; ?>" data-n="<?php echo esc_attr( $num ); ?>">
@@ -1013,33 +1008,6 @@ class BFTD_Dashboard {
 					?>
 					<?php echo self::activity_block( $a, $is_new, $about, $note, $shots ); ?>
 				<?php endforeach; ?>
-
-				<?php
-				/*
-				 * The skills this session reached, named.
-				 *
-				 * Most of them come from the activities rather than from
-				 * anything typed here, which is the point: a parent should not
-				 * have to know that "Sound Lines" is where a child learns to
-				 * map sounds to their spellings. Where a tutor wrote something
-				 * about one, that is under it.
-				 */
-				?>
-				<?php if ( $skills ) : ?>
-					<div class="blk blk-skills">
-						<div class="blk-h">Skills practiced</div>
-						<ul class="skill-list">
-							<?php foreach ( $skills as $one ) : ?>
-								<li>
-									<span class="s-n"><?php echo esc_html( $one['name'] ); ?></span>
-									<?php if ( '' !== trim( (string) $one['note'] ) ) : ?>
-										<span class="s-note"><?php echo esc_html( $one['note'] ); ?></span>
-									<?php endif; ?>
-								</li>
-							<?php endforeach; ?>
-						</ul>
-					</div>
-				<?php endif; ?>
 
 				<?php if ( $texts ) : ?>
 					<div class="blk blk-read">
