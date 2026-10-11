@@ -286,7 +286,6 @@ HTML,
 				'assessed_on' => '2026-08-11',
 				'assessed_by' => '',
 				'grade'       => 'Grade 8',
-				'headline'    => 'Kaine can name exactly where reading trips him up, and every one of those things is teachable.',
 				'overview'    => '<p>This diagnostic establishes a baseline of Kaine&#8217;s reading and writing strengths and challenges across six core literacy areas. It is not a formal evaluation. It is designed to guide instructional planning should tutoring move forward.</p>'
 					. '<p>Kaine took part in a comprehensive assessment covering six skill areas. The results give a baseline profile of his current literacy and inform an individual plan using Evidence-Based Literacy Instruction.</p>'
 					. '<p>He told me he learned more in fifty minutes online during the assessment than he had in the past seven years, and he left excited to begin.</p>',
@@ -360,7 +359,6 @@ HTML,
 				'challenges' => array(
 					'reversals' => array( 'value' => 'no' ),
 					'omits'     => array( 'value' => 'yes', 'note' => 'Omitted the n in junk, the t in gift and the l in slap.' ),
-					'blends'    => array( 'value' => 'yes' ),
 					'multi'     => array( 'value' => 'yes', 'note' => 'The pattern behind most of the errors on the list.' ),
 					'inserts'   => array( 'value' => 'yes' ),
 					'order'     => array( 'value' => 'yes', 'note' => 'Wrote payl for play.' ),
@@ -778,7 +776,6 @@ HTML,
 				'kind'        => 'interim',
 				'assessed_on' => '2026-09-01',
 				'grade'       => 'Grade 3',
-				'headline'    => 'Jot has moved a full reading level in two months, and his handwriting is no longer competing for his attention.',
 				'overview'    => '<p>Jot was reassessed on 1 September, eight weeks after his baseline. Every one of the six areas has moved, and two of them have moved a long way: handwriting automaticity from 14 letters a minute to 29, and passage reading from 40 words a minute to 64.</p>'
 					. '<p>His independent reading level is now Grade 2. That is the number families ask about most, and it is the slowest one to move, so a full level in eight weeks is ahead of what I expected when we started.</p>',
 			),

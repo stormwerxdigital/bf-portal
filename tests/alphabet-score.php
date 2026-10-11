@@ -159,12 +159,16 @@ foreach (array('unit','status','meter_pct','baseline','card_note') as $gone) {
   check(!isset($v[$gone]), "the sample carries no $gone either");
 }
 
-/* ---- the overview leads with the sentence that sums it up ---- */
-/* Writing three paragraphs and then being asked for the headline is the wrong
-   way round. The sentence is the thing to decide first. */
+/* ---- no headline finding ---- */
+/* Karl removed the "Headline finding" sentence from the diagnostic: not on the
+   edit screen, not on the report, not in the samples. */
 $ov = array_keys($sections['sec-assessment-overview']['fields']);
-check(array_search('headline', $ov, true) < array_search('overview', $ov, true),
-  'the headline finding comes before the paragraphs');
+check(!in_array('headline', $ov, true), 'the overview has no headline finding field');
+check(in_array('overview', $ov, true), 'and still has its written overview');
+$rv = file_get_contents(BFTD_PATH . 'includes/class-bftd-report-view.php');
+check(false === strpos($rv, 'class="headline"'), 'and the report never draws one');
+$sm = file_get_contents(BFTD_PATH . 'includes/class-bftd-sample.php');
+check(false === strpos($sm, "'headline'"), 'nor do the samples carry one');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

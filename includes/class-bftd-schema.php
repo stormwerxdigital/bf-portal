@@ -34,6 +34,9 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  */
 class BFTD_Schema {
 
+	/** The diagnostic's opening paragraph, as it read before it was editable. */
+	const DIAGNOSTIC_INTRO = 'Six areas of reading and writing, so we can see exactly where the gaps are. The cards below are the summary. Everything under them is the full report, section by section, exactly as {tutor} wrote it.';
+
 	const SCREEN_HOME      = 'home';
 	const SCREEN_PROGRESS  = 'progress';
 	const SCREEN_REPORT    = 'report';
@@ -767,11 +770,15 @@ class BFTD_Schema {
 				'assessed_on'   => array( 'type' => 'date',   'label' => 'Assessment date', 'card' => true ),
 				'assessed_by'   => array( 'type' => 'staff',  'label' => 'Assessed by', 'card' => true ),
 				'grade'         => array( 'type' => 'text',   'label' => 'Grade at assessment', 'card' => true ),
-				// The headline leads the section on the family's page, so it
-				// leads it here too. Writing three paragraphs and then being
-				// asked for the sentence that sums them up is the wrong way
-				// round; the sentence is the thing to decide first.
-				'headline'      => array( 'type' => 'text',   'label' => 'Headline finding', 'help' => 'One sentence. Shown large at the top of the report.' ),
+				// The paragraph under the name at the top of the report. Fixed
+				// wording until Karl asked for the tutor to be able to edit it.
+				// {tutor} becomes the name of whoever assessed.
+				'intro'         => array( 'type' => 'textarea', 'label' => 'Introduction at the top of the report', 'card' => true,
+					'default' => self::DIAGNOSTIC_INTRO,
+					'help'    => 'Shown under the student\'s name. {tutor} is replaced with the name of whoever assessed.' ),
+				// A "Headline finding" sentence used to sit here; Karl removed it
+				// from the diagnostic. Anything already typed into it stays in
+				// the database and is no longer shown or edited.
 				'overview'      => array( 'type' => 'rich',   'label' => 'Overview', 'help' => 'Written for the parent, not for a file. Two or three short paragraphs.' ),
 			),
 		);
@@ -1041,7 +1048,7 @@ class BFTD_Schema {
 				'rows'     => array(
 					'reversals' => 'b/d reversals',
 					'omits'     => 'omits spellings',
-					'blends'    => 'puts blends together',
+					// "puts blends together" removed at Karl's direction.
 					'multi'     => 'trouble with 2,3,4 letter spellings',
 					'inserts'   => 'inserts spellings',
 					'order'     => 'spellings out of order',
@@ -1093,12 +1100,15 @@ class BFTD_Schema {
 		$s['dxsec-1']['fields']    = array(
 			'score'     => array(
 				'type'  => 'number',
-				'label' => 'Letters correct, out of letters written',
+				'label' => 'Letters correct, out of 40',
 				'card'  => true,
 				'pair'  => array( 'key' => 'score_of', 'sep' => '/' ),
 				'help'  => 'What the one minute timing produced. The goal of 40 is fixed, and the bar on the card is worked out from it.',
 			),
-			'score_of'  => array( 'type' => 'number', 'label' => 'Letters written', 'card' => true, 'in_pair' => true ),
+			// Always forty, at Karl's direction: stated, not typed, the way the
+			// segmentation task's 36 is. The results table's "Total letters
+			// written" row reads it too, and Karl chose to keep that row.
+			'score_of'  => array( 'type' => 'number', 'label' => 'Out of', 'card' => true, 'in_pair' => true, 'fixed' => 40 ),
 			// Standing wording. It explains what the task measures and why it
 			// matters, which is the same on every report the practice sends,
 			// so it is not one tutor's to reword on a Tuesday. It says "the
@@ -1134,7 +1144,7 @@ class BFTD_Schema {
 			'marking' => array(
 				'type'   => 'criteria',
 				'label'  => 'What counted, and what did not',
-				'help'   => 'The rules are fixed. Add a note against any row where something needs saying. Leave one blank and the family sees a tick, meaning nothing to report.',
+				'help'   => 'The rules are fixed. Mark each row with a green tick or a red cross, and add a comment wherever something needs saying. A row left with no mark and no comment shows the family a tick, meaning nothing to report.',
 				'groups' => array(
 					'correct' => array(
 						'label' => 'Counted as correct',
@@ -1245,7 +1255,7 @@ class BFTD_Schema {
 				'rows'  => array(
 					array( 'Target', '100 per cent, for students of every age' ),
 				),
-				'note'  => 'A student who reaches 100 per cent on the pre-assessment does not need to be retested on segmenting.',
+				'note'  => 'A student who achieves 100 per cent on the pre-assessment does not need to be retested on segmenting.',
 			),
 
 			// The page of work the score was counted from, ahead of the notes

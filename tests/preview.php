@@ -268,7 +268,7 @@ foreach (array('assessed_on','assessed_by','grade') as $k) {
   check(!empty($ov[$k]['card']), "$k is used in the heading, not printed as a row");
 }
 check(empty($ov['overview']['card']), 'while the written overview is the section itself');
-check(empty($ov['headline']['card']), 'and so is the headline finding');
+check(!isset($ov['headline']), 'and there is no headline finding at all');
 
 /* An explainer is a sentence, not a property. */
 check(!empty($sections['sec-progress-overview']['fields']['intro']['lede']), 'a section explainer renders as a lede');
@@ -388,7 +388,7 @@ check($bare === array(), 'every assessment area shows its results'
    second list of its own, which is what it always was. */
 check(count($dx['fields']['dxsec-6']['conventions']) >= 8, 'the writing conventions are all answered');
 check(count($dx['fields']['dxsec-6']['grammar']) >= 8, 'and so is the grammar list');
-check(count($dx['fields']['dxsec-5']['challenges']) >= 6, 'and the spelling challenges');
+check(count($dx['fields']['dxsec-5']['challenges']) >= 5, 'and the spelling challenges (five since "puts blends together" was removed)');
 foreach (array('dxsec-6' => array('conventions', 'grammar'), 'dxsec-5' => array('challenges')) as $sid => $keys) {
   foreach ($keys as $key) {
     foreach ($dx['fields'][$sid][$key] as $rid => $row) {

@@ -103,9 +103,13 @@ class BFTD_Report_View {
 			?></p>
 			<h1><?php echo esc_html( $name ); ?></h1>
 			<div class="sub"><?php echo esc_html( self::hero_line( $report, $student_id, $v ) ); ?></div>
-			<p class="lede">Six areas of reading and writing, so we can see exactly where the gaps are.
-				The cards below are the summary. Everything under them is the full report, section by
-				section, exactly as <?php echo esc_html( $tutor ? $tutor : 'your tutor' ); ?> wrote it.</p>
+			<?php
+			// Editable by the tutor (the overview's "Introduction" field), at
+			// Karl's direction. Blank falls back to the wording it always had.
+			$intro = isset( $v['intro'] ) && '' !== trim( (string) $v['intro'] ) ? (string) $v['intro'] : BFTD_Schema::DIAGNOSTIC_INTRO;
+			$intro = str_replace( '{tutor}', $tutor ? $tutor : 'your tutor', $intro );
+			?>
+			<p class="lede"><?php echo nl2br( esc_html( trim( $intro ) ) ); ?></p>
 			<div class="hero-actions">
 				<button type="button" class="btn btn-primary" onclick="window.print()">Print or save as PDF</button>
 				<?php $call = BFTD_Settings::help_bar_link(); ?>
@@ -121,7 +125,7 @@ class BFTD_Report_View {
 
 		/* ---- read this first ---- */
 		?>
-		<div class="banner" style="margin:18px 0">
+		<div class="banner banner-first" style="margin:18px 0">
 			<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8"/><path d="M10 6.5v4M10 13.6v.1"/></svg>
 			<span><b>Read this part first.</b> These numbers describe where <?php echo esc_html( self::first_name( $name ) ); ?>
 				is starting from, not what they are capable of. Every one of these six areas responds to
@@ -975,15 +979,9 @@ class BFTD_Report_View {
 
 		ob_start();
 
-		// The headline finding leads the section it belongs to rather than
-		// sitting in a row at the bottom of it, which is where a label and
-		// value list would put it.
-		if ( isset( $values['headline'] ) && BFTD_Fields::has_value( $values['headline'] ) ) {
-			echo '<p class="headline">' . esc_html( $values['headline'] ) . '</p>';
-		}
-
+		// (A "Headline finding" sentence used to lead the overview here; Karl
+		// removed it. A value stored before then is never drawn.)
 		foreach ( $section['fields'] as $key => $field ) {
-			if ( 'headline' === $key ) continue;
 			$type = isset( $field['type'] ) ? $field['type'] : 'text';
 
 			// Two tables in this section are drawn rather than written: one
@@ -1056,10 +1054,22 @@ class BFTD_Report_View {
 				<?php foreach ( $group['rows'] as $rid => $rule ) :
 					$label = is_array( $rule ) ? $rule['label'] : $rule;
 					$blank = is_array( $rule ) && isset( $rule['empty'] ) ? $rule['empty'] : '';
-					$note  = isset( $notes[ $rid ] ) ? trim( (string) $notes[ $rid ] ) : '';
+					$cell  = BFTD_Fields::criteria_cell( isset( $notes[ $rid ] ) ? $notes[ $rid ] : '' );
+					$mark  = $cell['mark'];
+					$note  = trim( $cell['note'] );
 					?>
 					<div class="crit-row">
 						<div class="crit-rule"><?php echo esc_html( $label ); ?></div>
+						<?php if ( $mark ) : // A tick or a cross the tutor chose, with their comment beside it. ?>
+						<div class="crit-note crit-marked crit-<?php echo esc_attr( $mark ); ?>">
+							<?php if ( 'yes' === $mark ) : ?>
+								<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.6"/></svg><span class="crit-said">Yes</span>
+							<?php else : ?>
+								<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg><span class="crit-said">No</span>
+							<?php endif; ?>
+							<?php if ( '' !== $note ) : ?><span class="crit-text"><?php echo esc_html( $note ); ?></span><?php endif; ?>
+						</div>
+						<?php else : ?>
 						<div class="crit-note<?php echo ( '' === $note && '' === $blank ) ? ' is-clear' : ''; ?>">
 							<?php if ( '' !== $note ) : ?>
 								<?php echo esc_html( $note ); ?>
@@ -1069,6 +1079,7 @@ class BFTD_Report_View {
 								<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.6"/></svg><span class="crit-said">Nothing to report</span>
 							<?php endif; ?>
 						</div>
+						<?php endif; ?>
 					</div>
 				<?php endforeach; ?>
 			<?php endforeach; ?>
@@ -1113,14 +1124,19 @@ class BFTD_Report_View {
 		return '';
 	}
 
-	/** "11 August 2026 · age 13 · Grade 8 · Chewelah School District · assessed by Candice Paluck" */
+	/** "11 August 2026 · born 6 July 2013 · age 13 · Grade 8 · Chewelah School District · assessed by Candice Paluck" */
 	private static function hero_line( $report, $student_id, $v ) {
 		$bits = array();
 		if ( ! empty( $v['assessed_on'] ) ) $bits[] = BFTD_Time::day( $v['assessed_on'], get_option( 'date_format' ) ? get_option( 'date_format' ) : 'j F Y' );
 
 		if ( $student_id ) {
-			$age = self::age_at( (string) BFTD_Fields::get( $student_id, 'student', 'birth_date' ),
-				! empty( $v['assessed_on'] ) ? $v['assessed_on'] : '' );
+			// The birth date itself, then the age it made them on the day.
+			// Karl asked for the birth date on the diagnostic.
+			$birth = (string) BFTD_Fields::get( $student_id, 'student', 'birth_date' );
+			if ( $birth && BFTD_Time::stamp( $birth, '12:00' ) ) {
+				$bits[] = 'born ' . BFTD_Time::day( $birth, get_option( 'date_format' ) ? get_option( 'date_format' ) : 'j F Y' );
+			}
+			$age = self::age_at( $birth, ! empty( $v['assessed_on'] ) ? $v['assessed_on'] : '' );
 			if ( $age ) $bits[] = 'age ' . $age;
 		}
 		if ( ! empty( $v['grade'] ) ) $bits[] = $v['grade'];

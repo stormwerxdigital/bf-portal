@@ -84,6 +84,20 @@ class BFTD_Autosave {
 		if ( $update ) wp_update_post( array( 'ID' => $post->ID ) + $update );
 	}
 
+	/**
+	 * Turn an auto-draft into a draft. The placeholder title WordPress gives an
+	 * auto-draft goes with it, as it does when Save Draft is pressed with the
+	 * title left empty.
+	 */
+	public static function promote_auto_draft( $post_id ) {
+		$post = get_post( $post_id );
+		if ( ! $post || 'auto-draft' !== $post->post_status ) return false;
+		$update = array( 'ID' => $post->ID, 'post_status' => 'draft' );
+		if ( 'Auto Draft' === $post->post_title ) $update['post_title'] = '';
+		wp_update_post( $update );
+		return true;
+	}
+
 	/** Is this a field the autosave carries? Mirrors payload() in bftd-admin.js. */
 	private static function kept_key( $k ) {
 		return in_array( $k, array( 'bftd', 'bftd_rows', 'bftd_sched', 'bftd_visible', 'bftd_items',
@@ -256,6 +270,14 @@ class BFTD_Autosave {
 			// but not in the record is a report nobody can find. A library
 			// record's description is its content, so that goes too.
 			self::save_title_content( $post, wp_unslash( $_POST ) );
+
+			// A brand new record is an "auto-draft" until somebody presses Save
+			// Draft: it is left off every list, and WordPress deletes it after
+			// a week. Autosaving the fields of one and saying "Draft saved"
+			// left a tutor with a diagnostic nobody could find again, and then
+			// none at all. So the first autosave makes it a real draft, which
+			// is what Save Draft would have done.
+			self::promote_auto_draft( $post->ID );
 
 			$fresh = get_post( $post->ID );
 

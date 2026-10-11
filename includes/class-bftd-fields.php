@@ -834,15 +834,12 @@ class BFTD_Fields {
 					: BFTD_Schema::score_table_html( $section_id, $values, $field_key );
 				?>
 				<?php
-				// Not every drawn table is drawn from the score. One that
-				// explains how a scale is read is the same on every report,
-				// and telling a tutor it was worked out from a figure above it
-				// is telling them something untrue about their own screen.
-				$note = isset( $field['derived_note'] )
-					? $field['derived_note']
-					: 'Worked out from the score above and the fixed goal. Nothing here is typed.';
+				// A table may carry its own note. The default line ("Worked
+				// out from the score above and the fixed goal...") was
+				// removed at Karl's direction, so a table without one shows none.
+				$note = isset( $field['derived_note'] ) ? $field['derived_note'] : '';
 				?>
-				<p class="description"><?php echo esc_html( $note ); ?></p>
+				<?php if ( '' !== $note ) : ?><p class="description"><?php echo esc_html( $note ); ?></p><?php endif; ?>
 			</div>
 		</div>
 		<?php
@@ -917,6 +914,23 @@ class BFTD_Fields {
 		<?php
 	}
 
+	/**
+	 * One row of a marking table as a mark and a note. The mark is "yes" (a
+	 * green tick), "no" (a red cross) or "" (neither). A row stored before
+	 * marks existed is a bare note string.
+	 */
+	public static function criteria_cell( $row ) {
+		if ( is_array( $row ) ) {
+			$mark = isset( $row['mark'] ) ? (string) $row['mark'] : '';
+			$note = isset( $row['note'] ) ? (string) $row['note'] : '';
+		} else {
+			$mark = '';
+			$note = (string) $row;
+		}
+		if ( ! in_array( $mark, array( 'yes', 'no' ), true ) ) $mark = '';
+		return array( 'mark' => $mark, 'note' => $note );
+	}
+
 	private static function render_criteria( $post_id, $section_id, $key, $field ) {
 		$saved = self::get( $post_id, $section_id, $key, $field );
 		$saved = is_array( $saved ) ? $saved : array();
@@ -938,16 +952,28 @@ class BFTD_Fields {
 						// The placeholder is what the family will actually see
 						// if this is left alone, so it says that rather than
 						// something generic a tutor has to guess the effect of.
-						$blank = ( is_array( $rule ) && isset( $rule['empty'] ) ) ? $rule['empty'] : 'Nothing to report, shown as a tick';
+						$blank = ( is_array( $rule ) && isset( $rule['empty'] ) ) ? $rule['empty'] : 'Comment (optional)';
 						$id    = 'bftd_' . str_replace( '-', '_', $section_id ) . '_' . $key . '_' . $rid;
-						$val   = isset( $saved[ $rid ] ) ? (string) $saved[ $rid ] : '';
+						$cell  = self::criteria_cell( isset( $saved[ $rid ] ) ? $saved[ $rid ] : '' );
+						$val   = $cell['note'];
 						?>
 						<div class="bftd-crit-row">
 							<label class="bftd-crit-rule" for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $label ); ?></label>
-							<input type="text" id="<?php echo esc_attr( $id ); ?>"
-								name="<?php echo $name; ?>[<?php echo esc_attr( $rid ); ?>]"
-								value="<?php echo esc_attr( $val ); ?>"
-								placeholder="<?php echo esc_attr( $blank ); ?>">
+							<div class="bftd-crit-entry">
+								<?php // A green tick or a red cross, or neither, at Karl's direction. ?>
+								<span class="bftd-crit-mark" role="radiogroup" aria-label="<?php echo esc_attr( 'Mark for: ' . $label ); ?>">
+									<?php foreach ( array( 'yes' => array( '&#10003;', 'Tick' ), 'no' => array( '&#10007;', 'Cross' ), '' => array( '&ndash;', 'No mark' ) ) as $mv => $m ) : ?>
+										<label class="bftd-crit-opt bftd-crit-opt-<?php echo $mv ? esc_attr( $mv ) : 'none'; ?>" title="<?php echo esc_attr( $m[1] ); ?>">
+											<input type="radio" name="<?php echo $name; ?>[<?php echo esc_attr( $rid ); ?>][mark]" value="<?php echo esc_attr( $mv ); ?>"<?php checked( $cell['mark'], $mv ); ?>>
+											<span aria-hidden="true"><?php echo $m[0]; ?></span><span class="screen-reader-text"><?php echo esc_html( $m[1] ); ?></span>
+										</label>
+									<?php endforeach; ?>
+								</span>
+								<input type="text" id="<?php echo esc_attr( $id ); ?>"
+									name="<?php echo $name; ?>[<?php echo esc_attr( $rid ); ?>][note]"
+									value="<?php echo esc_attr( $val ); ?>"
+									placeholder="<?php echo esc_attr( $blank ); ?>">
+							</div>
 						</div>
 					<?php endforeach; ?>
 				<?php endforeach; ?>
@@ -1505,11 +1531,16 @@ class BFTD_Fields {
 				}
 				// A rule is either a label or a label with its own wording for
 				// a blank; either way the id is what a note hangs off.
+				// Each row is a mark (a tick, a cross or neither) and a note.
+				// A row saved before marks existed is a bare note, and reads
+				// as a note with no mark.
 				$out = array();
-				foreach ( (array) $raw as $rid => $note ) {
+				foreach ( (array) $raw as $rid => $row ) {
 					if ( ! isset( $known[ $rid ] ) ) continue;
-					$note = sanitize_text_field( $note );
-					if ( '' !== trim( $note ) ) $out[ $rid ] = $note;
+					$cell = self::criteria_cell( $row );
+					$cell['note'] = trim( sanitize_text_field( $cell['note'] ) );
+					if ( '' === $cell['mark'] && '' === $cell['note'] ) continue;
+					$out[ $rid ] = $cell;
 				}
 				return $out;
 			case 'media':

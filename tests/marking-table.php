@@ -34,7 +34,9 @@ check('' === BFTD_Fields::sanitize_value('anything posted', $f['score_table']),
 
 $html = BFTD_Schema::score_table_html('dxsec-1', array('score' => '25', 'score_of' => '26'));
 check(false !== strpos($html, '<td>25</td>'), 'the numerator is the letters produced correctly');
-check(false !== strpos($html, '<td>26</td>'), 'the denominator is the total letters written');
+check(40 === (int) $f['score_of']['fixed'], 'the denominator is fixed at 40, at Karl\'s direction, so it is never typed');
+$fixed = BFTD_Schema::score_table_html('dxsec-1', array('score' => '25', 'score_of' => ''));
+check(false !== strpos($fixed, '<td>Total letters written</td><td>40</td>'), 'and the "Total letters written" row Karl kept reads 40');
 check(false !== strpos($html, '40 correct lowercase letters per minute'), 'and the goal is fixed');
 check(3 === substr_count($html, '<tr><td>'), 'three rows of figures');
 check(2 === substr_count($html, '<tr><th'), 'under a title and a header row');
@@ -74,9 +76,8 @@ check(false !== strpos($other, '<td>31</td>') && false === strpos($other, '<td>2
   'it follows the score rather than remembering an old one');
 
 /* A row whose figure is missing is not printed as a blank. */
-$half = BFTD_Schema::score_table_html('dxsec-1', array('score' => '25', 'score_of' => ''));
-check(false === strpos($half, 'Total letters written'), 'a figure nobody entered is left out, not shown empty');
-check(false !== strpos($half, 'Letters produced correctly'), 'while the ones that were entered still show');
+$half = BFTD_Schema::score_table_html('dxsec-1', array('score' => '', 'score_of' => ''));
+check(false === strpos($half, 'Letters produced correctly'), 'a figure nobody entered is left out, not shown empty');
 
 /* ---- the marking rules are fixed ---- */
 $m = $f['marking'];
@@ -88,14 +89,25 @@ check(3 === count($m['groups']['correct']['rows']), 'three rules count as correc
 check(1 === count($m['groups']['incorrect']['rows']), 'and one counts as incorrect');
 check(false !== strpos($m['footer']['value'], 'a b c d'), 'the alphabet is printed underneath');
 
-/* Only a note is stored, and only against a rule the schema knows. */
+/* Each row stores a mark (a green tick, a red cross, or neither, at Karl's
+   direction) and a comment, and only against a rule the schema knows. */
 $saved = BFTD_Fields::sanitize_value(array(
-  'lowercase'   => '  Reversed m and n.  ',
-  'bottom_up'   => '',
-  'not_a_rule'  => 'should never be kept',
+  'lowercase'   => array('mark' => 'yes', 'note' => '  Reversed m and n.  '),
+  'bottom_up'   => array('mark' => '', 'note' => ''),
+  'capitals'    => array('mark' => 'no', 'note' => ''),
+  'reversals'   => array('mark' => 'maybe', 'note' => 'b for d'),
+  'not_a_rule'  => array('mark' => 'yes', 'note' => 'should never be kept'),
 ), $m);
-check(array('lowercase' => 'Reversed m and n.') === $saved,
-  'a blank note is dropped, whitespace trimmed, and an unknown row refused');
+check(array(
+  'lowercase' => array('mark' => 'yes', 'note' => 'Reversed m and n.'),
+  'capitals'  => array('mark' => 'no',  'note' => ''),
+  'reversals' => array('mark' => '',    'note' => 'b for d'),
+) === $saved, 'a tick or a cross is kept with its comment, an empty row dropped, a made-up mark refused, an unknown row refused');
+
+/* A report saved before marks existed holds bare notes; they read as a note with no mark. */
+check(array('mark' => '', 'note' => 'Old note') === BFTD_Fields::criteria_cell('Old note'), 'an old bare note still reads');
+check(array('lowercase' => array('mark' => '', 'note' => 'Old note')) === BFTD_Fields::sanitize_value(array('lowercase' => 'Old note'), $m),
+  'and survives the next save');
 
 /* Notes hang off a row's id, not its wording, so rewording a rule keeps them. */
 foreach ($m['groups'] as $g) {
@@ -134,6 +146,13 @@ check(1 === preg_match('/placeholder="<\?php echo esc_attr\( \$blank \)/', $fiel
    happened. It waits for the score, the way every other field waits. */
 check(1 === preg_match('/criteria.{0,600}has_value\(\s*isset\(\s*\$values\[.score.\]/s', $view),
   'the marking table waits until there is a score');
+
+/* A chosen mark is drawn as a green tick or a red cross, with the comment
+   beside it, and says Yes or No to a screen reader. */
+check(false !== strpos($view, 'crit-marked crit-<?php echo esc_attr( $mark ); ?>'), 'a chosen mark is drawn');
+check(false !== strpos($view, '<span class="crit-said">Yes</span>') && false !== strpos($view, '<span class="crit-said">No</span>'), 'and read aloud as Yes or No');
+check(1 === preg_match('/\.crit-yes svg\{stroke:#2E7D32\}/', $rcss) && 1 === preg_match('/\.crit-no svg\{stroke:#C62828\}/', $rcss), 'the tick green, the cross red');
+check(false !== strpos($fields_src, '[mark]') && false !== strpos($fields_src, '[note]'), 'the editor offers a mark and a comment on every row');
 
 /* ---- one renderer, two places ---- */
 /* The admin preview and the family's copy are the same markup from the same

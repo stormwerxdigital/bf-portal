@@ -138,5 +138,11 @@ check(false !== strpos($a, '25') && false !== strpos($a, '40 correct lowercase l
 check('' === BFTD_Schema::score_table_html('dxsec-1', array('score' => '', 'score_of' => '')),
   'and it too waits for a score');
 
+/* Karl's wording: a student who achieves 100 per cent, not one who reaches it.
+   And the editor's default "Worked out from the score above..." line is gone. */
+$segsrc = file_get_contents(BFTD_PATH . 'includes/class-bftd-schema.php');
+check(false !== strpos($segsrc, 'A student who achieves 100 per cent') && false === strpos($segsrc, 'who reaches 100'), 'the segmenting note says "achieves"');
+check(false === strpos(file_get_contents(BFTD_PATH . 'includes/class-bftd-fields.php'), 'Worked out from the score above'), 'the default worked-out line is gone');
+
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

@@ -39,7 +39,7 @@ function current_user_can($c,$o=null){ return !empty($GLOBALS['CAN']); }
 function check_ajax_referer($a,$b=false,$die=true){ return true; }
 function wp_send_json_error($d=null,$s=null){ $GLOBALS['SENT']=array('ok'=>false,'data'=>$d,'status'=>$s); throw new Exception('json'); }
 function wp_send_json_success($d=null){ $GLOBALS['SENT']=array('ok'=>true,'data'=>$d); throw new Exception('json'); }
-function wp_update_post($a){ $GLOBALS['POSTS'][$a['ID']]->post_title = $a['post_title']; return $a['ID']; }
+function wp_update_post($a){ foreach (array('post_title','post_status') as $k) if (array_key_exists($k,$a)) $GLOBALS['POSTS'][$a['ID']]->$k = $a[$k]; return $a['ID']; }
 function wp_is_post_revision($id){ return false; }
 function wp_slash($v){ return $v; }
 function wp_unslash($v){ return $v; }
@@ -153,6 +153,27 @@ check(null === BFTD_Autosave::snapshot(1),
 check(true === $GLOBALS['QUIET_DURING_SAVE'],
   'the activity log is quiet while a draft autosaves');
 check(false === BFTD_Audit::$quiet, 'and is listening again afterwards');
+
+/* ---- a brand new record becomes a real draft ----
+   WordPress leaves a just-opened record as an "auto-draft": on no list, and
+   deleted after a week. Autosaving its fields and saying "Draft saved" left a
+   tutor with a diagnostic nobody could find, so the first autosave makes it a
+   draft, as Save Draft would. */
+$GLOBALS['SAVED'] = 0;
+$np = mkpost(20,'auto-draft','0000-00-00 00:00:00'); $np->post_title = 'Auto Draft';
+$_POST = array('post_id'=>20, 'bftd'=>array('dxsec-4'=>array('kinder_score'=>'12')), 'post_title'=>'');
+$GLOBALS['SENT']=null;
+$r = attempt(function(){ BFTD_Autosave::ajax_save(); });
+check(true === $r['ok'] && 1 === $GLOBALS['SAVED'], 'a just-opened diagnostic autosaves');
+check('draft' === $GLOBALS['POSTS'][20]->post_status, 'and becomes a draft, so it is on the list and is not thrown away');
+check('' === $GLOBALS['POSTS'][20]->post_title, 'without keeping the placeholder "Auto Draft" as its name');
+$np2 = mkpost(21,'auto-draft','0000-00-00 00:00:00'); $np2->post_title = 'Auto Draft';
+$_POST = array('post_id'=>21, 'bftd'=>array('dxsec-4'=>array('kinder_score'=>'12')), 'post_title'=>'Jot Singh diagnostic');
+$GLOBALS['SENT']=null;
+attempt(function(){ BFTD_Autosave::ajax_save(); });
+check('Jot Singh diagnostic' === $GLOBALS['POSTS'][21]->post_title, 'a title typed before the first autosave is kept');
+check('draft' === $GLOBALS['POSTS'][1]->post_status, 'an ordinary draft stays a draft');
+check(false === BFTD_Autosave::promote_auto_draft(5), 'and a published report is never touched');
 
 /* ---- and it refuses to write over somebody ELSE'S save ---- */
 $GLOBALS['SAVED'] = 0;

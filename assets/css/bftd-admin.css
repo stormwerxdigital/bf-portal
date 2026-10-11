@@ -702,6 +702,17 @@ input[type=search]:focus,input[type=date]:focus,input[type=time]:focus,select:fo
 .bftd-crit-row:last-of-type{border-bottom:0}
 .bftd-crit-rule{font-size:13.5px;line-height:1.5;color:var(--bftd-ink);margin:0}
 .bftd-crit-row input[type=text]{width:100%;box-sizing:border-box;max-width:100%}
+.bftd-crit-entry{display:flex;gap:10px;align-items:center;min-width:0}
+.bftd-crit-entry input[type=text]{flex:1 1 auto;min-width:0}
+.bftd-crit-mark{display:inline-flex;flex:0 0 auto;border:1px solid var(--bftd-line);border-radius:6px;overflow:hidden}
+.bftd-crit-opt{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;
+  cursor:pointer;font-size:18px;font-weight:700;color:#8a8494;background:#fff;border-right:1px solid var(--bftd-line)}
+.bftd-crit-opt:last-child{border-right:0}
+.bftd-crit-opt input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.bftd-crit-opt:has(input:focus-visible){outline:2px solid var(--bftd-purple);outline-offset:-2px}
+.bftd-crit-opt-yes:has(input:checked){background:#2E7D32;color:#fff}
+.bftd-crit-opt-no:has(input:checked){background:#C62828;color:#fff}
+.bftd-crit-opt-none:has(input:checked){background:var(--bftd-purple-wash);color:var(--bftd-ink)}
 .bftd-crit-foot{padding:12px 14px;background:var(--bftd-purple-wash);border-top:1px solid var(--bftd-line-soft)}
 .bftd-crit-foot b{display:block;font-size:13px;color:var(--bftd-ink);margin-bottom:4px}
 .bftd-crit-foot span{font-family:var(--bftd-abc);font-size:20px;line-height:1.6;letter-spacing:.14em;color:var(--bftd-ink)}

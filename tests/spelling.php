@@ -103,8 +103,9 @@ check('checklist' === $f['challenges']['type'], 'the challenges are a fixed list
 check('Challenges' === $f['challenges']['headings']['item'],
   'headed Challenges rather than Pattern');
 $rows = $f['challenges']['rows'];
-check(6 === count($rows), 'six of them');
-foreach (array('b/d reversals', 'omits spellings', 'puts blends together',
+check(5 === count($rows), 'five of them');
+check(!isset($rows['blends']) && !in_array('puts blends together', $rows, true), 'with "puts blends together" removed, at Karl\'s direction');
+foreach (array('b/d reversals', 'omits spellings',
                'trouble with 2,3,4 letter spellings', 'inserts spellings',
                'spellings out of order') as $label) {
   check(in_array($label, $rows, true), "including \"$label\"");
@@ -121,12 +122,13 @@ check(isset($opts['']), 'or left unassessed, which keeps it out of the family\'s
 require_once BFTD_PATH . 'includes/class-bftd-fields.php';
 $clean = BFTD_Fields::sanitize_value(array(
   'omits'    => array('value' => 'yes', 'note' => '  Omitted the n in junk.  '),
-  'blends'   => array('value' => 'maybe'),
+  'reversals' => array('value' => 'maybe'),
+  'blends'   => array('value' => 'yes'),
   'invented' => array('value' => 'yes'),
   'inserts'  => array('value' => '', 'note' => ''),
 ), $f['challenges']);
 check(array('omits' => array('value' => 'yes', 'note' => 'Omitted the n in junk.')) === $clean,
-  'a made-up row is refused, a made-up answer is dropped, an empty row is left out and the example is trimmed');
+  'a removed or made-up row is refused, a made-up answer is dropped, an empty row is left out and the example is trimmed');
 
 /* The report draws it, and draws it as the design's own list rather than as a
    second component that looks nearly the same. Read from the code with the
