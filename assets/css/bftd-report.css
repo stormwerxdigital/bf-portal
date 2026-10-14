@@ -642,6 +642,11 @@
    prose, because they are the two things a parent scans for. */
 .bf-report .blk-skills{background:var(--bf-purple-wash); border:1px solid var(--bf-purple-pale); border-radius:5px; padding:14px; border-bottom:1px solid var(--bf-purple-pale)}
 .bf-report .blk-read{background:var(--card-sunk); border:1px solid var(--line); border-radius:5px; padding:14px; border-bottom:1px solid var(--line)}
+/* Fixed reference wording under a results table (Timed reading, the norm and its sources). */
+.bf-report .ref-box{background:var(--card-sunk); border:1px solid var(--line); border-radius:5px; padding:14px 16px; margin:14px 0 18px}
+.bf-report .ref-box>*:first-child{margin-top:0}
+.bf-report .ref-box>*:last-child{margin-bottom:0}
+.bf-report .ref-box a{overflow-wrap:anywhere}
 .bf-report .skill-list, .bf-report .text-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px}
 .bf-report .skill-list li, .bf-report .text-list li{display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; padding-left:16px; position:relative; font-size:13.5px; color:var(--ink)}
 .bf-report .skill-list li::before{content:""; position:absolute; left:0; top:6px; width:8px; height:8px; border-radius:2px; background:var(--bf-purple)}

@@ -350,9 +350,13 @@ foreach (array('dxsec-1','dxsec-2','dxsec-3','dxsec-4','dxsec-5','dxsec-6') as $
   check($has_notes, "$sid carries the tutor's notes");
   // Either written into the section's prose, or held as its own standing
   // field with the question as a heading.
-  $explains = false !== stripos($body, 'Evidence-Based Literacy Instruction');
+  // Timed reading names the method the way the training document does,
+  // "How does Linguistic Literacy help?", so either name counts.
+  $explains = false !== stripos($body, 'Evidence-Based Literacy Instruction')
+    || false !== stripos($body, 'How does Linguistic Literacy help');
   foreach ($schema['fields'] as $fd) {
-    if (isset($fd['heading']) && false !== stripos($fd['heading'], 'Evidence-Based Literacy Instruction')) $explains = true;
+    if (isset($fd['heading']) && (false !== stripos($fd['heading'], 'Evidence-Based Literacy Instruction')
+      || false !== stripos($fd['heading'], 'Linguistic Literacy'))) $explains = true;
   }
   check($explains, "$sid explains how the method addresses it");
 }

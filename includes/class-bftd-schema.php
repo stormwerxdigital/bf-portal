@@ -235,16 +235,6 @@ class BFTD_Schema {
 		return (int) $norms[ $key ]['wcpm'];
 	}
 
-	/** The reference table a parent reads, drawn from that same list. */
-	public static function fluency_norm_rows() {
-		$rows = array();
-		foreach ( self::fluency_norms() as $n ) {
-			$rows[] = array( $n['label'], ( null === $n['wcpm'] ) ? $n['note'] : (string) $n['wcpm'] );
-		}
-		return $rows;
-	}
-
-
 	/**
 	 * What one assessment card measured, as a number the page can use.
 	 *
@@ -271,11 +261,11 @@ class BFTD_Schema {
 		// The goal. Fixed on the section, or read off a field, or looked up
 		// from the band the tutor chose.
 		$bench = isset( $section['benchmark'] ) ? (float) $section['benchmark'] : 0;
-		if ( ! empty( $section['benchmark_field'] ) ) {
-			$from  = isset( $v[ $section['benchmark_field'] ] ) ? $v[ $section['benchmark_field'] ] : '';
-			$bench = ( ! empty( $section['benchmark_lookup'] ) && 'fluency_norm' === $section['benchmark_lookup'] )
-				? (float) self::fluency_norm_wcpm( $from )
-				: (float) $from;
+		list( $bfield, $lookup, $from ) = self::goal_source( $section_id, $section, $v );
+		if ( '' !== $bfield ) {
+			if ( 'fluency_norm' === $lookup )      $bench = (float) self::fluency_norm_wcpm( $from );
+			elseif ( 'word_minimum' === $lookup )  $bench = (float) self::word_minimum_wpm( $from );
+			else                                   $bench = (float) $from;
 		}
 
 		// A named level has no arithmetic, so what stands in for it is its
@@ -397,27 +387,188 @@ class BFTD_Schema {
 		return $wcpm ? $wcpm . ' wpm' : '';
 	}
 
+	/*
+	 * Timed reading is two assessments, and a student does one of them.
+	 *
+	 * A passage for a student reading above Kindergarten level, a word list
+	 * for one reading at Kindergarten level or lower. Each has its own
+	 * introduction, its own reference table, its own results table and its own
+	 * answer to how the method helps, all taken from the tutor training
+	 * document ("4 Timed Passage Reading" and "4 Kindergarten Word Fluency
+	 * Assessment"). The two introductions and the two answers are the
+	 * practice's standing wording, changed in Settings by a senior manager or
+	 * an administrator.
+	 */
 	public static function passage_intro() {
-		return '<p>The goal of oral reading fluency is reading a passage of text smoothly, evenly, at a reasonable speed, and with natural expression, pausing appropriately for punctuation like commas and periods.</p>'
-			. '<p>Rather than reading a paragraph, a student whose independent reading level is Kindergarten or lower completes a 60 word Kindergarten fluency assessment, which gives a clearer picture of word reading skill. This is done using easyCBM, a norm referenced standardised test.</p>'
-			. '<p>Instead of reading a paragraph, children who score at Kindergarten or lower independent reading level on the San Diego Quick Assessment complete the 60-Kindergarten-word fluency assessment to give a clearer picture of their word reading skills. This is done using EasyCBM, a norm-referenced, standardized test.</p>';
+		return '<p>Oral reading fluency isn&#8217;t just speed. It&#8217;s speed, accuracy, and prosody. Prosody is the flow: smooth, even, with natural phrasing and expression. All three elements are essential for strong comprehension. As fluency improves, reading becomes more enjoyable and less effortful, allowing students to focus on meaning rather than decoding each word.</p>'
+			. '<p>Easy CBM (Curriculum Based Measurement) norm-referenced standardized test is used for paragraph reading. The grade level is the independent reading level determined by the San Diego Quick Assessment.</p>';
+	}
+
+	public static function passage_method() {
+		return '<p>EBLI builds fluency from the inside out. It doesn&#8217;t drill speed. It strengthens what fluency is made of: accurate decoding, flexible word solving, whole-sentence reading, and meaning. Get those right, and fluency follows.</p>'
+			. '<p><strong>1. Accurate, flexible decoding first</strong><br>Students pull apart the sounds in whole words, map them to spellings, and use logic, not guessing, to solve unknown words. You can&#8217;t read fast if you&#8217;re constantly unsure. EBLI removes the uncertainty.</p>'
+			. '<p><strong>2. Whole-sentence reading from day one</strong><br>Students read real words in real sentences, grouping words into natural phrases and pausing at punctuation. Fluency is a speech skill, not a speed skill.</p>'
+			. '<p><strong>3. Writing builds fluency too</strong><br>Spelling words by sound strengthens phonemic awareness and sound-spelling patterns, so future reading becomes nearly automatic.</p>'
+			. '<p><strong>4. Less cognitive load</strong><br>Traditional programs stack up dozens of phonics rules and long word lists. EBLI teaches only what the brain needs: mapping sounds to print flexibly. Kids learn that one sound can have many spellings (/ee/ in <em>He dreams of cookies and sees a happy trio</em>) and one spelling can have many sounds (<em>ea</em> in dream, bread, great). That frees up brain space for comprehension.</p>'
+			. '<p><strong>5. Meaning comes first</strong><br>EBLI keeps asking: What does that word mean? Does this make sense? Can you summarize it? That&#8217;s reading for life, not for a stopwatch.</p>'
+			. '<p><strong>The result</strong><br>EBLI doesn&#8217;t teach kids to read fast. It teaches them to read accurately and with understanding, and speed follows. That&#8217;s why EBLI students accelerate so quickly, even after years of struggle.</p>';
+	}
+
+	public static function kinder_intro() {
+		return '<p>If a student&#8217;s independent reading level on the San Diego Quick Assessment is Kindergarten or lower, we skip the paragraph reading. A paragraph is too much to ask, and it won&#8217;t tell us much. Instead, the student completes the Kindergarten-word fluency assessment on EasyCBM, a standardized, norm-referenced test. It shows us how well the child reads individual words.</p>'
+			. '<p>Speed minimums rise by grade level. Grade 3 is 70 words per minute, grade 5 is 100, grades 7 and 8 are 130. They come from the <a href="https://www.donpotter.net/pdf/flesch_exercises.pdf" target="_blank" rel="noopener">Victory Drill Book, by Donald Potter</a>, built on Rudolf Flesch&#8217;s <em>Exercises</em>, and years of classroom experience, not a normed sample with percentiles. They run lower than oral reading fluency (ORF) norms for passages, and that&#8217;s expected. Reading isolated words is a different task from reading a passage.</p>';
+	}
+
+	public static function kinder_method() {
+		return '<p>EBLI raises reading grade level by fixing the skills that drive it: accurate word reading, flexible word solving, comprehension, and writing.</p>'
+			. '<ul>'
+			. '<li><strong>It fixes the root, not the symptom.</strong> Students learn to hear every sound in a word, map those sounds to letters, and solve unfamiliar words without guessing. Letter names stay out of reading, writing, and spelling, because letters rarely say their names. Grade level rises from stronger word solving, not harder books.</li>'
+			. '<li><strong>Real reading starts early.</strong> Students read real sentences and real texts right away, not just narrow &#8220;decodable&#8221; ones. That builds vocabulary, comprehension, and exposure to advanced language.</li>'
+			. '<li><strong>Writing and reading grow together.</strong> Students write words, sentences, and short paragraphs, sounds first, then spellings. Every bit of writing strengthens word recognition.</li>'
+			. '<li><strong>Less clutter, faster learning.</strong> One logical process works for every word. No long rule lists. No syllable-type memorization.</li>'
+			. '<li><strong>Meaning comes first.</strong> Summarizing, vocabulary in context, and meaning checks happen at every step, so students understand more, not just sound better.</li>'
+			. '</ul>'
+			. '<p><strong>The result:</strong> Many EBLI students grow 1 to 3 grade levels in a year. They don&#8217;t work harder. They learn the way the brain is wired to read.</p>';
 	}
 
 	/**
-	 * One block at the end of the section, not two.
-	 *
-	 * It carries its own headings, because it answers two questions and a
-	 * field can only be given one. Splitting it into two editors put two rich
-	 * text boxes side by side on the tutor's screen for what reads as a single
-	 * passage, and made it two entries in Settings for wording nobody would
-	 * ever want to change half of.
+	 * The box under the passage results explaining the norm column, with its
+	 * sources. Fixed reference material from the training document, the same
+	 * on every report, so it is drawn rather than stored and nobody edits it.
 	 */
-	public static function passage_method() {
-		return '<h3>What is oral reading fluency?</h3>'
-			. '<p>The goal of oral reading fluency is reading a passage smoothly, evenly and with natural expression, pausing appropriately for commas and full stops. Fluent reading means a student is not only reading at a reasonable pace but <strong>understanding what they are reading</strong>, which is what comprehension depends on. As fluency improves, reading becomes more enjoyable and less effortful.</p>'
-			. '<h3>How does Evidence-Based Literacy Instruction build oral reading fluency?</h3>'
-			. '<p>It builds fluency from the inside out. Rather than teaching a child to read faster by practising speed, it strengthens the skills that make fluent reading possible: accurate decoding, flexible word solving, strong sentence reading and meaning making. When those foundations are in place, fluency follows.</p>'
-			. '<p>Students learn to pull apart the sounds in whole words, map those sounds to spellings quickly, and use logic rather than guessing to solve unknown words. Because they are not guessing, they stop losing the thread of the sentence.</p>';
+	public static function passage_norm_note() {
+		return '<h4>End of year ORF* norm for enrolled grade</h4>'
+			. '<p><strong>*ORF (oral reading fluency) norm</strong></p>'
+			. '<p>This number is the 50th percentile spring benchmark, the end of year norm for a student&#8217;s enrolled grade. The 50th percentile is a solid mid-range marker: half of students score higher, half score lower.</p>'
+			. '<p>Grades 1 to 6 use Hasbrouck &amp; Tindal 2017 norms. Grades 7 and 8 use their 2006 norms, the only published normed data available at those grade levels. No peer-reviewed ORF benchmarks exist for high school grades. For older struggling readers, the Grade 8 benchmark (151 WCPM) serves as the standard clinical reference point; a score below 140 WCPM on grade-level text is a meaningful signal worth investigating.</p>'
+			. '<p>The plateau at Grades 6 to 8 (about 146 to 151 WCPM) is a well-documented pattern in the research, sometimes called the middle-school slump.</p>'
+			. '<p>Sources:<br>'
+			. '2017 Norms (Grades 1 to 6): <a href="https://www.readingrockets.org/sites/default/files/2023-08/2017_ORF_NORMS.pdf" target="_blank" rel="noopener">readingrockets.org, 2017 ORF Norms</a><br>'
+			. '2006 Norms (Grades 1 to 8, page 8): <a href="https://www.aimpa.org/uploaded/pdfs/Hasbrouck-ORF_NATIONAL_NORMS_Full_and_50ile.pdf" target="_blank" rel="noopener">aimpa.org, Hasbrouck ORF National Norms</a></p>';
+	}
+
+	/**
+	 * The word list's minimum speeds, by grade.
+	 *
+	 * From the Victory Drill Book (Donald Potter), as the training document
+	 * gives them. Minimums rather than percentiles, and a different list from
+	 * the passage norms on purpose: reading isolated words is a different task.
+	 * One list, used for the reference table, the enrolled grade picker, the
+	 * results table and the goal on the card.
+	 */
+	public static function word_minimums() {
+		return array(
+			'pre-k'   => array( 'label' => 'Pre-Kindergarten', 'wpm' => 20 ),
+			'k'       => array( 'label' => 'Kindergarten',     'wpm' => 30 ),
+			'grade-1' => array( 'label' => 'Grade 1',          'wpm' => 40 ),
+			'grade-2' => array( 'label' => 'Grade 2',          'wpm' => 55 ),
+			'grade-3' => array( 'label' => 'Grade 3',          'wpm' => 70 ),
+			'grade-4' => array( 'label' => 'Grade 4',          'wpm' => 85 ),
+			'grade-5' => array( 'label' => 'Grade 5',          'wpm' => 100 ),
+			'grade-6' => array( 'label' => 'Grade 6',          'wpm' => 115 ),
+			'grade-7' => array( 'label' => 'Grade 7',          'wpm' => 130 ),
+			'grade-8' => array( 'label' => 'Grade 8',          'wpm' => 130 ),
+		);
+	}
+
+	public static function word_minimum_options() {
+		$out = array( '' => 'Not chosen' );
+		foreach ( self::word_minimums() as $key => $m ) {
+			$out[ $key ] = $m['label'] . ', ' . $m['wpm'] . ' words per minute';
+		}
+		return $out;
+	}
+
+	public static function word_minimum_wpm( $key ) {
+		$all = self::word_minimums();
+		return isset( $all[ $key ] ) ? (int) $all[ $key ]['wpm'] : 0;
+	}
+
+	public static function word_minimum_rows() {
+		$rows = array();
+		foreach ( self::word_minimums() as $m ) {
+			$rows[] = array( $m['label'], $m['wpm'] . ' words per minute' );
+		}
+		return $rows;
+	}
+
+	/** The passage norms as the training document lists them, Kindergarten to Grade 8. */
+	public static function passage_norm_rows() {
+		$extra = array(
+			'grade-6' => ' (not a typo: the well-documented middle-school slump)',
+			'grade-7' => ' (2006 norms)',
+			'grade-8' => ' (2006 norms)',
+		);
+		$rows = array();
+		foreach ( self::fluency_norms() as $key => $n ) {
+			if ( 'grade-9-12' === $key ) continue;   // the document lists none past Grade 8
+			$rows[] = array( $n['label'], ( null === $n['wcpm'] )
+				? 'No ORF norm (pre-reading skills assessed instead)'
+				: $n['wcpm'] . ' WCPM' . ( isset( $extra[ $key ] ) ? $extra[ $key ] : '' ) );
+		}
+		return $rows;
+	}
+
+	/**
+	 * Which of a section's alternative assessments was done.
+	 *
+	 * The one the tutor chose. A report written before there was a choice
+	 * has none stored, so it is read from what was filled in: a word list
+	 * figure means the word list, as it always did, and passage figures mean
+	 * the passage. Nothing chosen and nothing filled in is no answer.
+	 */
+	public static function active_form( $section_id, $values ) {
+		$section = self::section( $section_id );
+		if ( ! $section || empty( $section['form_field'] ) ) return '';
+		$key    = $section['form_field'];
+		$chosen = isset( $values[ $key ] ) ? (string) $values[ $key ] : '';
+		if ( '' !== $chosen && isset( $section['fields'][ $key ]['options'][ $chosen ] ) ) return $chosen;
+		foreach ( (array) ( isset( $section['form_infer'] ) ? $section['form_infer'] : array() ) as $form => $field ) {
+			if ( isset( $values[ $field ] ) && '' !== trim( (string) $values[ $field ] ) ) return $form;
+		}
+		return '';
+	}
+
+	/** Does a field belong on the report for the assessment that was done? */
+	public static function shows_for_form( $section_id, $field, $values ) {
+		if ( empty( $field['form'] ) ) return true;
+		return self::active_form( $section_id, $values ) === $field['form'];
+	}
+
+	/** Where a section's goal comes from, for the assessment that was done. */
+	private static function goal_source( $section_id, $section, $values ) {
+		$field  = isset( $section['benchmark_field'] ) ? $section['benchmark_field'] : '';
+		$lookup = isset( $section['benchmark_lookup'] ) ? $section['benchmark_lookup'] : '';
+		$form   = self::active_form( $section_id, $values );
+		if ( '' !== $form && isset( $section['form_benchmark'][ $form ] ) ) {
+			$field  = $section['form_benchmark'][ $form ]['field'];
+			$lookup = $section['form_benchmark'][ $form ]['lookup'];
+		}
+		$chosen = ( '' !== $field && isset( $values[ $field ] ) ) ? (string) $values[ $field ] : '';
+		return array( $field, $lookup, $chosen );
+	}
+
+	/**
+	 * The line beside the bar naming whose goal it is, or '' where the
+	 * section's goal is not a chosen band.
+	 */
+	public static function goal_line( $section_id, $values ) {
+		$section = self::section( $section_id );
+		if ( ! $section ) return '';
+		list( , $lookup, $chosen ) = self::goal_source( $section_id, $section, $values );
+		if ( 'fluency_norm' === $lookup ) {
+			$norms = self::fluency_norms();
+			if ( ! isset( $norms[ $chosen ] ) ) return '';
+			return ( null === $norms[ $chosen ]['wcpm'] )
+				? $norms[ $chosen ]['label'] . ', no published norm'
+				: $norms[ $chosen ]['label'] . ' norm, ' . $norms[ $chosen ]['wcpm'] . ' ' . $section['unit'];
+		}
+		if ( 'word_minimum' === $lookup ) {
+			$all = self::word_minimums();
+			if ( ! isset( $all[ $chosen ] ) ) return '';
+			return $all[ $chosen ]['label'] . ' minimum, ' . $all[ $chosen ]['wpm'] . ' words per minute';
+		}
+		return '';
 	}
 
 	/** The word lists the spelling test is drawn from, Kindergarten to Grade 12. */
@@ -528,6 +679,21 @@ class BFTD_Schema {
 			$swap['{norm_grade}'] = isset( $norms[ $chosen ] ) ? $norms[ $chosen ]['label'] : '';
 			$swap['{norm_wcpm}']  = ( isset( $norms[ $chosen ] ) && null !== $norms[ $chosen ]['wcpm'] )
 				? (string) $norms[ $chosen ]['wcpm'] : '';
+			// The norm as one cell of the passage results table.
+			$swap['{norm_line}'] = ! isset( $norms[ $chosen ] ) ? ''
+				: ( null === $norms[ $chosen ]['wcpm']
+					? $norms[ $chosen ]['label'] . ', no published norm'
+					: $norms[ $chosen ]['wcpm'] . ' WCPM, ' . $norms[ $chosen ]['label'] );
+		}
+
+		// The word list's minimums: Kindergarten's, which is fixed, and the
+		// enrolled grade's, which the tutor chose.
+		if ( isset( $section['fields']['min_grade'] ) ) {
+			$mins   = self::word_minimums();
+			$chosen = isset( $values['min_grade'] ) ? (string) $values['min_grade'] : '';
+			$swap['{k_min_line}']     = $mins['k']['wpm'] . ' WPM';
+			$swap['{min_grade_line}'] = isset( $mins[ $chosen ] )
+				? $mins[ $chosen ]['wpm'] . ' WPM, ' . $mins[ $chosen ]['label'] : '';
 		}
 
 		return $swap;
@@ -621,6 +787,9 @@ class BFTD_Schema {
 		}
 		if ( ! $cfg ) return '';
 
+		// One of two alternative assessments: drawn only for the one done.
+		if ( ! self::shows_for_form( $section_id, $cfg, $values ) ) return '';
+
 		$swap = self::swaps( $section, $values );
 
 		// A table can stand aside for another one. Two accounts of the same
@@ -646,6 +815,13 @@ class BFTD_Schema {
 			}
 		}
 		if ( $reports_score && '' === trim( (string) $swap['{score}'] ) ) return '';
+
+		// A table can name the figure it exists to report, where that is not
+		// the score.
+		if ( ! empty( $cfg['needs'] ) ) {
+			$need = isset( $values[ $cfg['needs'] ] ) ? trim( (string) $values[ $cfg['needs'] ] ) : '';
+			if ( '' === $need ) return '';
+		}
 
 		// The head row carries figures in some sections and column labels in
 		// others, so it is substituted the same way the body is.
@@ -681,7 +857,10 @@ class BFTD_Schema {
 			// A row whose figure has not been entered is not shown. A parent
 			// reading "Total letters written:" with nothing after it assumes
 			// something is broken rather than that it is early days.
-			if ( '' === trim( (string) end( $cells ) ) ) continue;
+			// A table can ask to keep its one row of results whatever its last
+			// column holds: its own score check above already decided whether
+			// there is a reading to report.
+			if ( empty( $cfg['keep_row'] ) && '' === trim( (string) end( $cells ) ) ) continue;
 			$rows[] = $cells;
 		}
 		if ( ! $rows && ! $head_says ) return '';
@@ -1399,85 +1578,129 @@ class BFTD_Schema {
 		$s['dxsec-4']['own_order']       = true;
 		$s['dxsec-4']['benchmark_field']  = 'norm';
 		$s['dxsec-4']['benchmark_lookup'] = 'fluency_norm';   // the band stands for a figure
-		$s['dxsec-4']['fields']          = array(
-			'words'  => array( 'type' => 'number', 'label' => 'Total words read', 'card' => true,
-			                   'help' => 'What the one minute timing produced, before errors are taken off.' ),
-			'errors' => array( 'type' => 'number', 'label' => 'Errors', 'card' => true ),
 
-			// A student reading at Kindergarten level or lower does a sixty
-			// word list rather than a passage, which is what the introduction
-			// to this section explains. There is no passage and so no errors
-			// to take off: the figure is counted directly. Filling this in is
-			// what swaps the results table for the Kindergarten one.
-			'kinder_score' => array(
-				'type'  => 'number',
-				'label' => 'Kindergarten word list, correct words per minute',
-				'card'  => true,
-				'help'  => 'For a student reading at Kindergarten level or lower. Filling this in swaps the results table below, and leaves the passage figures unused.',
+		// Two assessments, and a student does one. The tutor says which; a
+		// report from before there was a choice is read from what was filled
+		// in, word list first, as it always was. Fields marked 'form' belong
+		// to one of them only, on the report and on the tutor's screen.
+		$s['dxsec-4']['form_field']     = 'form';
+		$s['dxsec-4']['form_infer']     = array( 'kinder' => 'kinder_score', 'passage' => 'words' );
+		$s['dxsec-4']['form_benchmark'] = array(
+			'kinder' => array( 'field' => 'min_grade', 'lookup' => 'word_minimum' ),
+		);
+		$s['dxsec-4']['fields']          = array(
+			'form' => array(
+				'type'    => 'select',
+				'label'   => 'Which assessment',
+				'card'    => true,   // a choice, not something printed on the report
+				'options' => array(
+					''        => 'Not chosen',
+					'passage' => 'Timed passage reading',
+					'kinder'  => 'Kindergarten word fluency',
+				),
+				'help'    => 'Only one is done. The report shows the one chosen here. Kindergarten word fluency is for a student whose independent reading level is Kindergarten or lower.',
 			),
-			// Total words read, less the errors. A tutor was doing this in
-			// their head between two boxes on the same screen, and a figure
-			// typed once does not follow a correction made to either of the
-			// two it came from.
-			'score'  => array( 'type' => 'number', 'label' => 'Correct words per minute', 'card' => true,
-			                   'derived' => array( 'minus' => array( 'words', 'errors' ), 'else' => 'kinder_score' ),
+
+			'words'  => array( 'type' => 'number', 'label' => 'Total words read', 'card' => true, 'form' => 'passage',
+			                   'help' => 'What the one minute timing produced, before errors are taken off.' ),
+			'errors' => array( 'type' => 'number', 'label' => 'Errors', 'card' => true, 'form' => 'passage' ),
+
+			// Total words read, less the errors. On the word list there is no
+			// passage and no errors to take off, so the figure is the one
+			// counted from the list.
+			'score'  => array( 'type' => 'number', 'label' => 'Correct words per minute', 'card' => true, 'form' => 'passage',
+			                   'derived' => array( 'minus' => array( 'words', 'errors' ), 'else' => 'kinder_score', 'else_form' => 'kinder' ),
 			                   'help' => 'The figure the card reports. The bar is this against the norm chosen below.' ),
 			'norm'   => array(
 				'type'    => 'select',
-				'label'   => 'End of school year norm',
+				'label'   => 'End of year norm for enrolled grade',
 				'card'    => true,
+				'form'    => 'passage',
 				'options' => self::fluency_norm_options(),
 				'help'    => 'The band this reading is measured against. It sets the goal on the card.',
 			),
 
-			'body' => array(
+			'kinder_score' => array(
+				'type'  => 'number',
+				'label' => 'Total words per minute',
+				'card'  => true,
+				'form'  => 'kinder',
+				'help'  => 'Counted from the one minute Kindergarten word list. The figure the card reports.',
+			),
+			'min_grade' => array(
+				'type'    => 'select',
+				'label'   => 'Enrolled grade',
+				'card'    => true,
+				'form'    => 'kinder',
+				'options' => self::word_minimum_options(),
+				'help'    => 'Sets the minimum for the enrolled grade in the results table, and the goal on the card.',
+			),
+
+			/* ---- Timed passage reading ---- */
+			'passage_intro' => array(
 				'type'      => 'rich',
 				'edit_rank' => 3,
-				'label'     => 'Intro',
-				'help'      => 'What the assessment is. The results and the norms are drawn under this.',
+				'form'      => 'passage',
+				'label'     => 'Intro, timed passage reading',
+				'help'      => 'What the assessment is. The norms and the results are drawn under this.',
 				'shipped'   => self::passage_intro(),
 			),
-
-			// What this child did, drawn from the three counts and the band.
-			// It stands aside when the Kindergarten word list was used, because
-			// the two describe the same minute of reading and showing both
-			// would leave a parent working out which one counted.
-			'results' => array(
-				'type'   => 'figures',
-				'label'  => 'Results',
-				'title'  => 'One minute timed reading assessment',
-				'sub'    => 'Reading a paragraph',
-				'unless' => 'kinder_score',
-				'tiles'  => array(
-					array( 'value' => '{score}',  'label' => 'Correct words per minute' ),
-					array( 'value' => '{words}',  'label' => 'Total words read' ),
-					array( 'value' => '{errors}', 'label' => 'Errors' ),
-					array( 'value' => '{norm_wcpm}', 'label' => 'End of year norm, {norm_grade}' ),
-				),
-			),
-
-			// The same minute of reading, when it was a word list rather than
-			// a passage. Drawn only when that figure was entered, so a section
-			// never shows two accounts of one assessment.
-			'kinder_results' => array(
-				'type'  => 'figures',
-				'label' => 'Results, Kindergarten word list',
-				'title' => 'One minute timed reading assessment',
-				'sub'   => 'Kindergarten level words',
-				'tiles' => array(
-					array( 'value' => '{kinder_score}', 'label' => 'Correct words per minute' ),
-					array( 'value' => '{norm_wcpm}',    'label' => 'End of year norm, {norm_grade}' ),
-				),
-			),
-
-			// The published norms, the same on every report.
-			'norms_key' => array(
+			'passage_norms' => array(
 				'type'  => 'score_table',
-				'label' => 'Benchmarks',
-				'title' => 'Benchmarks',
+				'form'  => 'passage',
+				'label' => 'Passage reading norms',
+				'title' => 'Passage reading norms for oral reading fluency',
 				'derived_note' => 'Fixed, and the same on every report. Nothing here is typed.',
-				'head'  => array( 'Grade', 'Words correct per minute, 50th percentile, spring' ),
-				'rows'  => self::fluency_norm_rows(),
+				'head'  => array( 'Grade', '50th percentile (spring) WCPM' ),
+				'rows'  => self::passage_norm_rows(),
+				'note'  => 'WCPM: words correct per minute, toward the end of a grade level (spring).',
+			),
+			'passage_results' => array(
+				'type'     => 'score_table',
+				'form'     => 'passage',
+				'keep_row' => true,
+				'label'    => 'Results',
+				'title'    => '1-minute timed reading, unpracticed grade-level passage',
+				'derived_note' => 'Drawn from the figures above. Nothing here is typed.',
+				'head'     => array( 'Total words read', 'Errors', 'WCPM (words correct per minute)', 'End of year ORF norm for enrolled grade' ),
+				'rows'     => array( array( '{words}', '{errors}', '{score} WCPM', '{norm_line}' ) ),
+			),
+			'passage_note' => array(
+				'type'  => 'reference',
+				'form'  => 'passage',
+				'label' => 'About the norm',
+				'html'  => self::passage_norm_note(),
+			),
+
+			/* ---- Kindergarten word fluency ---- */
+			'kinder_intro' => array(
+				'type'      => 'rich',
+				'edit_rank' => 3,
+				'form'      => 'kinder',
+				'label'     => 'Intro, Kindergarten word fluency',
+				'heading'   => 'Kindergarten word fluency assessment',
+				'help'      => 'What the assessment is. The minimums and the results are drawn under this.',
+				'shipped'   => self::kinder_intro(),
+			),
+			'kinder_minimums' => array(
+				'type'  => 'score_table',
+				'form'  => 'kinder',
+				'label' => 'Minimum speed benchmarks',
+				'derived_note' => 'Fixed, and the same on every report. Nothing here is typed.',
+				'head'  => array( 'Grade', 'Minimum speed benchmarks' ),
+				'rows'  => self::word_minimum_rows(),
+			),
+			'kinder_results' => array(
+				'type'     => 'score_table',
+				'form'     => 'kinder',
+				'keep_row' => true,
+				'needs'    => 'kinder_score',
+				'label'    => 'Results',
+				'title'    => '1-minute timed reading, unpracticed Kindergarten word list',
+				'derived_note' => 'Drawn from the figures above. Nothing here is typed.',
+				'head'     => array( 'Total WPM', 'Minimum WPM for Kindergarten', 'Minimum WPM for enrolled grade' ),
+				'rows'     => array( array( '{kinder_score}', '{k_min_line}', '{min_grade_line}' ) ),
+				'note'     => 'WPM: words per minute.',
 			),
 
 			'images' => array( 'type' => 'gallery', 'label' => 'Work samples' ),
@@ -1489,15 +1712,23 @@ class BFTD_Schema {
 				'help'    => 'What you saw, in your own words. Shown under the results.',
 			),
 
-			// One block, carrying its own two headings. A field is given one
-			// heading by the renderer, and this answers two questions, so the
-			// headings live in the wording rather than beside it.
-			'method' => array(
+			'passage_method' => array(
 				'type'      => 'rich',
-				'label'     => 'How the method addresses this',
+				'label'     => 'How Linguistic Literacy helps, timed passage reading',
+				'heading'   => 'How does Linguistic Literacy help?',
 				'edit_rank' => 3,
-				'help'      => 'The practice\'s standing answer, including its own headings. Shown under the notes.',
+				'form'      => 'passage',
+				'help'      => 'The practice\'s standing answer. Shown under the notes.',
 				'shipped'   => self::passage_method(),
+			),
+			'kinder_method' => array(
+				'type'      => 'rich',
+				'label'     => 'How Linguistic Literacy helps, Kindergarten word fluency',
+				'heading'   => 'How does Linguistic Literacy help?',
+				'edit_rank' => 3,
+				'form'      => 'kinder',
+				'help'      => 'The practice\'s standing answer. Shown under the notes.',
+				'shipped'   => self::kinder_method(),
 			),
 		);
 

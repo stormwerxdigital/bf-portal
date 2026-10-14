@@ -32,6 +32,7 @@ class BFTD_Schema {
     for ($g=1; $g<=8; $g++) $l['grade-'.$g] = 'Grade '.$g;
     return $l;
   }
+  public static function shows_for_form($s,$f,$v){ return true; }
   public static function sections_for_screen($s){
     return array(
       'sec-progress-overview' => array('label'=>'Reading level','chart'=>'journey','fields'=>array('intro'=>array('type'=>'textarea','lede'=>true))),

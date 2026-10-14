@@ -331,17 +331,15 @@ HTML,
 				// offered in case a tutor has the scoring sheet.
 			),
 
-			// Twelve correct words in the minute, measured against the Grade 1
-			// band. The bar is that against 60, which the page works out from
-			// the band chosen rather than from a percentage anybody typed.
 			// Kaine reads at Preprimer, so he did the Kindergarten word list
-			// rather than a passage. That is the case the introduction to this
-			// section describes, and it is the one worth demonstrating: the
-			// results table swaps, and the explanation that belongs with the
-			// word list appears with it.
+			// rather than a passage: twelve words in the minute, against the
+			// Kindergarten minimum of 30 and his enrolled grade's (Grade 8,
+			// 130). The bar is that against 130, worked out from the grade
+			// chosen rather than from a percentage anybody typed.
 			'dxsec-4' => array(
+				'form'         => 'kinder',
 				'kinder_score' => '12',
-				'norm'         => 'grade-1',
+				'min_grade'    => 'grade-8',
 				'images'       => array( BFTD_URL . 'assets/img/work-sample.svg' ),
 			),
 
@@ -787,7 +785,7 @@ HTML,
 			// count of the points marked yes. Handing those a score directly
 			// would be filling in a field nobody can fill in, and the card
 			// would come out blank — which it did.
-			'dxsec-4' => array( 'words' => '71', 'errors' => '7', 'norm' => 'grade-3' ),
+			'dxsec-4' => array( 'form' => 'passage', 'words' => '71', 'errors' => '7', 'norm' => 'grade-3' ),
 			'dxsec-5' => array( 'score' => '75', 'score_of' => '79' ),
 			'dxsec-6' => array(
 				'conventions' => self::writing_marks( array(

@@ -3436,3 +3436,32 @@ jQuery( function ( $ ) {
 		$q.on( 'blur', function () { setTimeout( close, 150 ); } );
 	} );
 }( jQuery ) );
+
+/* ==========================================================================
+   One of two assessments
+
+   Timed reading is a passage or a Kindergarten word list, and a student does
+   one. The fields that belong to only one of them follow the "Which
+   assessment" choice. The server decides what is hidden when the page is
+   drawn; this only follows a change. With nothing chosen, both are shown.
+   ========================================================================== */
+( function ( $ ) {
+	'use strict';
+
+	var $parts = $( '.bftd-form-part' );
+	if ( ! $parts.length ) return;
+
+	var sections = {};
+	$parts.each( function () { sections[ $( this ).data( 'section' ) ] = true; } );
+
+	$.each( sections, function ( section ) {
+		$( '[name="bftd[' + section + '][form]"]' ).on( 'change', function () {
+			var form = bftdTrim( $( this ).val() || '' );
+			$parts.filter( '[data-section="' + section + '"]' ).each( function () {
+				var $p = $( this );
+				if ( '' === form || String( $p.data( 'form' ) ) === form ) $p.removeAttr( 'hidden' );
+				else $p.attr( 'hidden', 'hidden' );
+			} );
+		} );
+	} );
+}( jQuery ) );

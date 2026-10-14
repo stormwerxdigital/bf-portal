@@ -62,6 +62,15 @@ class BFTD_Fields {
 			return self::count_answers( $post_id, $section_id, $field['derived']['count'] );
 		}
 		if ( isset( $field['derived'] ) ) {
+			// Where the section is one of two assessments, the one done says
+			// which figure this is: the fallback's on its own form, the sum's
+			// on the other, so figures left over from the one not done never
+			// stand in for the one that was.
+			if ( ! empty( $field['derived']['else_form'] ) ) {
+				$form = self::form_of( $post_id, $section_id );
+				if ( $form === $field['derived']['else_form'] ) return self::derive_else( $post_id, $section_id, $field['derived'] );
+				if ( '' !== $form ) return self::derive( $post_id, $section_id, $field['derived'] );
+			}
 			$out = self::derive( $post_id, $section_id, $field['derived'] );
 			if ( '' === $out ) $out = self::derive_else( $post_id, $section_id, $field['derived'] );
 			return $out;
@@ -195,6 +204,23 @@ class BFTD_Fields {
 		return self::get( $post_id, $section_id, $rule['else'], $def );
 	}
 
+	/**
+	 * Which of a section's alternative assessments this record holds.
+	 * Reads only the fields that decide it, and lets the schema decide.
+	 */
+	public static function form_of( $post_id, $section_id ) {
+		$section = BFTD_Schema::section( $section_id );
+		if ( ! $section || empty( $section['form_field'] ) ) return '';
+		$keys = array_merge( array( $section['form_field'] ),
+			array_values( isset( $section['form_infer'] ) ? (array) $section['form_infer'] : array() ) );
+		$vals = array();
+		foreach ( $keys as $k ) {
+			$def        = isset( $section['fields'][ $k ] ) ? $section['fields'][ $k ] : array();
+			$vals[ $k ] = self::get( $post_id, $section_id, $k, $def );
+		}
+		return BFTD_Schema::active_form( $section_id, $vals );
+	}
+
 	/** Did the figures a derived field was worked out from not make sense? */
 	public static function derive_warning( $post_id, $section_id, $field ) {
 		if ( empty( $field['derived']['minus'] ) ) return '';
@@ -311,6 +337,9 @@ class BFTD_Fields {
 			// as real as the fields underneath it, which are checked here in
 			// their own right.
 			if ( ! empty( $field['fixed'] ) || ! empty( $field['derived'] ) ) continue;
+
+			// Choosing which assessment will be done is not doing it.
+			if ( $section && isset( $section['form_field'] ) && $key === $section['form_field'] ) continue;
 
 			// Standing text a person never typed is not a report. A section
 			// whose only content is its own boilerplate has not been started,
@@ -446,8 +475,22 @@ class BFTD_Fields {
 					<p class="bftd-derived"><?php echo esc_html( $section['derived'] ); ?></p>
 				<?php endif; ?>
 
+				<?php
+				// Where a section is one of two assessments, each field that
+				// belongs to only one of them is wrapped so the screen can show
+				// the one chosen. The server decides what starts hidden; the
+				// script only follows a change of choice.
+				$form = isset( $section['form_field'] ) ? self::form_of( $post_id, $section_id ) : '';
+				?>
 				<?php foreach ( $section['fields'] as $key => $field ) : ?>
-					<?php self::render_field( $post_id, $section_id, $key, $field ); ?>
+					<?php if ( ! empty( $field['form'] ) ) : ?>
+						<div class="bftd-form-part" data-section="<?php echo esc_attr( $section_id ); ?>" data-form="<?php echo esc_attr( $field['form'] ); ?>"<?php
+							echo ( '' !== $form && $form !== $field['form'] ) ? ' hidden' : ''; ?>>
+							<?php self::render_field( $post_id, $section_id, $key, $field ); ?>
+						</div>
+					<?php else : ?>
+						<?php self::render_field( $post_id, $section_id, $key, $field ); ?>
+					<?php endif; ?>
 				<?php endforeach; ?>
 
 				<?php if ( ! empty( $section['thread'] ) ) : self::render_thread_note( $post_id, $section_id ); endif; ?>
@@ -497,6 +540,18 @@ class BFTD_Fields {
 		}
 		if ( 'checklist' === $type ) {
 			self::render_checklist( $post_id, $section_id, $key, $field );
+			return;
+		}
+		// Fixed reference wording: shown as the family will read it, with no
+		// box, because nothing in it belongs to one report.
+		if ( 'reference' === $type ) {
+			?>
+			<div class="bftd-field bftd-field-derived">
+				<label class="bftd-label"><?php echo esc_html( $field['label'] ); ?></label>
+				<div class="bftd-locked-box"><?php echo wp_kses_post( $field['html'] ); ?></div>
+				<p class="description">Fixed, and the same on every report. Nothing here is typed.</p>
+			</div>
+			<?php
 			return;
 		}
 		if ( 'criteria' === $type ) {
@@ -824,6 +879,13 @@ class BFTD_Fields {
 
 	private static function render_score_preview( $post_id, $section_id, $field, $field_key = null ) {
 		$values = self::get_section( $post_id, $section_id );
+		// A table that belongs to one of two assessments is previewed as that
+		// assessment would draw it, so switching the choice on screen shows
+		// the table rather than an empty box.
+		$section = BFTD_Schema::section( $section_id );
+		if ( ! empty( $field['form'] ) && ! empty( $section['form_field'] ) ) {
+			$values[ $section['form_field'] ] = $field['form'];
+		}
 		?>
 		<div class="bftd-field bftd-field-derived">
 			<label class="bftd-label"><?php echo esc_html( $field['label'] ); ?></label>

@@ -135,10 +135,12 @@ check(0.0 === BFTD_Schema::measure('dxsec-4', array('score' => '30', 'norm' => '
 $view = file_get_contents(BFTD_PATH . 'includes/class-bftd-report-view.php');
 check(false !== strpos($view, 'BFTD_Schema::measure( $id, $v )'),
   'which is the one rule the card and the progress chart both read');
-check(1 === preg_match('/no published norm/', $view),
+check(false !== strpos($view, 'BFTD_Schema::goal_line( $id, $v )'),
+  'and the line beside the bar is the schema\'s, from the same lists');
+check('Grade 4 norm, 133 correct words per minute' === BFTD_Schema::goal_line('dxsec-4', array('form' => 'passage', 'norm' => 'grade-4')),
+  'a band with a figure names the grade as well as the number');
+check('Kindergarten, no published norm' === BFTD_Schema::goal_line('dxsec-4', array('form' => 'passage', 'norm' => 'k')),
   'and a band with no figure is said in words beside the bar');
-check(1 === preg_match('/norm, .\s*\.\s*\$norms\[ \$chosen \]\[.wcpm.\]/', $view),
-  'while a band with one names the grade as well as the number');
 
 /* ---- one list of norms, used everywhere ---- */
 $opts = BFTD_Schema::fluency_norm_options();
@@ -146,172 +148,161 @@ check(11 === count($opts), 'the picker offers all ten, plus "not chosen"');
 check(false !== strpos($opts['grade-8'], '151'), 'each choice shows the figure it is measured against');
 check(false !== strpos($opts['k'], 'no published norm'), 'and says so where there is none');
 
-$rows = BFTD_Schema::fluency_norm_rows();
-check(10 === count($rows), 'the reference table is drawn from that same list');
-check('60' === $rows[1][1], 'so a figure cannot differ between the picker and the table');
-check(false !== strpos($rows[0][1], 'Pre-reading skills'),
-  'and a band with no figure explains itself there too');
+/* ======================================================================
+   Two assessments, and a student does one.
+   From the tutor training document: "4 Timed Passage Reading" and
+   "4 Kindergarten Word Fluency Assessment".
+   ==================================================================== */
+check('select' === $f['form']['type'] && 'form' === $s['form_field'], 'the tutor chooses which assessment was done');
+check(array('', 'passage', 'kinder') === array_keys($f['form']['options']), 'a passage or the Kindergarten word list');
+check(!empty($f['form']['card']), 'the choice itself is never printed on the report');
 
-/* ---- the two tables ---- */
-/* A single result in a one row table is a number floating at the far right of
-   a wide band with its label at the far left and nothing joining them. These
-   are shown as the design shows figures, using its own tiles rather than a
-   second thing invented for the purpose. */
-check('figures' === $f['results']['type'], 'this child\'s results are drawn as figures, not as a table');
-check(4 === count($f['results']['tiles']), 'four of them for a passage');
-check('{score}' === $f['results']['tiles'][0]['value'],
-  'led by the figure the whole section is about');
-check('score_table' === $f['norms_key']['type'], 'and so are the published norms');
-check('Benchmarks' === $f['norms_key']['title'],
-  'under a heading, so a table of ten grades is not left to explain itself');
-check(false !== strpos(BFTD_Schema::score_table_html('dxsec-4', array(), 'norms_key'), 'Benchmarks'),
-  'which is drawn above it');
+/* Which one, for every report, including ones written before there was a choice. */
+check('passage' === BFTD_Schema::active_form('dxsec-4', array('form' => 'passage', 'kinder_score' => '12')), 'the choice wins over leftover figures');
+check('kinder'  === BFTD_Schema::active_form('dxsec-4', array('form' => 'kinder', 'words' => '40')), 'in both directions');
+check('kinder'  === BFTD_Schema::active_form('dxsec-4', array('kinder_score' => '12', 'words' => '40')), 'an older report with a word list figure is the word list, as it always was');
+check('passage' === BFTD_Schema::active_form('dxsec-4', array('words' => '40')), 'and one with passage figures is the passage');
+check(''        === BFTD_Schema::active_form('dxsec-4', array()), 'and nothing chosen or filled in is no answer');
+check(''        === BFTD_Schema::active_form('dxsec-4', array('form' => 'nonsense')), 'a value that is not a choice is not taken as one');
 
-$html = BFTD_Schema::figures_html('dxsec-4',
-  array('words' => 17, 'errors' => 5, 'score' => 12, 'norm' => 'grade-1'), 'results');
-check(false !== strpos($html, '>12<'), 'the figures report the correct words per minute');
-check(false !== strpos($html, '>17<'), 'the total read');
-check(false !== strpos($html, '>5<'),  'and the errors');
-/* The band is split into the two parts a tile needs. Its whole label set at
-   tile size shouted over the score it was there to be compared with; a bare 60
-   beside a bare 12 is the comparison. */
-check(false !== strpos($html, '>60<'), 'the norm is shown as the figure to compare against');
-check(false !== strpos($html, 'End of year norm, Grade 1'), 'with the band named under it');
-check(false === strpos($html, 'grade-1'), 'never the key that was stored');
-
-/* A band with no published figure has nothing to compare against, so it has no
-   tile. The card already says so in words. */
-check(false === strpos(BFTD_Schema::figures_html('dxsec-4', array('kinder_score' => 12, 'norm' => 'k'), 'kinder_results'), 'End of year norm'),
-  'and a band with no published figure shows no comparison at all');
-check('' === BFTD_Schema::figures_html('dxsec-4', array(), 'results'),
-  'and nothing at all before anybody has been timed');
-
-/* Drawn with the design's own tiles, and with as many columns as there are
-   figures, so one result does not stretch across a grid built for four. */
-check(false !== strpos($html, 'class="kpis n4"'), 'four figures use four columns');
-check(1 === preg_match('/class="kpis n2"/',
-  BFTD_Schema::figures_html('dxsec-4', array('kinder_score' => 10, 'norm' => 'grade-1'), 'kinder_results')),
-  'and two use two');
-check(1 === preg_match('/class="kpis n1"/',
-  BFTD_Schema::figures_html('dxsec-4', array('kinder_score' => 10), 'kinder_results')),
-  'while one on its own uses one');
-check(4 === substr_count($html, 'class="kpit"'), 'each figure is one of the design\'s tiles');
-
-/* Which of the two assessments the child did, on a line of its own. Run into
-   the title it read as one long sentence, and the part saying what they
-   actually did is the part a parent needs to pick out. */
-check('One minute timed reading assessment' === $f['results']['title']
-   && 'One minute timed reading assessment' === $f['kinder_results']['title'],
-  'both assessments are titled the same, because they are the same minute');
-check('Reading a paragraph' === $f['results']['sub'], 'one says it was a paragraph');
-check('Kindergarten level words' === $f['kinder_results']['sub'], 'the other that it was the word list');
-check(1 === preg_match('#figs-t">One minute timed reading assessment</h4>\s*<p class="figs-s">Reading a paragraph</p>#s', $html),
-  'drawn under the title rather than run into it');
-$rcss = file_get_contents(BFTD_PATH . 'assets/css/bftd-report.css');
-check(1 === preg_match('/\.figs-s\{[^}]*color:var\(--bf-purple\)/', $rcss),
-  'and in the accent the rest of the report uses for that job, not as more heading');
-
-/* ---- the Kindergarten word list ------------------------------------------
-   A student reading at Kindergarten level or lower does a sixty word list
-   rather than a passage. It is the same minute of reading reported a different
-   way, so the section shows one account of it or the other, never both. */
-
-check(isset($f['kinder_score']) && 'number' === $f['kinder_score']['type'],
-  'the Kindergarten word list has a figure of its own');
-check('figures' === $f['kinder_results']['type'], 'and figures of its own');
-
-/* The card must still have a figure to report, or a child who was assessed
-   drops off the summary cards entirely. */
-check('kinder_score' === $f['score']['derived']['else'],
-  'the card falls back to the word list figure when there is no passage');
+/* The card's figure follows the choice, not whichever boxes happen to be full. */
+$GLOBALS['META'][5] = array(
+  BFTD_Schema::meta_key('dxsec-4', 'form')         => 'kinder',
+  BFTD_Schema::meta_key('dxsec-4', 'words')        => '17',
+  BFTD_Schema::meta_key('dxsec-4', 'errors')       => '5',
+  BFTD_Schema::meta_key('dxsec-4', 'kinder_score') => '9',
+);
+check('9' === BFTD_Fields::get(5, 'dxsec-4', 'score', $f['score']), 'the word list chosen: the card reports the word list figure');
+$GLOBALS['META'][5][BFTD_Schema::meta_key('dxsec-4', 'form')] = 'passage';
+check('12' === BFTD_Fields::get(5, 'dxsec-4', 'score', $f['score']), 'the passage chosen: words less errors, never the word list figure');
+unset($GLOBALS['META'][5][BFTD_Schema::meta_key('dxsec-4', 'words')]);
+check('' === BFTD_Fields::get(5, 'dxsec-4', 'score', $f['score']), 'and with the passage half filled in, no figure rather than the word list one');
 $GLOBALS['META'][4] = array(BFTD_Schema::meta_key('dxsec-4', 'kinder_score') => '12');
-check('12' === BFTD_Fields::get(4, 'dxsec-4', 'score', $f['score']),
-  'so a word list reading still reaches the card');
+check('12' === BFTD_Fields::get(4, 'dxsec-4', 'score', $f['score']), 'an older word list report still reaches the card');
 $GLOBALS['META'][4] = array(
   BFTD_Schema::meta_key('dxsec-4', 'words')        => '17',
   BFTD_Schema::meta_key('dxsec-4', 'errors')       => '5',
   BFTD_Schema::meta_key('dxsec-4', 'kinder_score') => '99',
 );
-check('12' === BFTD_Fields::get(4, 'dxsec-4', 'score', $f['score']),
-  'while a passage reading is still the sum, not the fallback');
+check('99' === BFTD_Fields::get(4, 'dxsec-4', 'score', $f['score']), 'and an older report with both filled reads as the word list, which is what it showed before');
 
-/* One account of the minute, not two. */
-$passage = array('words' => 17, 'errors' => 5, 'score' => 12, 'norm' => 'grade-1');
-$kinder  = array('kinder_score' => 12, 'score' => 12, 'norm' => 'grade-1');
-$both    = array_merge($passage, array('kinder_score' => 12));
+/* Every field that belongs to one assessment says which. */
+foreach (array('words','errors','score','norm','passage_intro','passage_norms','passage_results','passage_note','passage_method') as $key) {
+  check(isset($f[$key]) && 'passage' === $f[$key]['form'], "$key belongs to the passage");
+}
+foreach (array('kinder_score','min_grade','kinder_intro','kinder_minimums','kinder_results','kinder_method') as $key) {
+  check(isset($f[$key]) && 'kinder' === $f[$key]['form'], "$key belongs to the word list");
+}
+foreach (array('images','body_after') as $key) {
+  check(isset($f[$key]) && empty($f[$key]['form']), "$key is shared by both");
+}
+check(!isset($f['results']) && !isset($f['norms_key']) && !isset($f['body']) && !isset($f['method']),
+  'the old single section\'s figures, benchmarks, intro and answer are gone');
 
-check('' !== BFTD_Schema::figures_html('dxsec-4', $passage, 'results'),
-  'a passage draws the passage figures');
-check('' === BFTD_Schema::figures_html('dxsec-4', $passage, 'kinder_results'),
-  'and not the word list ones');
-check('' !== BFTD_Schema::figures_html('dxsec-4', $kinder, 'kinder_results'),
-  'a word list draws the word list figures');
-check('' === BFTD_Schema::figures_html('dxsec-4', $kinder, 'results'),
-  'and not the passage ones');
-check('kinder_score' === $f['results']['unless'],
-  'the passage figures are the ones that stand aside');
-check('' === BFTD_Schema::figures_html('dxsec-4', $both, 'results'),
-  'so filling both in shows the word list, rather than two accounts of one minute');
+/* ---- Timed passage reading ---- */
+$passage = array('form' => 'passage', 'words' => 49, 'errors' => 9, 'score' => 40, 'norm' => 'grade-4');
+$kinder  = array('form' => 'kinder', 'kinder_score' => 12, 'score' => 12, 'min_grade' => 'grade-8');
 
-/* The bug this rule was written after: a table drew because its other rows had
-   values, with the figure it exists to report left blank. Picking a norm was
-   enough to put an empty Kindergarten table on every report. */
-check(false === strpos(BFTD_Schema::figures_html('dxsec-4', array('norm' => 'grade-1'), 'kinder_results'), 'kpit'),
-  'choosing a norm alone does not report a reading nobody did');
-check(false === strpos(BFTD_Schema::figures_html('dxsec-4', array('norm' => 'grade-1'), 'results'), 'Correct words'),
-  'in either direction');
+$norms_html = BFTD_Schema::score_table_html('dxsec-4', $passage, 'passage_norms');
+check(false !== strpos($norms_html, 'Passage reading norms for oral reading fluency'), 'the passage norms are titled as the document titles them');
+check(false !== strpos($norms_html, '50th percentile (spring) WCPM'), 'as the 50th percentile, spring');
+foreach (array('Grade 1' => '60 WCPM', 'Grade 4' => '133 WCPM', 'Grade 8' => '151 WCPM') as $g => $w) {
+  check(false !== strpos($norms_html, "<td>$g</td><td>$w"), "$g reads $w");
+}
+check(false !== strpos($norms_html, 'not a typo'), 'Grade 6 keeps its note about the middle-school slump');
+check(2 === substr_count($norms_html, '(2006 norms)'), 'Grades 7 and 8 say they are the 2006 norms');
+check(false !== strpos($norms_html, 'No ORF norm (pre-reading skills assessed instead)'), 'Kindergarten says there is no ORF norm');
+check(false === strpos($norms_html, 'Grades 9 to 12'), 'and the list stops at Grade 8, as the document does');
 
-/* The explanation of the word list is part of the introduction, which every
-   report carries, rather than a block of its own that appeared only on the
-   reports where the word list was used. That conditional block, and the
-   machinery behind it, are gone: a rule nothing exercises is a rule nobody can
-   trust when something finally does. */
-check(!isset($f['kinder_intro']), 'the word list has no separate explanation of its own');
-$view_src = file_get_contents(BFTD_PATH . 'includes/class-bftd-report-view.php');
-check(0 === preg_match('/only_when/', $view_src),
-  'and the machinery that showed one conditionally went with it');
+$res = BFTD_Schema::score_table_html('dxsec-4', $passage, 'passage_results');
+check(false !== strpos($res, '1-minute timed reading, unpracticed grade-level passage'), 'the results say what was read');
+foreach (array('Total words read','Errors','WCPM (words correct per minute)','End of year ORF norm for enrolled grade') as $h) {
+  check(false !== strpos($res, "<strong>$h</strong>"), "with a column for $h");
+}
+check(false !== strpos($res, '<td>49</td><td>9</td><td>40 WCPM</td><td>133 WCPM, Grade 4</td>'), 'and the document\'s example reads 49, 9, 40 WCPM, 133 WCPM Grade 4');
+check(false !== strpos(BFTD_Schema::score_table_html('dxsec-4', array('form'=>'passage','words'=>49,'errors'=>9,'score'=>40), 'passage_results'), '<td>40 WCPM</td>'),
+  'a reading with no norm chosen yet still shows the reading');
+check('' === BFTD_Schema::score_table_html('dxsec-4', array('form'=>'passage','norm'=>'grade-4'), 'passage_results'),
+  'and a norm chosen with nothing read shows nothing');
+check('' === BFTD_Schema::score_table_html('dxsec-4', $kinder, 'passage_results')
+   && '' === BFTD_Schema::score_table_html('dxsec-4', $kinder, 'passage_norms'),
+  'none of it is drawn when the word list was done');
+
+$note = BFTD_Schema::passage_norm_note();
+check('reference' === $f['passage_note']['type'] && $note === $f['passage_note']['html'], 'the note on the norm is fixed reference wording');
+foreach (array('50th percentile spring benchmark', 'Hasbrouck &amp; Tindal 2017', 'below 140 WCPM', 'middle-school slump',
+               'https://www.readingrockets.org/sites/default/files/2023-08/2017_ORF_NORMS.pdf',
+               'https://www.aimpa.org/uploaded/pdfs/Hasbrouck-ORF_NATIONAL_NORMS_Full_and_50ile.pdf') as $bit) {
+  check(false !== strpos($note, $bit), "with $bit");
+}
+
+/* ---- Kindergarten word fluency ---- */
+$mins = BFTD_Schema::word_minimums();
+check(10 === count($mins), 'ten minimum speeds, Pre-Kindergarten to Grade 8');
+foreach (array('pre-k'=>20,'k'=>30,'grade-1'=>40,'grade-2'=>55,'grade-3'=>70,'grade-4'=>85,'grade-5'=>100,'grade-6'=>115,'grade-7'=>130,'grade-8'=>130) as $key => $wpm) {
+  check($wpm === BFTD_Schema::word_minimum_wpm($key), "$key is $wpm words per minute");
+}
+check('select' === $f['min_grade']['type'] && 11 === count($f['min_grade']['options']), 'the enrolled grade is chosen from that same list');
+
+$mt = BFTD_Schema::score_table_html('dxsec-4', $kinder, 'kinder_minimums');
+check(false !== strpos($mt, '<strong>Minimum speed benchmarks</strong>'), 'the minimums table is headed as the document heads it');
+check(false !== strpos($mt, '<td>Pre-Kindergarten</td><td>20 words per minute</td>'), 'from Pre-Kindergarten');
+check(false !== strpos($mt, '<td>Grade 8</td><td>130 words per minute</td>'), 'to Grade 8');
+
+$kr = BFTD_Schema::score_table_html('dxsec-4', $kinder, 'kinder_results');
+check(false !== strpos($kr, '1-minute timed reading, unpracticed Kindergarten word list'), 'the word list results say what was read');
+foreach (array('Total WPM','Minimum WPM for Kindergarten','Minimum WPM for enrolled grade') as $h) {
+  check(false !== strpos($kr, "<strong>$h</strong>"), "with a column for $h");
+}
+check(false !== strpos($kr, '<td>12</td><td>30 WPM</td><td>130 WPM, Grade 8</td>'), 'and the document\'s example reads 12, 30 WPM, 130 WPM Grade 8');
+check(false !== strpos($kr, 'WPM: words per minute'), 'with WPM spelled out');
+check('' === BFTD_Schema::score_table_html('dxsec-4', array('form'=>'kinder','min_grade'=>'grade-8'), 'kinder_results'),
+  'a grade chosen with nothing read shows nothing');
+check('' === BFTD_Schema::score_table_html('dxsec-4', $passage, 'kinder_results')
+   && '' === BFTD_Schema::score_table_html('dxsec-4', $passage, 'kinder_minimums'),
+  'and none of it is drawn when the passage was done');
+
+/* The word list's goal on the card is the enrolled grade's minimum. */
+check(130.0 === BFTD_Schema::measure('dxsec-4', $kinder)['bench'], 'the word list bar is against the enrolled grade\'s minimum');
+check('Grade 8 minimum, 130 words per minute' === BFTD_Schema::goal_line('dxsec-4', $kinder), 'and says so beside the bar');
+check(133.0 === BFTD_Schema::measure('dxsec-4', $passage)['bench'], 'while the passage bar stays against its norm');
+
+/* ---- the standing wording: two intros and two answers, held by a senior manager ---- */
+$texts = BFTD_Schema::standing_text();
 foreach (array(
-  '60 word Kindergarten fluency assessment' => 'the word list is explained in the introduction',
-  '60-Kindergarten-word fluency assessment' => 'in both of the forms the practice supplied',
-  'smoothly, evenly, at a reasonable speed' => 'under what oral reading fluency is for',
-) as $phrase => $why) {
-  check(false !== strpos(BFTD_Schema::passage_intro(), $phrase), $why);
+  'passage_intro'  => 'Oral reading fluency isn&#8217;t just speed.',
+  'passage_method' => 'EBLI builds fluency from the inside out.',
+  'kinder_intro'   => 'we skip the paragraph reading',
+  'kinder_method'  => 'EBLI raises reading grade level',
+) as $key => $phrase) {
+  check(false !== strpos($f[$key]['shipped'], $phrase), "$key is the wording from the training document");
+  check(3 === (int) $f[$key]['edit_rank'], "$key is changed only by a senior manager or an administrator");
+  check(isset($texts['dxsec-4.' . $key]), "$key can be set portal-wide in Settings");
+  check(false === strpos($f[$key]['shipped'], "\xE2\x80\x94"), "$key has no em dash");
 }
-
-/* ---- the standing wording ---- */
-/* Two blocks at the end of a section is two rich text editors side by side for
-   what reads as one passage, and two entries in Settings for wording nobody
-   would want to change half of. There is one, and it carries its own headings
-   because it answers two questions and a field is given only one. */
-check(!isset($f['what']), 'there is one block at the end of the section, not two');
-check(!isset($f['method']['heading']),
-  'and it is not given a heading, because its wording carries two of its own');
-foreach (array('What is oral reading fluency?',
-               'How does Evidence-Based Literacy Instruction build oral reading fluency?') as $h) {
-  check(false !== strpos(BFTD_Schema::passage_method(), '<h3>' . $h . '</h3>'),
-    "with \"$h\" among them");
-}
-
-foreach (array('body' => 'Intro', 'method' => 'How the method addresses this') as $key => $label) {
-  check(!empty($f[$key]['shipped']), "$label is wording the plugin ships");
-  check(3 === (int) $f[$key]['edit_rank'], "and only a senior manager may change it: $label");
-  check($label === $f[$key]['label'], "labelled $label");
-  check(isset(BFTD_Schema::standing_text()['dxsec-4.' . $key]), "$label can be set portal-wide");
-}
-check(false !== strpos(BFTD_Schema::passage_intro(), '60 word Kindergarten fluency assessment'),
-  'the introduction is the wording the practice supplied');
-check(false !== strpos(BFTD_Schema::passage_method(), 'from the inside out'),
-  'and so is the standing answer');
+check('How does Linguistic Literacy help?' === $f['passage_method']['heading']
+   && 'How does Linguistic Literacy help?' === $f['kinder_method']['heading'], 'both answers carry the document\'s question as their heading');
+check('Kindergarten word fluency assessment' === $f['kinder_intro']['heading'], 'and the word list intro its title');
+check(false !== strpos($f['kinder_intro']['shipped'], 'https://www.donpotter.net/pdf/flesch_exercises.pdf'), 'the word list intro links the Victory Drill Book');
+check(!isset($texts['dxsec-4.body']) && !isset($texts['dxsec-4.method']), 'the old single intro and answer are no longer offered in Settings');
 
 /* ---- the order of the section ---- */
-check(array_search('images', $k, true) < array_search('body_after', $k, true),
-  'work samples come before the notes');
-check(array_search('body_after', $k, true) < array_search('method', $k, true),
-  'the notes come before the standing answer');
-check(array_search('method', $k, true) === count($k) - 1,
-  'which closes the section');
-check(array_search('norm', $k, true) < array_search('body', $k, true),
-  'and the figures are asked for before the prose, as a tutor fills them in');
+$at = function ($key) use ($k) { return array_search($key, $k, true); };
+check($at('form') === 0, 'the choice comes first, as a tutor fills the section in');
+check($at('min_grade') < $at('passage_intro'), 'then the figures, before the prose');
+check($at('passage_intro') < $at('passage_norms') && $at('passage_norms') < $at('passage_results') && $at('passage_results') < $at('passage_note'),
+  'the passage reads intro, norms, results, then the note on the norm');
+check($at('kinder_intro') < $at('kinder_minimums') && $at('kinder_minimums') < $at('kinder_results'),
+  'the word list reads intro, minimums, then results');
+check($at('images') < $at('body_after') && $at('body_after') < $at('passage_method'), 'work samples, then notes, then how the method helps');
+
+/* ---- the report draws one assessment, the editor shows the one chosen ---- */
+$view_src = file_get_contents(BFTD_PATH . 'includes/class-bftd-report-view.php');
+check(1 === preg_match('/shows_for_form\( \$id, \$field, \$values \)/', $view_src), 'the report body leaves out the assessment not done');
+$fsrc = file_get_contents(BFTD_PATH . 'includes/class-bftd-fields.php');
+check(1 === preg_match('/bftd-form-part.*data-form/s', $fsrc), 'the editor wraps each field in the assessment it belongs to');
+check(1 === preg_match("/\\\$form !== \\\$field\['form'\] \) \? ' hidden'/", $fsrc), 'and the server decides which start hidden');
+check(1 === preg_match("/bftd-form-part/", $js) && 1 === preg_match("/\]\[form\]\"\]' \)\.on\( 'change'/", $js), 'the script follows a change of choice');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

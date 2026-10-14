@@ -714,16 +714,10 @@ class BFTD_Report_View {
 
 			// A chosen goal is named beside the bar, because "Goal 151" on its
 			// own tells a parent nothing about whose 151 it is.
-			if ( ! $meta && ! empty( $section['benchmark_field'] )
-				&& ! empty( $section['benchmark_lookup'] ) && 'fluency_norm' === $section['benchmark_lookup'] ) {
-				$chosen = isset( $v[ $section['benchmark_field'] ] ) ? $v[ $section['benchmark_field'] ] : '';
-				$norms  = BFTD_Schema::fluency_norms();
-				if ( isset( $norms[ $chosen ] ) ) {
-					$meta = ( null === $norms[ $chosen ]['wcpm'] )
-						? $norms[ $chosen ]['label'] . ', no published norm'
-						: $norms[ $chosen ]['label'] . ' norm, ' . $norms[ $chosen ]['wcpm'] . ' ' . $section['unit'];
-				}
-			}
+			// The wording ("Grade 4 norm, 133 ..." or, on the word list,
+			// "Grade 8 minimum, 130 ...", or "no published norm") is the
+			// schema's, from the same lists the tables are drawn from.
+			if ( ! $meta ) $meta = BFTD_Schema::goal_line( $id, $v );
 
 			if ( ! $meta && $bench > 0 ) {
 				$meta = 'Goal ' . rtrim( rtrim( number_format( $bench, 2, '.', '' ), '0' ), '.' );
@@ -983,6 +977,15 @@ class BFTD_Report_View {
 		// removed it. A value stored before then is never drawn.)
 		foreach ( $section['fields'] as $key => $field ) {
 			$type = isset( $field['type'] ) ? $field['type'] : 'text';
+
+			// One of two alternative assessments: only the one done is drawn.
+			if ( ! BFTD_Schema::shows_for_form( $id, $field, $values ) ) continue;
+
+			// Fixed reference wording from the schema, the same on every report.
+			if ( 'reference' === $type ) {
+				echo '<div class="ref-box">' . wp_kses_post( $field['html'] ) . '</div>';
+				continue;
+			}
 
 			// Two tables in this section are drawn rather than written: one
 			// from figures entered elsewhere, one from rules that do not

@@ -220,7 +220,10 @@ foreach (array('dxsec-1','dxsec-2','dxsec-3','dxsec-4','dxsec-5','dxsec-6') as $
   check(in_array('images', $k, true) && in_array('body_after', $k, true)
     && array_search('images', $k, true) < array_search('body_after', $k, true),
     "$sid puts the work samples before the notes");
-  check('method' === end($k), "and closes with how the method addresses it: $sid");
+  // Timed reading is two assessments, so it closes with two answers, one per
+  // assessment, and only the one for the assessment done is drawn.
+  check('method' === end($k) || ('dxsec-4' === $sid && 'kinder_method' === end($k) && 'passage_method' === prev($k)),
+    "and closes with how the method addresses it: $sid");
 }
 
 /* ---- one place owns the words ---- */
