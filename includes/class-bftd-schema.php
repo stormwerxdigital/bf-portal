@@ -700,6 +700,35 @@ class BFTD_Schema {
 	}
 
 	/**
+	 * What each choice in a section's dropdowns turns its placeholders into.
+	 *
+	 * The tutor's screen previews the results table, and a cell such as the
+	 * enrolled grade's minimum has to change the moment the grade is picked,
+	 * not after a save. Worked out here, by the same swaps() the report uses,
+	 * so the screen never has a second copy of the lists or the wording.
+	 */
+	public static function live_tokens( $section_id ) {
+		$section = self::section( $section_id );
+		if ( ! $section ) return array();
+		$base = self::swaps( $section, array() );
+		$out  = array( 'base' => $base, 'select' => array(), 'derived' => array() );
+		foreach ( $section['fields'] as $key => $f ) {
+			if ( isset( $f['derived']['minus'] ) ) $out['derived'][ $key ] = $f['derived'];
+			if ( ! isset( $f['type'] ) || 'select' !== $f['type'] || empty( $f['options'] ) ) continue;
+			foreach ( array_keys( $f['options'] ) as $opt ) {
+				$sw = self::swaps( $section, array( $key => (string) $opt ) );
+				$changed = array();
+				foreach ( $sw as $tok => $val ) {
+					if ( '{' . $key . '}' === $tok || ! isset( $base[ $tok ] ) || $base[ $tok ] !== $val ) $changed[ $tok ] = $val;
+				}
+				$out['select'][ $key ][ (string) $opt ] = $changed;
+			}
+		}
+		if ( ! empty( $section['form_field'] ) ) $out['form_field'] = $section['form_field'];
+		return $out;
+	}
+
+	/**
 	 * A row of figures, drawn as the design draws figures.
 	 *
 	 * A single result in a one row table is a number floating at the far right
@@ -766,7 +795,7 @@ class BFTD_Schema {
 		return ob_get_clean();
 	}
 
-	public static function score_table_html( $section_id, $values, $field_key = null ) {
+	public static function score_table_html( $section_id, $values, $field_key = null, $live = false ) {
 		$section = self::section( $section_id );
 		if ( ! $section ) return '';
 
@@ -851,6 +880,7 @@ class BFTD_Schema {
 		if ( $head_asks && ! $head_says ) return '';
 
 		$rows = array();
+		$tpls = array();   // each kept row as written, for a preview that follows the inputs
 		foreach ( $cfg['rows'] as $row ) {
 			$cells = array();
 			foreach ( $row as $cell ) $cells[] = strtr( (string) $cell, $swap );
@@ -862,6 +892,7 @@ class BFTD_Schema {
 			// there is a reading to report.
 			if ( empty( $cfg['keep_row'] ) && '' === trim( (string) end( $cells ) ) ) continue;
 			$rows[] = $cells;
+			$tpls[] = $row;
 		}
 		if ( ! $rows && ! $head_says ) return '';
 
@@ -899,8 +930,14 @@ class BFTD_Schema {
 				<?php if ( $head_in_body ) : ?>
 					<tr><?php foreach ( $head as $h ) : ?><td><?php echo esc_html( $h ); ?></td><?php endforeach; ?></tr>
 				<?php endif; ?>
-				<?php foreach ( $rows as $row ) : ?>
-					<tr><?php foreach ( $row as $cell ) : ?><td><?php echo esc_html( $cell ); ?></td><?php endforeach; ?></tr>
+				<?php foreach ( $rows as $ri => $row ) : ?>
+					<tr><?php foreach ( $row as $ci => $cell ) :
+						// On the tutor's screen a cell built from the inputs
+						// carries what it was built from, so it can follow them
+						// before anything is saved.
+						$tpl = (string) $tpls[ $ri ][ $ci ];
+						$attr = ( $live && false !== strpos( $tpl, '{' ) ) ? ' data-tpl="' . esc_attr( $tpl ) . '"' : '';
+						?><td<?php echo $attr; ?>><?php echo esc_html( $cell ); ?></td><?php endforeach; ?></tr>
 				<?php endforeach; ?>
 			</tbody>
 		</table>
@@ -1657,6 +1694,7 @@ class BFTD_Schema {
 			),
 			'passage_results' => array(
 				'type'     => 'score_table',
+				'live'     => true,
 				'form'     => 'passage',
 				'keep_row' => true,
 				'label'    => 'Results',
@@ -1692,6 +1730,7 @@ class BFTD_Schema {
 			),
 			'kinder_results' => array(
 				'type'     => 'score_table',
+				'live'     => true,
 				'form'     => 'kinder',
 				'keep_row' => true,
 				'needs'    => 'kinder_score',

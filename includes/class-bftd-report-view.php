@@ -88,7 +88,8 @@ class BFTD_Report_View {
 		/* ---- hero ---- */
 		?>
 		<div class="hero-report">
-			<p class="eyebrow">Reading diagnostic assessment<?php
+			<?php // A heading, not a small label, at Karl's direction (1.146). ?>
+			<p class="hero-title">Reading diagnostic assessment<?php
 				// Which of the four it is. Calling a mid-programme reassessment
 				// a baseline is telling a family this is where their child
 				// started when it is where they got to.

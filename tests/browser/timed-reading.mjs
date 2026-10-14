@@ -53,6 +53,30 @@ for (const [which, mine, theirs] of [
   await page.close();
 }
 
+/* ---- the tutor's screen: the results previews follow the inputs ----
+   Karl, 1.145: "Minimum WPM for enrolled grade must update automatically
+   when Enrolled grade selection is made." */
+execFileSync('php', [join(here, 'build-timed-editor.php')]);
+{
+  const page = await browser.newPage();
+  await page.goto('file://' + join(here, 'timed-editor.html'));
+  const cell = (tpl) => page.locator(`[data-tpl="${tpl}"]`).innerText();
+  check(await cell('{min_grade_line}') === '130 WPM, Grade 8', 'editor: the saved grade shows on load');
+  await page.selectOption('[name="bftd[dxsec-4][min_grade]"]', 'grade-3');
+  check(await cell('{min_grade_line}') === '70 WPM, Grade 3', 'editor: picking Grade 3 shows 70 WPM at once, before a save');
+  await page.selectOption('[name="bftd[dxsec-4][min_grade]"]', '');
+  check(await cell('{min_grade_line}') === '', 'editor: and clearing it empties the cell');
+  await page.fill('[name="bftd[dxsec-4][kinder_score]"]', '22');
+  check(await cell('{kinder_score}') === '22', 'editor: the words per minute follow what is typed');
+  check(await cell('{k_min_line}') === '30 WPM', 'editor: the Kindergarten minimum stays 30');
+  await page.selectOption('[name="bftd[dxsec-4][norm]"]', 'grade-2');
+  check(await cell('{norm_line}') === '100 WCPM, Grade 2', 'editor: the passage norm follows its dropdown too');
+  check(await cell('{score} WCPM') === '40 WCPM', 'editor: the passage table keeps its own figure while the word list is chosen');
+  await page.fill('[name="bftd[dxsec-4][errors]"]', '19');
+  check(await cell('{score} WCPM') === '30 WCPM', 'editor: and works it out again as the errors change');
+  await page.close();
+}
+
 await browser.close();
 console.log(fail ? '\nFAIL' : '\nPASS');
 process.exit(fail ? 1 : 0);

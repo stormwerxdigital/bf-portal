@@ -35,13 +35,17 @@ BFTD_Fields::$S = array( 'birth_date' => 'not a date' );
 $got = $line->invoke( null, 1, 90, $v );
 check( false === strpos( $got, 'born' ), 'and nonsense in the field is left out rather than printed' );
 
-/* The eyebrow above the name ("Reading diagnostic assessment · Initial") is
-   prominent, at Karl's direction, rather than the small label it was. */
+/* The title above the name ("Reading diagnostic assessment · Initial") is a
+   heading, at Karl's direction: the heading font, heading size and weight,
+   not the small eyebrow label it was. */
 $css = file_get_contents( dirname( __DIR__ ) . '/assets/css/bftd-report.css' );
-preg_match( '/\.bf-report \.hero-report \.eyebrow\{([^}]*)\}/', $css, $m );
+preg_match( '/\.bf-report \.hero-report \.hero-title\{([^}]*)\}/', $css, $m );
 $rule = $m[1] ?? '';
-check( preg_match( '/font-size:(\d+(\.\d+)?)px/', $rule, $fs ) && (float) $fs[1] >= 15, 'the diagnostic eyebrow is at least 15px' );
+check( preg_match( '/font-size:(\d+(\.\d+)?)px/', $rule, $fs ) && (float) $fs[1] >= 22, 'the diagnostic title is heading sized, at least 22px' );
 check( false !== strpos( $rule, 'font-weight:800' ), 'and heavy' );
+check( false !== strpos( $rule, 'font-family:var(--font-d)' ), 'in the heading font' );
+$rv0 = file_get_contents( dirname( __DIR__ ) . '/includes/class-bftd-report-view.php' );
+check( false !== strpos( $rv0, '<p class="hero-title">Reading diagnostic assessment' ), 'and no longer carries the small eyebrow class' );
 
 /* "Read this part first" is prominent too: its own class, larger type, a
    heavier border. */

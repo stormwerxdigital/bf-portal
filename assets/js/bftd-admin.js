@@ -3465,3 +3465,76 @@ jQuery( function ( $ ) {
 		} );
 	} );
 }( jQuery ) );
+
+/* ==========================================================================
+   Results tables that follow the inputs
+
+   The preview of a results table is drawn on the server when the page loads.
+   A cell built from the inputs above it (the enrolled grade's minimum, the
+   words read, the norm) carries its template, and this fills it in again as
+   those inputs change, so picking a grade updates the table before a save.
+   What each choice in a dropdown means comes from the server, from the same
+   lists the report uses.
+   ========================================================================== */
+( function ( $ ) {
+	'use strict';
+
+	var $tables = $( '.bftd-live-table' );
+	if ( ! $tables.length ) return;
+
+	function val( section, key ) {
+		return bftdTrim( $( '[name="bftd[' + section + '][' + key + ']"]' ).val() || '' );
+	}
+
+	// The figure a derived field works out to, by the same rule as the server.
+	function derived( section, rule, form, formField ) {
+		var minus = function () {
+			var out = null;
+			for ( var i = 0; i < rule.minus.length; i++ ) {
+				var raw = val( section, rule.minus[ i ] );
+				if ( '' === raw || isNaN( Number( raw ) ) ) return '';
+				out = ( null === out ) ? Number( raw ) : out - Number( raw );
+			}
+			return String( Math.max( 0, out ) );
+		};
+		if ( rule.else_form && formField ) {
+			if ( form === rule.else_form ) return rule[ 'else' ] ? val( section, rule[ 'else' ] ) : '';
+			if ( '' !== form ) return minus();
+		}
+		var m = minus();
+		return ( '' === m && rule[ 'else' ] ) ? val( section, rule[ 'else' ] ) : m;
+	}
+
+	function refresh( $wrap ) {
+		var section = $wrap.data( 'section' );
+		var live    = $wrap.data( 'live' ) || {};
+		var swap    = $.extend( {}, live.base || {} );
+		// A table that belongs to one assessment is worked out as that one.
+		var form    = $wrap.data( 'form' ) ? String( $wrap.data( 'form' ) )
+			: ( live.form_field ? val( section, live.form_field ) : '' );
+
+		$( '[name^="bftd[' + section + ']["]' ).each( function () {
+			var m = /\]\[([^\]]+)\]$/.exec( this.name );
+			if ( m ) swap[ '{' + m[ 1 ] + '}' ] = bftdTrim( $( this ).val() || '' );
+		} );
+		$.each( live.select || {}, function ( key, opts ) {
+			var chosen = val( section, key );
+			$.extend( swap, opts[ chosen ] || opts[ '' ] || {} );
+		} );
+		$.each( live.derived || {}, function ( key, rule ) {
+			swap[ '{' + key + '}' ] = derived( section, rule, form, live.form_field );
+		} );
+
+		$wrap.find( '[data-tpl]' ).each( function () {
+			var out = String( $( this ).data( 'tpl' ) );
+			$.each( swap, function ( tok, v ) { out = out.split( tok ).join( v ); } );
+			$( this ).text( out );
+		} );
+	}
+
+	$tables.each( function () {
+		var $wrap   = $( this );
+		var section = $wrap.data( 'section' );
+		$( document ).on( 'input change', '[name^="bftd[' + section + ']["]', function () { refresh( $wrap ); } );
+	} );
+}( jQuery ) );

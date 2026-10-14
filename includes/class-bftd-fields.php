@@ -885,15 +885,43 @@ class BFTD_Fields {
 		$section = BFTD_Schema::section( $section_id );
 		if ( ! empty( $field['form'] ) && ! empty( $section['form_field'] ) ) {
 			$values[ $section['form_field'] ] = $field['form'];
+			// And a figure that depends on which assessment, worked out again
+			// for this one, so the passage table never shows the word list's.
+			foreach ( $section['fields'] as $k => $f ) {
+				if ( empty( $f['derived']['else_form'] ) ) continue;
+				if ( $field['form'] === $f['derived']['else_form'] ) {
+					$values[ $k ] = isset( $values[ $f['derived']['else'] ] ) ? $values[ $f['derived']['else'] ] : '';
+					continue;
+				}
+				$out = null;
+				foreach ( $f['derived']['minus'] as $m ) {
+					$n = isset( $values[ $m ] ) ? trim( (string) $values[ $m ] ) : '';
+					if ( '' === $n || ! is_numeric( $n ) ) { $out = null; break; }
+					$out = ( null === $out ) ? (float) $n : $out - (float) $n;
+				}
+				$values[ $k ] = ( null === $out ) ? '' : (string) max( 0, $out );
+			}
 		}
 		?>
 		<div class="bftd-field bftd-field-derived">
 			<label class="bftd-label"><?php echo esc_html( $field['label'] ); ?></label>
 			<div class="bftd-derived-box">
 				<?php
-				echo ( isset( $field['type'] ) && 'figures' === $field['type'] )
-					? BFTD_Schema::figures_html( $section_id, $values, $field_key )
-					: BFTD_Schema::score_table_html( $section_id, $values, $field_key );
+				if ( isset( $field['type'] ) && 'figures' === $field['type'] ) {
+					echo BFTD_Schema::figures_html( $section_id, $values, $field_key );
+				} else {
+					// A results table marked live follows the inputs above it
+					// as they change, before a save. The script substitutes;
+					// what each choice means comes from the schema.
+					$live = ! empty( $field['live'] );
+					if ( $live ) {
+						echo '<div class="bftd-live-table" data-section="' . esc_attr( $section_id ) . '"'
+							. ( ! empty( $field['form'] ) ? ' data-form="' . esc_attr( $field['form'] ) . '"' : '' )
+							. ' data-live="' . esc_attr( wp_json_encode( BFTD_Schema::live_tokens( $section_id ) ) ) . '">';
+					}
+					echo BFTD_Schema::score_table_html( $section_id, $values, $field_key, $live );
+					if ( $live ) echo '</div>';
+				}
 				?>
 				<?php
 				// A table may carry its own note. The default line ("Worked
