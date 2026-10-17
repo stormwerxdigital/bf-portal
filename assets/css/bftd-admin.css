@@ -724,13 +724,6 @@ input[type=search]:focus,input[type=date]:focus,input[type=time]:focus,select:fo
 .bftd-autosave-status.is-good{color:var(--bftd-sage-deep)}
 .bftd-autosave-status.is-bad{color:var(--bftd-clay)}
 
-/* Work that was never saved, offered back. */
-.bftd-restore{background:#fff;border:1px solid var(--bftd-clay);border-left:4px solid var(--bftd-clay);
-  border-radius:6px;padding:14px 16px;margin:14px 0}
-.bftd-restore p{margin:0;font-size:13.5px;line-height:1.6;color:var(--bftd-body)}
-.bftd-restore strong{color:var(--bftd-ink)}
-.bftd-restore .bftd-restore-do{margin-top:11px;display:flex;align-items:center;gap:14px}
-.bftd-restore-busy{font-size:12.5px;color:var(--bftd-muted)}
 
 /* Standing wording, shown but not offered. A tutor still has to read what the
    family will see above their own notes. */

@@ -35,6 +35,9 @@ class BFTD_Notices {
 	public static function add( $user_id, $type, $student_id, $post_id, $section_id, $title, $body = '' ) {
 		$user_id = (int) $user_id;
 		if ( ! $user_id ) return;
+		// Drawing a published record's draft runs the save without
+		// consequences; nobody is told about a change nobody has made yet.
+		if ( class_exists( 'BFTD_Autosave' ) && BFTD_Autosave::$dry ) return;
 
 		$list = get_user_meta( $user_id, self::META_KEY, true );
 		$list = is_array( $list ) ? $list : array();

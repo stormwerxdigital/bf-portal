@@ -1275,7 +1275,7 @@ class BFTD_Settings {
 				</tbody>
 			</table>
 			<h2>The team</h2>
-			<p class="bftd-lede">Who teaches, how much they are carrying, and when they were last in. A Tutor Manager can edit any of these accounts; a Tutor can only edit families.</p>
+			<p class="bftd-lede">Who teaches, how much they are carrying, and when they were last in. A Tutor Manager can add and edit tutors and families; a Senior Manager can also add and edit Tutor Managers. Tutors do not manage accounts.</p>
 			<table class="widefat striped">
 				<thead><tr><th style="width:240px;">Person</th><th style="width:170px;">Role</th><th style="width:120px;">Students</th><th style="width:130px;">Waiting on them</th><th style="width:180px;">Last signed in</th></tr></thead>
 				<tbody>

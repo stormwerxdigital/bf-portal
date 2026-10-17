@@ -1806,15 +1806,17 @@ function bftdTrim( v ) {
 } )( jQuery );
 
 /* ==========================================================================
-   Autosave, for drafts only
+   Autosave (Karl, 1.148)
 
    Core autosaves the title and the content. Every field on these screens is
-   in a meta box, so until now nothing here has ever been protected.
+   in a meta box, so this is what protects them.
 
-   Nothing is written to the report itself. The form as it stands is kept
-   beside the record and offered back next time the screen opens, because a
-   machine writing half a sentence into a report would make the activity log
-   and the review bar both start lying about what a person did.
+   Not published yet: the record is saved, silently. Nothing is said unless a
+   save fails.
+
+   Published: one draft is kept beside the live record, and the only message
+   is "Draft saved, update to take live". Reopening the record shows the draft
+   in the form (the server draws it), and Update takes it live.
    ========================================================================== */
 ( function ( $ ) {
 	'use strict';
@@ -1845,6 +1847,10 @@ function bftdTrim( v ) {
 		$status.attr( 'class', 'bftd-autosave-status' + ( kind ? ' is-' + kind : '' ) ).text( text );
 	}
 
+	// A published record opened on its draft says so from the start.
+	// wp_localize_script sends every value as a string, and "0" is truthy.
+	if ( '1' === String( BFTD.has_draft ) ) $( function () { say( BFTD.draft_line, 'good' ); } );
+
 	/**
 	 * What the form is carrying, including the editors.
 	 *
@@ -1856,12 +1862,13 @@ function bftdTrim( v ) {
 		if ( window.tinymce ) {
 			try { tinymce.triggerSave(); } catch ( e ) {}
 		}
-		// The same list the server keeps (BFTD_Autosave::kept_key): the
-		// portal's field groups, plus a library record's description, its
-		// own fields and the nonce its save handler checks.
-		var keep = /^(bftd|bftd_rows|bftd_sched|bftd_visible|bftd_items|post_title|bftd_subtitle|bftd_student|content|bftd_(skill|activity)_[a-z_]+)(\[|$)/;
+		// The same rule the server keeps (BFTD_Autosave::kept_key): every
+		// field the screens name bftd..., plus the title and a library
+		// record's description. A list here once missed the people pickers,
+		// and an autosave without them wiped who could see the record.
 		return $form.serializeArray().filter( function ( f ) {
-			return keep.test( f.name );
+			if ( 'post_title' === f.name || 'content' === f.name ) return true;
+			return /^bftd/.test( f.name ) && 'bftd_nonce' !== f.name && 'bftd_sent' !== f.name;
 		} );
 	}
 
@@ -1906,10 +1913,11 @@ function bftdTrim( v ) {
 	function save() {
 		if ( busy || stopped || ! dirty ) return;
 		busy = true;
-		say( 'Saving a copy…', 'working' );
 
 		var data = payload();
-		data.push( { name: 'bftd_sent', value: ourFieldCount( data ) } );
+		// First, not last: a server that stops reading part way must still
+		// read the count, or it cannot tell it stopped.
+		data.unshift( { name: 'bftd_sent', value: ourFieldCount( data ) } );
 		data.push( { name: 'action',   value: 'bftd_autosave' } );
 		data.push( { name: 'nonce',    value: BFTD.nonce } );
 		data.push( { name: 'post_id',  value: BFTD.post_id } );
@@ -1922,11 +1930,14 @@ function bftdTrim( v ) {
 				dirty = false;
 				var d = ( res && res.data ) ? res.data : {};
 				if ( d.modified ) seen = d.modified;
-				// Two different promises to the person, so two different
-				// words. "Saved" where it was really saved, "kept" where a
-				// copy is being held until they decide.
-				var what = ( 'draft' === d.mode ) ? 'Draft saved' : 'Copy kept';
-				say( d.at ? what + ' at ' + d.at : what, 'good' );
+				// Not published yet: silent, unless something typed could not
+				// be kept. Published: the one line.
+				if ( 'draft' === d.mode ) {
+					if ( d.warnings && d.warnings.length ) say( 'Not saved: ' + d.warnings.join( ' ' ), 'bad' );
+					else say( '', '' );
+				} else {
+					say( d.message || BFTD.draft_line, 'good' );
+				}
 
 				// The record has changed, so the header pills are worked out
 				// again and handed back. Displaying what the server said beats
@@ -1971,7 +1982,9 @@ function bftdTrim( v ) {
 	$form.on( 'submit', function () {
 		var $n = $form.find( 'input[name="bftd_sent"]' );
 		if ( ! $n.length ) {
-			$n = $( '<input type="hidden" name="bftd_sent" value="">' ).appendTo( $form );
+			// At the top of the form, so it is read even by a server that
+			// stops part way through.
+			$n = $( '<input type="hidden" name="bftd_sent" value="">' ).prependTo( $form );
 		}
 		$n.val( ourFieldCount( payload() ) );
 	} );
@@ -2046,39 +2059,17 @@ function bftdTrim( v ) {
 		if ( ! dirty || stopped || ! navigator.sendBeacon ) return;
 		var data = payload();
 		var fd   = new FormData();
+		fd.append( 'bftd_sent', ourFieldCount( data ) );   // first, as above
 		data.forEach( function ( f ) { fd.append( f.name, f.value ); } );
 		fd.append( 'action', 'bftd_autosave' );
 		fd.append( 'nonce', BFTD.nonce );
 		fd.append( 'post_id', BFTD.post_id );
+		fd.append( 'modified', seen );   // so a stale tab's last words are refused, as above
 		navigator.sendBeacon( BFTD.ajax_url, fd );
 	} );
 
 	// A save by a person is what the copy was standing in for.
 	$form.on( 'submit', function () { stopped = true; clearTimeout( timer ); } );
-
-	/* ---- putting a copy back ---- */
-
-	$( document ).on( 'click', '.bftd-restore-yes, .bftd-restore-no', function () {
-		var $bar = $( this ).closest( '.bftd-restore' );
-		var back = $( this ).hasClass( 'bftd-restore-yes' );
-		$bar.find( 'button' ).prop( 'disabled', true );
-		$bar.find( '.bftd-restore-do' ).append( ' <span class="bftd-restore-busy">Working…</span>' );
-
-		$.post( BFTD.ajax_url, {
-			action:  back ? 'bftd_autosave_restore' : 'bftd_autosave_discard',
-			nonce:   BFTD.nonce,
-			post_id: $bar.data( 'post' )
-		} ).done( function () {
-			// A restore is an ordinary save on the server, so the screen has
-			// to be re-read rather than patched: the fields, the editors and
-			// the repeaters all come back from the record.
-			if ( back ) window.location.reload();
-			else $bar.slideUp( 180, function () { $bar.remove(); } );
-		} ).fail( function () {
-			$bar.find( '.bftd-restore-busy' ).text( 'That did not work. Reload and try again.' );
-			$bar.find( 'button' ).prop( 'disabled', false );
-		} );
-	} );
 
 } )( jQuery );
 

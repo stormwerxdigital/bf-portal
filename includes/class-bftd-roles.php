@@ -16,6 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  *                                 assigned to them, and nothing about anyone
  *                                 else's students. Reads the skills and
  *                                 activities lists without changing them.
+ *                                 Manages no accounts (1.147).
  *   Tutor Manager                 runs the teaching side. Everything a tutor
  *   (bftd_tutor_manager)          has, on every student, plus assigning
  *                                 tutors, the settings, the email wording and
@@ -39,8 +40,8 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  * ONE RULE GOVERNS WHO MAY MANAGE WHOM: you may edit, delete or hand out a
  * role strictly BELOW your own rank, never at or above it. That single
  * comparison gives the whole table — a senior manager appoints managers but
- * cannot appoint another senior manager, a manager appoints tutors but not
- * managers, a tutor appoints nobody — and it means the next tier, if there
+ * cannot appoint another senior manager, a manager appoints tutors and
+ * families but not managers — and it means the next tier, if there
  * ever is one, is one entry in tiers() rather than a new special case.
  *
  * A role that can clone its own tier is a privilege escalation dressed as a
@@ -91,7 +92,7 @@ class BFTD_Roles {
 	 */
 	const ADMIN_CAP = 'bftd_administer';
 
-	const CAPS_VERSION = 10;
+	const CAPS_VERSION = 11;
 
 	/**
 	 * The ladder. Rank is the only thing that decides who may manage whom, so
@@ -415,17 +416,15 @@ class BFTD_Roles {
 			'bftd_view_dashboard',
 			self::STAFF_CAP,
 			'upload_files',
-			'list_users',
-			'create_users',
-			'edit_users',
-			'delete_users',
-			'promote_users',
 		);
 
 		// A manager gets the delete capabilities a tutor does not, because
 		// tidying up a mistyped session or a duplicate report is their job.
-		// And the skills and activities, which they write.
-		$manager = array_merge( $base, array( self::MANAGE_CAP ), self::all_caps( true ), self::activity_caps() );
+		// And the skills and activities, which they write. And the accounts:
+		// adding and managing users is manager and above (Karl, 1.147), so a
+		// tutor no longer adds or edits family accounts. Who a manager may act
+		// on is still the rank rule in protect_admin_accounts().
+		$manager = array_merge( $base, array( self::MANAGE_CAP ), self::user_caps(), self::all_caps( true ), self::activity_caps() );
 
 		$senior = array_merge(
 			$manager,
@@ -443,6 +442,11 @@ class BFTD_Roles {
 			self::SENIOR_ROLE  => array_values( array_unique( $senior ) ),
 			'administrator'    => array_values( array_unique( $senior ) ),
 		);
+	}
+
+	/** WordPress's own capabilities for the Users screens: manager and above. */
+	public static function user_caps() {
+		return array( 'list_users', 'create_users', 'edit_users', 'delete_users', 'promote_users' );
 	}
 
 	/** The human label for each role we create, for when it has to be made. */
@@ -538,6 +542,7 @@ class BFTD_Roles {
 		// capability another plugin added to our role survives.
 		$ours = array_merge(
 			array( self::STAFF_CAP, self::MANAGE_CAP, self::TEAM_CAP, 'bftd_view_dashboard' ),
+			self::user_caps(),   // so taking them off the tutor takes effect on sites that had them
 			self::all_caps( true )
 		);
 		foreach ( array_diff( $ours, $caps ) as $cap ) {
@@ -730,8 +735,11 @@ class BFTD_Roles {
 
 		// Handing out a role is refused before the target is even looked at,
 		// so this also covers creating a brand new account with that role.
+		// A role with no rank here (WordPress's own Editor, Author and the
+		// rest, or another plugin's) is never handed out by staff.
 		if ( 'promote_user' === $cap && isset( $args[1] ) ) {
-			if ( ! self::outranks( $user_id, self::role_rank( (string) $args[1] ) ) ) {
+			$want = self::role_rank( (string) $args[1] );
+			if ( $want < 0 || ! self::outranks( $user_id, $want ) ) {
 				$caps[] = 'do_not_allow';
 				return $caps;
 			}
@@ -760,9 +768,14 @@ class BFTD_Roles {
 	public static function hide_administrator_role( $roles ) {
 		if ( current_user_can( 'manage_options' ) ) return $roles;
 
+		// Only the practice's own roles below this person's rank. WordPress's
+		// own roles (Subscriber, Contributor, Author, Editor) have no rank
+		// here, and were offered to everyone because nothing is below -1:
+		// Editor can publish and change any page on the site (Karl, 1.147).
 		$actor = get_current_user_id();
 		foreach ( array_keys( $roles ) as $slug ) {
-			if ( ! self::outranks( $actor, self::role_rank( $slug ) ) ) {
+			$rank = self::role_rank( $slug );
+			if ( $rank < 0 || ! self::outranks( $actor, $rank ) ) {
 				unset( $roles[ $slug ] );
 			}
 		}

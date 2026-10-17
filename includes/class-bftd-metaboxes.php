@@ -206,6 +206,16 @@ class BFTD_MetaBoxes {
 				</div>
 			<?php endif; ?>
 
+			<?php
+			// Says "this form carried the list". A multi-select with nobody
+			// picked posts nothing at all, which is indistinguishable from a
+			// form that never had it; the savers read this to tell "everybody
+			// removed" from "not carried" (an autosave without the list wiped
+			// it, until 1.148). Only when editable: a disabled list carries no
+			// opinion.
+			if ( $editable ) : ?>
+				<input type="hidden" name="<?php echo esc_attr( $name ); ?>_present" value="1">
+			<?php endif; ?>
 			<select name="<?php echo esc_attr( $name ); ?>[]" class="bftd-assign-select bftd-assign-hidden" multiple size="6"
 				<?php disabled( ! $editable ); ?>>
 				<?php
@@ -286,7 +296,9 @@ class BFTD_MetaBoxes {
 					get_users( array( 'role__in' => array( BFTD_Roles::CLIENT_ROLE ), 'orderby' => 'display_name' ) ),
 					$clients,
 					'Nobody linked yet.',
-					'Parents, guardians, teachers and anyone else responsible for this student. Everyone listed sees the same portal and the same conversations. <a href="' . esc_url( admin_url( 'user-new.php' ) ) . '">Add an account</a>.',
+					'Parents, guardians, teachers and anyone else responsible for this student. Everyone listed sees the same portal and the same conversations.'
+						// Adding an account is manager and above (1.147); a tutor links existing ones.
+						. ( current_user_can( 'create_users' ) ? ' <a href="' . esc_url( admin_url( 'user-new.php' ) ) . '">Add an account</a>.' : '' ),
 					true,
 					function ( $u ) { return BFTD_Roles::relationship( $u->ID ); }
 				);
@@ -1745,6 +1757,9 @@ class BFTD_MetaBoxes {
 			|| in_array( get_current_user_id(), $before, true );
 		if ( ! $can_assign && ! $never_set ) return;
 
+		// Not carried, not written: the same rule as every field. A brand new
+		// record still gets its creator below.
+		if ( ! self::carried( 'bftd_report_staff' ) && ! $never_set ) return;
 		$after = isset( $_POST['bftd_report_staff'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['bftd_report_staff'] ) ) : array();
 		$after = array_values( array_unique( array_filter( $after ) ) );
 
@@ -2033,6 +2048,14 @@ class BFTD_MetaBoxes {
 	 * because who can see a child's record is a different kind of change from
 	 * an edit to the copy.
 	 */
+	/**
+	 * Did this form carry a people list? Either something was picked, or the
+	 * list's marker says it was there with nobody picked.
+	 */
+	public static function carried( $field ) {
+		return isset( $_POST[ $field ] ) || isset( $_POST[ $field . '_present' ] );
+	}
+
 	private static function save_relationships( $post_id ) {
 		$maps = array(
 			array( 'bftd_clients', BFTD_CPT::CLIENT_KEY, 'client_linked', 'client_unlinked', 'Caregiver' ),
@@ -2046,8 +2069,8 @@ class BFTD_MetaBoxes {
 		// is a billing contact who cannot open the portal, and nothing on
 		// the screen says so.
 		$primary = 0;
-		if ( isset( $_POST['bftd_client_primary'] ) ) {
-			$posted  = array_values( array_filter( array_map( 'absint', (array) wp_unslash( $_POST['bftd_client_primary'] ) ) ) );
+		if ( self::carried( 'bftd_client_primary' ) ) {
+			$posted  = array_values( array_filter( array_map( 'absint', (array) wp_unslash( $_POST['bftd_client_primary'] ?? array() ) ) ) );
 			$primary = $posted ? (int) $posted[0] : 0;
 		} else {
 			$primary = BFTD_CPT::primary_client_id( $post_id );
@@ -2076,6 +2099,9 @@ class BFTD_MetaBoxes {
 			// as "unassign everyone" would silently strip a student's tutors
 			// the first time a plain tutor saved the record.
 			if ( BFTD_CPT::STAFF_KEY === $meta_key && ! BFTD_Roles::can_manage() ) continue;
+
+			// And a list the form did not carry is left as it is.
+			if ( ! self::carried( $field ) ) continue;
 
 			$before = array_map( 'absint', (array) get_post_meta( $post_id, $meta_key ) );
 			$after  = isset( $_POST[ $field ] ) ? array_map( 'absint', (array) wp_unslash( $_POST[ $field ] ) ) : array();
@@ -2119,6 +2145,7 @@ class BFTD_MetaBoxes {
 	 * who has been in the portal for months.
 	 */
 	public static function send_welcome( $user_id, $student_id ) {
+		if ( class_exists( 'BFTD_Autosave' ) && BFTD_Autosave::$dry ) return;   // drawing a draft, not a save
 		$u = get_userdata( $user_id );
 		if ( ! $u || ! is_email( $u->user_email ) ) return;
 

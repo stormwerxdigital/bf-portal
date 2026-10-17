@@ -80,8 +80,8 @@ class BFTD_Admin_Experience {
 	/**
 	 * Tutors keep everything they need and lose the rest. Posts, Comments and
 	 * Tools are WordPress furniture that has nothing to do with a lesson;
-	 * Media and Users stay, because tutors upload work samples and set up
-	 * family accounts.
+	 * Media stays, because tutors upload work samples. Users appears only to
+	 * those who hold the account capabilities, manager and above.
 	 */
 	public static function trim_menu_for_tutors() {
 		if ( ! BFTD_Roles::is_staff() ) return;

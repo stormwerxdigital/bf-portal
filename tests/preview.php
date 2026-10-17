@@ -558,8 +558,8 @@ check($shouty === array(), 'no stylesheet shouts at anybody' . ($shouty ? ': ' .
 $prev = file_get_contents(BFTD_PATH . 'includes/class-bftd-preview.php');
 check(1 === preg_match('/BFTD_Autosave::unsaved\( \$post \)/', $prev),
   'a preview knows when there is work it is not showing');
-check(1 === preg_match('/not saved yet[\s\S]{0,140}the family can open/', $prev),
-  'and says so rather than looking as though the edits vanished');
+check(1 === preg_match('/BFTD_Autosave::DRAFT_LINE \. .\. This preview shows the live version\./', $prev),
+  'and says so in the edit screen\'s own words, rather than looking as though the edits vanished');
 check(1 === preg_match("/\\\$meta\['unsaved'\][\s\S]{0,120}bfp-warn/", $prev),
   'where the person can see it, beside the other things a preview warns about');
 

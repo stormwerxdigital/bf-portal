@@ -3,7 +3,7 @@
 The parent portal and the tutor back end for bftutoring.com. Built on the
 Stormwerx Client Dashboard architecture, adapted to a tutoring practice.
 
-Version 1.146.0 · text domain `bftd` · prefix `BFTD_` · meta prefix `_bftd_`
+Version 1.149.0 · text domain `bftd` · prefix `BFTD_` · meta prefix `_bftd_`
 
 Source of truth: <https://github.com/stormwerxdigital/bf-portal>, branch `main`.
 The plugin header carries `GitHub Plugin URI` and `Primary Branch`, so Git
@@ -45,9 +45,10 @@ everyone, because a user switching to "Midnight" would only fight it. There is
 a switch under Settings to turn the whole skin off.
 
 **Tutors** get a real wp-admin with the WordPress furniture removed: no Posts,
-Comments, Tools, Appearance or Plugins. Media and Users stay, because tutors
-upload work samples and set up family accounts. The WordPress dashboard
-widgets are replaced with one that says what is waiting on them.
+Comments, Tools, Appearance or Plugins. Media stays, because tutors upload
+work samples. Users is manager and above: tutors do not add or edit
+accounts. The WordPress dashboard widgets are replaced with one that says
+what is waiting on them.
 
 **Families** who somehow reach wp-admin are sent to their portal. Profile,
 media upload and AJAX stay reachable, because a parent changing their password
@@ -256,7 +257,7 @@ construction rather than by discipline.
 | Role | Rank | What they do |
 |---|---|---|
 | **Client** | 0 | Parent, guardian, teacher or adult learner. Sees only the students their account is linked to. |
-| **Tutor** | 1 | Teaches. Create and edit on their assigned students, no delete. Adds family accounts. Cannot see another tutor's students, change who is assigned, edit settings or email wording, or read the whole activity log. |
+| **Tutor** | 1 | Teaches. Create and edit on their assigned students, no delete. Links existing family accounts to their students but does not add or edit accounts. Cannot see another tutor's students, change who is assigned, edit settings or email wording, or read the whole activity log. |
 | **Tutor Manager** | 2 | Runs the teaching side. Everything a tutor has, on **every** student, plus assigning tutors, deleting records and the oversight report. Manages tutors and families. Not the settings, the email wording, the practice-wide activity log, pay approval or erasure. |
 | **Senior Manager** | 3 | Runs the practice. Everything a manager has, plus **adding and removing managers**, the settings, the email wording, the practice-wide activity log, approving pay and erasing records. |
 | **Administrator** | 4 | Everything, including WordPress itself. |

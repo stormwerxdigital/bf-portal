@@ -170,12 +170,11 @@ class BFTD_Preview {
 					: '',
 				// A preview shows the record. On a draft that is what the tutor
 				// is working on, because a draft autosaves for real. On a
-				// published report it is what the family can see, and anything
-				// typed since is being held to one side rather than written, so
-				// the preview cannot show it. Saying nothing here would leave
-				// somebody deciding their edits had been lost.
+				// published report it is what the family can see; the draft
+				// beside it goes live on Update. Said in the same words the
+				// edit screen uses (1.148).
 				'unsaved' => ( class_exists( 'BFTD_Autosave' ) && BFTD_Autosave::unsaved( $post ) )
-					? 'You have changes that are not saved yet. This preview shows the saved version, which is the one the family can open.'
+					? BFTD_Autosave::DRAFT_LINE . '. This preview shows the live version.'
 					: '',
 				'edit'    => get_edit_post_link( $lesson ? $lesson : $report_id, 'raw' ),
 			)

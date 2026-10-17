@@ -176,7 +176,7 @@ check(array() === $GLOBALS['SAVED'], 'a save that carried no lists leaves them a
 
 /* ---- and the browser sends them, so a draft autosave keeps them ---- */
 $js = file_get_contents(BFTD_PATH . 'assets/js/bftd-admin.js');
-check(1 === preg_match('/var keep = [^;]*bftd_items/', $js),
-  'the autosave payload carries the lists, so a draft does not lose them between saves');
+check(1 === preg_match("/\/\^bftd\/\.test\( f\.name \)/", $js),
+  'the autosave payload carries the lists (every bftd field), so a draft does not lose them between saves');
 
 exit($fail ? 1 : 0);

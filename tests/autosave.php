@@ -1,27 +1,17 @@
 <?php
 /*
- * Autosave.
+ * Autosave, the way Karl set it out (1.148).
  *
- * A tutor who loses forty minutes of a diagnostic to a crashed browser has
- * lost an evening, and WordPress has never protected a word of it: core
- * autosaves the title and the content, and every field on these screens is in
- * a meta box.
+ * NOT PUBLISHED: the record is saved, silently. No message, no revision, no
+ * "Saved" notice waiting on the next screen, nothing offered back.
  *
- * It does two different things, and which one depends on whether a family can
- * open the record.
+ * PUBLISHED: the live record is never written by a machine. One draft is kept
+ * beside it, reopening shows the draft in the form, Update takes it live, and
+ * the only message is "Draft saved, update to take live".
  *
- * On a DRAFT it saves properly, the way pressing Update does. Nobody outside
- * the practice can read a draft, so there is nothing to protect them from, and
- * a figure typed and then lost is the software eating somebody's evening. Only
- * the activity log is held back, because one entry every twenty-five seconds
- * would bury the entries people made.
- *
- * On a PUBLISHED report it writes nothing, because a family may be reading it
- * and a half finished sentence must not appear on their screen because a tab
- * was left open. The form is kept beside the record until a person asks for
- * it back.
- *
- * Both halves fail silently when they are wrong, which is what this is for.
+ * The end-to-end proof (every field of every record type through draft
+ * autosave, publish, published autosave and reopen, and update) is
+ * tests/real-wp/save-everything.mjs against a real WordPress.
  */
 require __DIR__ . '/wp-stubs.php';
 define('BFTD_PATH', dirname(__DIR__).'/');
@@ -43,6 +33,11 @@ function wp_update_post($a){ foreach (array('post_title','post_status') as $k) i
 function wp_is_post_revision($id){ return false; }
 function wp_slash($v){ return $v; }
 function wp_unslash($v){ return $v; }
+$GLOBALS['FILTERS'] = array(); $GLOBALS['TRANSIENTS'] = array();
+if (!function_exists('remove_filter')) { function remove_filter($t,$f,$p=10){ $GLOBALS['FILTERS'][] = array('-', $t); return true; } }
+if (!function_exists('get_transient')) { function get_transient($k){ return $GLOBALS['TRANSIENTS'][$k] ?? false; } }
+if (!function_exists('delete_transient')) { function delete_transient($k){ unset($GLOBALS['TRANSIENTS'][$k]); return true; } }
+if (!function_exists('__return_zero')) { function __return_zero(){ return 0; } }
 
 class BFTD_Roles { public static function post_types(){ return array('bftd_assessment','bftd_progress','bftd_session','bftd_student'); } }
 /* The stub records whether the real quiet flag was set when it was called,
@@ -131,6 +126,7 @@ $GLOBALS['SENT']=null;
 $r = attempt(function(){ BFTD_Autosave::ajax_save(); });
 check(true === $r['ok'], 'a draft autosaves');
 check('draft' === $r['data']['mode'], 'and says it was really saved, not merely kept');
+check(!isset($r['data']['message']), 'with no message for the screen to show: a draft saves silently');
 
 /* The header pills describe the record, which has just changed. They come back
    with the answer so the screen is not left saying "Empty, so not shown to the
@@ -152,6 +148,26 @@ check(null === BFTD_Autosave::snapshot(1),
    people actually made. */
 check(true === $GLOBALS['QUIET_DURING_SAVE'],
   'the activity log is quiet while a draft autosaves');
+$GLOBALS['TRANSIENTS']['bftd_saved_7'] = 3;
+$GLOBALS['SENT']=null;
+attempt(function(){ BFTD_Autosave::ajax_save(); });
+check(!isset($GLOBALS['TRANSIENTS']['bftd_saved_7']),
+  'and leaves no "Saved, N sections changed" notice for the next screen');
+check(array() === $GLOBALS['SENT']['data']['warnings'], 'and has nothing to warn about when everything was kept');
+
+/* The one exception: something typed that could not be kept, such as a
+   session slot clashing with another of the tutor's. Said at once, on the
+   screen being typed on, and not left for the next page load. */
+$GLOBALS['TRANSIENTS']['bftd_sched_warn_7'] = array('Sundays at 10:00 am was not added: it runs over a session.');
+$GLOBALS['SENT']=null;
+attempt(function(){ BFTD_Autosave::ajax_save(); });
+check(array('Sundays at 10:00 am was not added: it runs over a session.') === $GLOBALS['SENT']['data']['warnings'],
+  'a slot the save could not keep comes back with the autosave');
+check(!isset($GLOBALS['TRANSIENTS']['bftd_sched_warn_7']), 'and is not shown a second time on the next page load');
+check(false !== strpos(file_get_contents(BFTD_PATH . 'assets/js/bftd-admin.js'), "say( 'Not saved: ' + d.warnings.join( ' ' ), 'bad' )"),
+  'where the screen says so as a failure, the only time a draft autosave says anything');
+check(1 === preg_match("/add_filter\\( 'wp_revisions_to_keep', '__return_zero'/", file_get_contents(BFTD_PATH . 'includes/class-bftd-autosave.php')),
+  'and makes no revision');
 check(false === BFTD_Audit::$quiet, 'and is listening again afterwards');
 
 /* ---- a brand new record becomes a real draft ----
@@ -236,6 +252,7 @@ $GLOBALS['SENT']=null;
 $r = attempt(function(){ BFTD_Autosave::ajax_save(); });
 check(true === $r['ok'], 'a published report still keeps a copy');
 check('snapshot' === $r['data']['mode'], 'and says it is a copy, not a save');
+check('Draft saved, update to take live' === $r['data']['message'], 'and the one line Karl asked for is the message');
 check(0 === $GLOBALS['SAVED'], 'the record itself is untouched, which is the whole point');
 check(null !== BFTD_Autosave::snapshot(5), 'the copy is beside it');
 check(!isset($GLOBALS['META'][5]['_bftd_sec_x__body']), 'and no field of it was written');
@@ -264,6 +281,16 @@ $snap = BFTD_Autosave::snapshot(5);
 check(is_array($snap) && !empty($snap['fields']), 'there is a snapshot');
 check('Forty minutes of writing.' === $snap['fields']['bftd']['dxsec-1']['body'], 'holding what was typed');
 check(!isset($snap['fields']['unrelated']), 'and only the fields this plugin owns');
+
+/* Every field the screens name, not a list. A list missed the people pickers,
+   and an autosave without them read as "everybody removed". */
+foreach (array('bftd_report_staff', 'bftd_report_staff_present', 'bftd_clients', 'bftd_clients_present', 'bftd_staff',
+               'bftd_client_primary', 'bftd_subtitle', 'bftd_subtitle_nonce', 'bftd_skills_done', 'bftd_skills_done_present',
+               'bftd', 'bftd_rows', 'bftd_items', 'bftd_sched', 'post_title', 'content') as $k) {
+  check(BFTD_Autosave::kept_key($k), "the draft carries $k");
+}
+check(!BFTD_Autosave::kept_key('bftd_nonce') && !BFTD_Autosave::kept_key('bftd_sent') && !BFTD_Autosave::kept_key('action'),
+  'but not the form nonce, the field count or anything that is not ours');
 check((int) $snap['by'] === 7, 'recorded against whoever was typing');
 
 /* The report itself is untouched. This is the whole point. */
@@ -276,27 +303,24 @@ check(null === BFTD_Autosave::unsaved($GLOBALS['POSTS'][5]),
   'a copy older than the last save is not, because it is the same work');
 $GLOBALS['POSTS'][5]->post_modified_gmt = '2026-09-17 10:00:00';
 
-/* ---- putting it back is an ordinary save ---- */
-$GLOBALS['SAVED'] = 0; $GLOBALS['LOG'] = array();
-$_POST = array('post_id'=>5);
-$GLOBALS['SENT']=null;
-$r = attempt(function(){ BFTD_Autosave::ajax_restore(); });
-check(true === $r['ok'], 'a copy can be put back');
-check(1 === $GLOBALS['SAVED'], 'through the same save the form uses, not around it');
-check('Forty minutes of writing.' === $GLOBALS['SAVED_WITH']['bftd']['dxsec-1']['body'],
-  'carrying what was typed');
-check('Kaine Miller' === $GLOBALS['POSTS'][5]->post_title, 'and the title with it');
-check(in_array('autosave_restored', $GLOBALS['LOG'], true), 'and the log says it happened');
-check(null === BFTD_Autosave::snapshot(5), 'the copy is gone once it has been put back');
-
-/* ---- discarding ---- */
-$_POST = array('post_id'=>5,'bftd'=>array('x'=>array('y'=>'z')));
-attempt(function(){ BFTD_Autosave::ajax_save(); });
-check(null !== BFTD_Autosave::snapshot(5), 'a copy is kept again');
-$_POST = array('post_id'=>5);
-$GLOBALS['SENT']=null;
-$r = attempt(function(){ BFTD_Autosave::ajax_discard(); });
-check(true === $r['ok'] && null === BFTD_Autosave::snapshot(5), 'and can be thrown away');
+/* ---- reopening a published record shows its draft ----
+   Nothing is offered back any more: the draft is drawn into the form, by
+   running the ordinary save with every write held in memory. The pieces that
+   make "held in memory" true are checked here; tests/real-wp shows the result. */
+$src = file_get_contents(BFTD_PATH . 'includes/class-bftd-autosave.php');
+check(1 === preg_match("/add_action\\( 'add_meta_boxes', array\\( __CLASS__, 'open_with_draft' \\)/", $src), 'opening a record checks for a draft before anything is drawn');
+foreach (array('get_post_metadata', 'update_post_metadata', 'add_post_metadata', 'delete_post_metadata') as $f) {
+  check(false !== strpos($src, "'$f'"), "meta reads and writes are held in memory: $f");
+}
+check(false !== strpos($src, "'wp_insert_post_empty_content'"), 'no post can be created or changed while the draft is drawn');
+check(false !== strpos($src, "'pre_wp_mail'"), 'and no mail sent');
+foreach (array('class-bftd-notices.php' => 'notices', 'class-bftd-emails.php' => 'emails', 'class-bftd-metaboxes.php' => 'the welcome flag') as $f => $what) {
+  check(false !== strpos(file_get_contents(BFTD_PATH . 'includes/' . $f), 'BFTD_Autosave::$dry'), "and $what stand down while it is drawn");
+}
+check(!method_exists('BFTD_Autosave', 'ajax_restore') && !method_exists('BFTD_Autosave', 'ajax_discard') && !method_exists('BFTD_Autosave', 'render_bar'),
+  'there is no offer to put changes back, and no way to throw the draft away unseen');
+check(false === BFTD_Autosave::overlay(mkpost(62, 'publish', gmdate('Y-m-d H:i:s', time() + 60))),
+  'a published record with no newer draft opens as it is');
 
 /* ---- a save by a person clears it ---- */
 $_POST = array('post_id'=>5,'bftd'=>array('x'=>array('y'=>'z')));
@@ -326,7 +350,7 @@ $js = preg_replace('#(^|\n)\s*//[^\n]*#', '$1', $js);
    TinyMCE - the uploader and the paste handler have their own - so a check run
    across the whole file goes on passing after the autosave block's own hook is
    deleted, which is what happened first time. */
-$start = strpos($js_raw, 'Autosave, for drafts only');
+$start = strpos($js_raw, 'Autosave (Karl, 1.148)');
 check(false !== $start, 'the autosave block is findable');
 $block_raw = substr($js_raw, $start);
 /* The block's own opening is the first match, so the search for the NEXT one
@@ -389,8 +413,15 @@ check(1 === preg_match("/name: 'modified'/", $js),
   'which it can only tell by sending what it believes the record looked like');
 check(1 === preg_match('/if \( d\.modified \) seen = d\.modified;/', $js),
   'and by moving that forward after each save of its own');
-check(1 === preg_match("/'draft' === d\.mode/", $js),
-  'a saved draft and a kept copy are told apart in what the person is shown');
+check(1 === preg_match("/'draft' === d\.mode \) \{[\s\S]{0,200}else say\( '', '' \)/", $js),
+  'a draft that autosaved shows nothing');
+check(1 === preg_match("/say\( d\.message \|\| BFTD\.draft_line, 'good' \)/", $js),
+  'and a published record shows the one line');
+check(1 === preg_match("/'1' === String\( BFTD\.has_draft \)/", $js),
+  'which is also shown when the screen opens on a draft (a "0" from the server is a string, and truthy)');
+check(1 === preg_match("/data\.unshift\( \{ name: 'bftd_sent'/", $js) && false !== strpos($js, 'prependTo( $form )'),
+  'the field count goes first, so a server that stops part way still reads it');
+check(0 === preg_match('/bftd-restore/', $js), 'and nothing offers changes back');
 
 /* The header pill describes the record, and a draft autosave changes it. It is
    worked out on the server and handed back, rather than guessed at in the
@@ -445,17 +476,5 @@ check(in_array('bftd_skill', BFTD_Autosave::types(), true) && in_array('bftd_act
   'skills and activities are kept by this autosave');
 check(BFTD_Autosave::is_draft(mkpost(60,'draft','2026-09-17 10:00:00','bftd_activity')) === true,
   'a draft activity is saved for real, like any other draft');
-
-/* ---- the bar offering a kept copy back ----
- * A copy is only kept for a published record, so the bar has to show on one.
- * It asked for a draft, and never appeared. */
-$GLOBALS['CAN'] = true;
-$pub = mkpost(61, 'publish', '2026-09-17 10:00:00', 'bftd_activity');
-$GLOBALS['META'][61][BFTD_Autosave::KEY] = array('at' => strtotime('2026-09-17 11:00:00 UTC'), 'by' => 7, 'fields' => array('content' => 'x'));
-ob_start(); BFTD_Autosave::render_bar($pub); $bar = ob_get_clean();
-check(false !== strpos($bar, 'bftd-restore'), 'a published record with a newer kept copy offers it back');
-$GLOBALS['META'][61][BFTD_Autosave::KEY]['at'] = strtotime('2026-09-17 09:00:00 UTC');
-ob_start(); BFTD_Autosave::render_bar($pub); $old = ob_get_clean();
-check('' === $old, 'and one older than the record does not');
 
 exit($fail ? 1 : 0);

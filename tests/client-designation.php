@@ -49,6 +49,7 @@ $a = strpos($src, "\tprivate static function save_relationships(");
 $b = strpos($src, "\n\t/**", $a);
 if (false === $a || false === $b) { echo "FAIL: save_relationships() is not in the file\n"; exit(1); }
 eval('class SR { public static function welcome($u, $p, $e) { $GLOBALS["WELCOMED"][] = $u; } '
+  . ' public static function carried($f) { return isset($_POST[$f]) || isset($_POST[$f . "_present"]); } '
   . str_replace('private static function save_relationships', 'public static function save_relationships', substr($src, $a, $b - $a))
   . ' }');
 
@@ -104,6 +105,27 @@ $GLOBALS['AUDIT'] = array();
 SR::save_relationships($S);
 check(0 === count(array_filter($GLOBALS['AUDIT'], function ($l) { return false !== strpos($l, 'is now the client'); })),
   'and saving again with the same client is not a change');
+
+
+/* ---- a list the form did not carry is left alone (1.148) ----
+   An autosave once sent no people lists, and each one read as "everybody
+   removed": a student's caregivers and tutors went every twenty-five seconds. */
+$_POST = array('bftd_client_primary' => array(31), 'bftd_clients' => array(30, 31), 'bftd_staff' => array(5, 6));
+SR::save_relationships($S);
+$_POST = array('bftd' => array('student' => array('school' => 'x')));   // a form with no people lists in it
+SR::save_relationships($S);
+$care = array_map('intval', get_post_meta($S, BFTD_CPT::CLIENT_KEY));
+$staff = array_map('intval', get_post_meta($S, BFTD_CPT::STAFF_KEY));
+check(in_array(30, $care, true) && in_array(31, $care, true), 'caregivers survive a save that did not carry them, got ' . json_encode($care));
+check(array(5, 6) === $staff, 'and so do tutors, got ' . json_encode($staff));
+check(31 === BFTD_CPT::primary_client_id($S), 'and the client');
+
+/* While a list that was carried with nobody in it is emptied, as the person asked. */
+$_POST = array('bftd_staff_present' => '1', 'bftd_clients_present' => '1', 'bftd_client_primary_present' => '1');
+SR::save_relationships($S);
+check(array() === get_post_meta($S, BFTD_CPT::STAFF_KEY), 'removing every tutor on screen removes them');
+check(0 === BFTD_CPT::primary_client_id($S) && array() === get_post_meta($S, BFTD_CPT::CLIENT_KEY),
+  'and removing the client and every caregiver does too');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

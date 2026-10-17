@@ -2,35 +2,27 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
- * Autosave, for drafts only.
- *
- * A reading diagnostic is six sections of writing. A tutor who loses forty
- * minutes of it to a crashed browser, an expired session or a stray back
- * button has lost an evening, and the thing they will remember about this
- * software is that it ate their work.
+ * Autosave, the way Karl set it out (1.148).
  *
  * WordPress autosaves the post title and content and nothing else. Every
  * field on these screens lives in a meta box, so core's autosave has never
- * protected a single word of a report.
+ * protected a single word of a report. This does.
  *
- * IT BEHAVES DIFFERENTLY ON A DRAFT AND ON A PUBLISHED REPORT, AND THE
- * DIFFERENCE IS THE POINT.
+ * NOT PUBLISHED YET (a draft, pending, private, or a brand new record): the
+ * record itself is saved, silently, every time something changes. No message,
+ * no revision, nothing offered back. Only a failure is ever said out loud.
  *
- * On a DRAFT it saves the record, properly, the way pressing Update does.
- * Nobody outside the practice can open a draft, so there is nothing to
- * protect a family from, and a tutor who typed a figure and saw it vanish
- * would rightly call that broken. Only the activity log is held back, because
- * one entry every twenty-five seconds would bury the entries people made.
+ * PUBLISHED: a family may be reading it, so the live record is never touched
+ * by a machine. Instead there is ONE draft beside it, whoever is typing,
+ * autosaved the same way. Reopening the record shows that draft in the form,
+ * so nothing typed is ever hidden behind a choice; pressing Update is what
+ * takes it live. The only message is "Draft saved, update to take live".
  *
- * On a PUBLISHED report it writes nothing. A family may be reading it, and
- * pushing a half finished sentence onto their screen because somebody left a
- * tab open is not a decision anybody made. So the form is kept as a snapshot
- * beside the record until a person asks for it back, and asking for it back
- * is an ordinary save with an ordinary entry in the log.
- *
- * In both cases a preview shows what the tutor is working on: on a draft
- * because it was really saved, and on a published report because the preview
- * is offered the snapshot.
+ * Showing the draft in the form is done by running the ordinary save against
+ * the draft with every write held in memory instead of the database (see
+ * overlay()), so the screen is drawn by the same code from the same values it
+ * would have after an Update, for every kind of field, with nothing sent,
+ * logged or published on the way.
  */
 class BFTD_Autosave {
 
@@ -98,21 +90,29 @@ class BFTD_Autosave {
 		return true;
 	}
 
-	/** Is this a field the autosave carries? Mirrors payload() in bftd-admin.js. */
-	private static function kept_key( $k ) {
-		return in_array( $k, array( 'bftd', 'bftd_rows', 'bftd_sched', 'bftd_visible', 'bftd_items',
-				'post_title', 'bftd_subtitle', 'bftd_student', 'content' ), true )
-			|| 1 === preg_match( '/^bftd_(skill|activity)_[a-z_]+$/', $k );
+	/**
+	 * Is this a field the autosave carries? Mirrors payload() in bftd-admin.js.
+	 *
+	 * Everything the screens name bftd..., plus the title and a library
+	 * record's description. It used to be a list, and the list missed the
+	 * people pickers (caregivers, tutors, "also shared with"), the subheading's
+	 * nonce and the completed skills: an autosave without them read as
+	 * "everybody removed" and wiped those lists on every draft.
+	 */
+	public static function kept_key( $k ) {
+		if ( in_array( $k, array( 'post_title', 'content' ), true ) ) return true;
+		return 1 === preg_match( '/^bftd/', $k ) && ! in_array( $k, array( 'bftd_nonce', 'bftd_sent' ), true );
 	}
 
 	public static function init() {
 		add_action( 'wp_ajax_bftd_autosave', array( __CLASS__, 'ajax_save' ) );
-		add_action( 'wp_ajax_bftd_autosave_restore', array( __CLASS__, 'ajax_restore' ) );
-		add_action( 'wp_ajax_bftd_autosave_discard', array( __CLASS__, 'ajax_discard' ) );
-		add_action( 'edit_form_after_title', array( __CLASS__, 'render_bar' ) );
 
-		// A save by a person is the snapshot's whole purpose served, so it
-		// goes. Late, so it runs after the fields it was protecting are in.
+		// A published record with a draft opens showing the draft. Early in
+		// the edit screen, before the title or any panel is drawn.
+		add_action( 'add_meta_boxes', array( __CLASS__, 'open_with_draft' ), 0, 2 );
+
+		// A save by a person is the draft's whole purpose served, so it goes.
+		// Late, so it runs after the fields it was protecting are in.
 		add_action( 'save_post', array( __CLASS__, 'clear_on_save' ), 99, 2 );
 
 		// And core's own autosave is switched off on these screens.
@@ -258,7 +258,10 @@ class BFTD_Autosave {
 				), 413 );
 			}
 
+			// Silently: no activity log entry, no revision, and no "Saved"
+			// message waiting on the next screen. Only a person's save says so.
 			BFTD_Audit::$quiet = true;
+			add_filter( 'wp_revisions_to_keep', '__return_zero', 999 );
 			if ( self::is_library( $post ) ) {
 				self::save_library( $post );
 			} else {
@@ -270,6 +273,16 @@ class BFTD_Autosave {
 			// but not in the record is a report nobody can find. A library
 			// record's description is its content, so that goes too.
 			self::save_title_content( $post, wp_unslash( $_POST ) );
+			remove_filter( 'wp_revisions_to_keep', '__return_zero', 999 );
+			delete_transient( 'bftd_saved_' . get_current_user_id() );
+
+			// The one thing a silent save does say: something typed could not
+			// be kept (a session slot that clashes or overfills a tutor's day).
+			// Said now, on the screen being typed on, rather than left for the
+			// next page load to announce after the row has quietly gone.
+			$warn_key = 'bftd_sched_warn_' . get_current_user_id();
+			$warnings = get_transient( $warn_key );
+			delete_transient( $warn_key );
 
 			// A brand new record is an "auto-draft" until somebody presses Save
 			// Draft: it is left off every list, and WordPress deletes it after
@@ -295,7 +308,20 @@ class BFTD_Autosave {
 				'mode'     => 'draft',
 				'modified' => $fresh ? $fresh->post_modified_gmt : '',
 				'pills'    => $pills,
+				'warnings' => $warnings ? array_values( (array) $warnings ) : array(),
 			) );
+		}
+
+		// A published record updated since this tab drew it: this tab's draft
+		// is out of date. Written anyway it would sit newer than the Update and
+		// reopen over it, which is how an autosave still in flight when Update
+		// was pressed could bring old words back.
+		$seen = isset( $_POST['modified'] ) ? sanitize_text_field( wp_unslash( $_POST['modified'] ) ) : '';
+		if ( $seen && $seen !== $post->post_modified_gmt ) {
+			wp_send_json_error( array(
+				'message'  => 'This was updated since you opened it. Reload to keep working on the latest version.',
+				'conflict' => true,
+			), 409 );
 		}
 
 		if ( ! BFTD_MetaBoxes::posted_is_complete() ) {
@@ -315,9 +341,10 @@ class BFTD_Autosave {
 		unset( $fields['bftd_skill_nonce'], $fields['bftd_activity_nonce'] );
 		if ( ! $fields ) wp_send_json_error( array( 'message' => 'Nothing to keep.' ), 400 );
 
+		// One draft per record, whoever is typing: each autosave replaces it.
 		// Stored raw and sanitised on the way out, because a snapshot is the
 		// form as it stood rather than a version of the record. Nothing here
-		// is ever rendered; restoring runs it through the ordinary save.
+		// is ever rendered; drawing the draft runs it through the ordinary save.
 		update_post_meta( $post->ID, self::KEY, array(
 			'at'     => time(),
 			'by'     => get_current_user_id(),
@@ -325,84 +352,179 @@ class BFTD_Autosave {
 		) );
 
 		wp_send_json_success( array(
-			'at'   => BFTD_Time::format( 'g:i a', time() ),
-			'mode' => 'snapshot',
-			'kept' => count( $fields ),
+			'at'      => BFTD_Time::format( 'g:i a', time() ),
+			'mode'    => 'snapshot',
+			'kept'    => count( $fields ),
+			'message' => self::DRAFT_LINE,
 		) );
 	}
 
-	/**
-	 * Put the snapshot back, as an ordinary save.
-	 *
-	 * Through the same method the form uses, so everything that normally
-	 * happens on a save happens here: the same sanitising, the same activity
-	 * log entry, the same flag on the review bar. A restore that wrote meta
-	 * directly would be a second way into the database and the one nobody
-	 * checks when a field's rules change.
-	 */
-	public static function ajax_restore() {
-		$post = self::guard();
-		$snap = self::snapshot( $post->ID );
-		if ( ! $snap ) wp_send_json_error( array( 'message' => 'There is nothing to put back.' ), 404 );
+	/* ------------------------------------------------------------------ */
+	/* Opening a published record that has a draft                          */
+	/* ------------------------------------------------------------------ */
 
+	/** Writes held in memory while the draft is drawn: [object id][meta key] => values. */
+	private static $store     = null;
+	private static $capturing = false;
+	private static $bypass    = false;
+	private static $hooked    = false;
+
+	/** True while the draft is being worked out, so nothing leaves the building. */
+	public static $dry = false;
+
+	/** Is this request drawing a published record from its draft? */
+	public static function showing_draft() {
+		return null !== self::$store;
+	}
+
+	public static function open_with_draft( $post_type, $post = null ) {
+		if ( ! $post instanceof WP_Post ) return;
+		if ( ! in_array( $post->post_type, self::types(), true ) ) return;
+		self::forget_core_autosaves( $post->ID );
+		if ( self::is_draft( $post ) ) return;
+		if ( ! current_user_can( 'edit_post', $post->ID ) ) return;
+		self::overlay( $post );
+	}
+
+	/**
+	 * Run the ordinary save against the draft, with every write held in
+	 * memory, so the edit screen that follows reads the draft's values.
+	 *
+	 * Nothing leaves memory: meta writes are captured, posts cannot be
+	 * created or updated, mail is not sent, notices and the activity log are
+	 * held back. After the save, reads of anything it wrote are answered from
+	 * memory for the rest of this request; everything else, including the
+	 * edit lock WordPress writes next, goes to the database as normal.
+	 */
+	public static function overlay( $post ) {
+		$snap = self::unsaved( $post );
+		if ( ! $snap ) return false;
+
+		if ( ! self::$hooked ) {
+			self::$hooked = true;
+			add_filter( 'get_post_metadata',    array( __CLASS__, 'meta_get' ),    0, 4 );
+			add_filter( 'update_post_metadata', array( __CLASS__, 'meta_update' ), 0, 5 );
+			add_filter( 'add_post_metadata',    array( __CLASS__, 'meta_add' ),    0, 5 );
+			add_filter( 'delete_post_metadata', array( __CLASS__, 'meta_delete' ), 0, 5 );
+		}
+		self::$store = array();
+		self::$capturing = true;
+		self::$dry = true;
+
+		$hold_posts = function () { return true; };   // wp_insert_post / wp_update_post do nothing
+		$hold_mail  = function () { return false; };  // wp_mail sends nothing
+		add_filter( 'wp_insert_post_empty_content', $hold_posts, 999 );
+		add_filter( 'pre_wp_mail', $hold_mail, 999 );
+
+		$was_post  = $_POST;
+		$was_quiet = BFTD_Audit::$quiet;
+		BFTD_Audit::$quiet = true;
 		foreach ( $snap['fields'] as $k => $v ) {
 			$_POST[ $k ] = wp_slash( $v );   // the save path unslashes, as WordPress does
 		}
+		unset( $_POST['bftd_sent'] );
+
 		if ( self::is_library( $post ) ) {
 			self::save_library( $post );
 		} else {
 			BFTD_MetaBoxes::save_fields( $post->ID, $post );
 		}
-		self::save_title_content( $post, $snap['fields'] );
 
-		BFTD_Audit::log( 'autosave_restored', array(
-			'post_id' => $post->ID,
-			'summary' => 'Unsaved changes from ' . BFTD_Time::format( 'j M Y, g:i a', (int) $snap['at'] ) . ' were put back.',
+		$_POST = $was_post;
+		BFTD_Audit::$quiet = $was_quiet;
+		remove_filter( 'wp_insert_post_empty_content', $hold_posts, 999 );
+		remove_filter( 'pre_wp_mail', $hold_mail, 999 );
+		self::$capturing = false;
+		self::$dry = false;
+
+		// The "saved" and warning messages a save leaves for the next screen
+		// belong to a person's save, not to drawing a draft.
+		foreach ( array( 'bftd_saved_', 'bftd_sched_warn_', 'bftd_held_', 'bftd_dupe_' ) as $t ) {
+			delete_transient( $t . get_current_user_id() );
+		}
+
+		// And the title, which the screen reads off the post itself.
+		if ( isset( $snap['fields']['post_title'] ) ) {
+			$title = sanitize_text_field( $snap['fields']['post_title'] );
+			if ( '' !== $title ) $post->post_title = $title;
+		}
+		return true;
+	}
+
+	private static function load( $id, $key ) {
+		if ( isset( self::$store[ $id ][ $key ] ) ) return;
+		self::$bypass = true;
+		$vals = get_post_meta( $id, $key, false );
+		self::$bypass = false;
+		self::$store[ $id ][ $key ] = is_array( $vals ) ? array_values( $vals ) : array();
+	}
+
+	public static function meta_get( $check, $id, $key, $single ) {
+		if ( self::$bypass || null === self::$store || '' === (string) $key ) return $check;
+		if ( ! isset( self::$store[ $id ][ $key ] ) ) return $check;
+		$vals = self::$store[ $id ][ $key ];
+		if ( $single ) return $vals ? array( $vals[0] ) : array( '' );
+		return $vals;
+	}
+
+	public static function meta_update( $check, $id, $key, $value, $prev = '' ) {
+		if ( ! self::$capturing ) return $check;
+		self::load( $id, $key );
+		if ( '' !== $prev && null !== $prev ) {
+			foreach ( self::$store[ $id ][ $key ] as $i => $v ) {
+				if ( $v == $prev ) self::$store[ $id ][ $key ][ $i ] = $value;
+			}
+		} else {
+			self::$store[ $id ][ $key ] = array( $value );
+		}
+		return true;
+	}
+
+	public static function meta_add( $check, $id, $key, $value, $unique = false ) {
+		if ( ! self::$capturing ) return $check;
+		self::load( $id, $key );
+		if ( $unique && self::$store[ $id ][ $key ] ) return false;
+		self::$store[ $id ][ $key ][] = $value;
+		return true;
+	}
+
+	public static function meta_delete( $check, $id, $key, $value = '', $all = false ) {
+		if ( ! self::$capturing ) return $check;
+		self::load( $id, $key );
+		if ( '' === $value || null === $value || false === $value ) {
+			self::$store[ $id ][ $key ] = array();
+		} else {
+			self::$store[ $id ][ $key ] = array_values( array_filter(
+				self::$store[ $id ][ $key ],
+				function ( $v ) use ( $value ) { return $v != $value; }
+			) );
+		}
+		return true;
+	}
+
+	/**
+	 * WordPress's own per-person autosaves, left over from before core's
+	 * autosave was switched off here. They are copies nobody can see or use,
+	 * and "no draft revisions" means none, so they go.
+	 */
+	private static function forget_core_autosaves( $post_id ) {
+		global $wpdb;
+		$old = $wpdb->get_col( $wpdb->prepare(
+			"SELECT ID FROM {$wpdb->posts} WHERE post_parent = %d AND post_type = 'revision' AND post_name LIKE %s",
+			(int) $post_id,
+			'%' . $wpdb->esc_like( '-autosave-v' ) . '%'
 		) );
-
-		self::clear( $post->ID );
-		wp_send_json_success();
-	}
-
-	public static function ajax_discard() {
-		$post = self::guard();
-		self::clear( $post->ID );
-		wp_send_json_success();
+		foreach ( (array) $old as $rid ) wp_delete_post_revision( (int) $rid );
 	}
 
 	/* ------------------------------------------------------------------ */
-	/* The bar                                                             */
+	/* The one message                                                     */
 	/* ------------------------------------------------------------------ */
 
-	public static function render_bar( $post ) {
-		// Any record this autosave keeps. It used to ask for a draft here, but
-		// a copy is only ever kept for a published record (a draft is saved
-		// for real), so the bar offering it back could never appear.
-		if ( ! $post || ! in_array( $post->post_type, self::types(), true ) ) return;
-		if ( ! current_user_can( 'edit_post', $post->ID ) ) return;
-
-		$snap = self::unsaved( $post );
-		if ( ! $snap ) return;
-
-		$who  = get_userdata( (int) $snap['by'] );
-		$mine = (int) $snap['by'] === get_current_user_id();
-		?>
-		<div class="bftd-restore" data-post="<?php echo (int) $post->ID; ?>">
-			<p>
-				<strong>There are changes here that were never saved.</strong>
-				<?php echo esc_html( sprintf(
-					'%s at %s, and %s.',
-					$mine ? 'You were editing this' : ( $who ? $who->display_name . ' was editing this' : 'Somebody was editing this' ),
-					BFTD_Time::format( 'g:i a on j F', (int) $snap['at'] ),
-					$mine ? 'the page closed before you saved' : 'their page closed before they saved'
-				) ); ?>
-				Putting them back replaces what is on this screen now.
-			</p>
-			<p class="bftd-restore-do">
-				<button type="button" class="button button-primary bftd-restore-yes">Put them back</button>
-				<button type="button" class="button-link bftd-restore-no">Discard them</button>
-			</p>
-		</div>
-		<?php
-	}
+	/**
+	 * The only thing autosave ever says, and only on a published record: shown
+	 * beside the Update button when the screen opens on a draft and after each
+	 * autosave of one (bftd-admin.js).
+	 */
+	const DRAFT_LINE = 'Draft saved, update to take live';
 }

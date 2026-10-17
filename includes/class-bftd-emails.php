@@ -381,6 +381,8 @@ class BFTD_Emails {
 	 * 'reviewed' => true for a send a tutor has explicitly clicked.
 	 */
 	public static function send( $key, $to_email, $tags = array(), $context = array() ) {
+		// Drawing a published record's draft runs the save without consequences.
+		if ( class_exists( 'BFTD_Autosave' ) && BFTD_Autosave::$dry ) return false;
 		if ( ! $to_email || ! is_email( $to_email ) ) return false;
 
 		$context['to'] = $to_email;
@@ -420,6 +422,8 @@ class BFTD_Emails {
 	 * template. Still logged, still subject to the pause switch and cap.
 	 */
 	public static function send_raw( $to_email, $subject, $preview, $message, $context = array() ) {
+		// Drawing a published record's draft runs the save without consequences.
+		if ( class_exists( 'BFTD_Autosave' ) && BFTD_Autosave::$dry ) return false;
 		if ( ! $to_email || ! is_email( $to_email ) ) return false;
 		if ( ! empty( self::settings()['paused'] ) ) return false;
 
