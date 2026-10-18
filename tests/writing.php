@@ -39,6 +39,12 @@ check('Grammar and word usage are correct' === $f['grammar']['title'],
 
 /* The wording of a convention carries emphasis, and it has to survive into
    both the report and the screen a tutor answers it on. */
+/* How the tutor marks the sample, said beside the row it belongs to (Karl, 1.151). */
+foreach (array(array('conventions', 'misspelled', '(highlighted in yellow)'),
+               array('conventions', 'other_punct', '(circled in red)'),
+               array('grammar', 'multisyll', '(underlined in blue)')) as $m) {
+  check(' ' . $m[2] === substr($f[$m[0]]['rows'][$m[1]], -strlen($m[2]) - 1), "$m[1] ends with $m[2]");
+}
 check(false !== strpos($f['conventions']['rows']['caps_start'], '<strong>capital letters</strong>'),
   'a convention keeps the emphasis the design gives it');
 $fields_src = file_get_contents(BFTD_PATH . 'includes/class-bftd-fields.php');
@@ -119,7 +125,7 @@ check('Notes' === $f['body_after']['heading'] && 'Notes' === $f['body_after']['l
 check('method' === end($k), 'and the standing answer closes the section');
 
 /* ---- the standing wording ---- */
-foreach (array('body' => 'Intro', 'method' => 'How the method addresses this') as $key => $label) {
+foreach (array('body' => 'Intro', 'method' => 'How our method helps') as $key => $label) {
   check(!empty($f[$key]['shipped']), "$label is wording the plugin ships");
   check(3 === (int) $f[$key]['edit_rank'], "and only a senior manager may change it: $label");
   check(isset(BFTD_Schema::standing_text()['dxsec-6.' . $key]), "$label can be set portal-wide");

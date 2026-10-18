@@ -11,7 +11,7 @@ if ( ! function_exists( 'get_option' ) ) { function get_option( $k, $d = false )
 if ( ! function_exists( 'get_userdata' ) ) { function get_userdata( $id ) { $u = new stdClass; $u->display_name = 'Laurel Sanders'; return $u; } }
 if ( ! function_exists( 'get_post_meta' ) ) { function get_post_meta( $id, $k = '', $s = false ) { return ''; } }
 class BFTD_Fields { public static $S = array(); public static function get( $id, $sec, $k ) { return self::$S[ $k ] ?? ''; } }
-class BFTD_MetaBoxes { const SUBTITLE_KEY = '_bftd_subtitle'; }
+class BFTD_MetaBoxes { const SUBTITLE_KEY = '_bftd_subtitle'; public static function grade_options() { return array( '8' => 'Grade 8', '12' => 'Grade 12', 'adult' => 'Adult' ); } }
 class BFTD_CPT { public static function staff_ids( $id ) { return array(); } }
 require dirname( __DIR__ ) . '/includes/class-bftd-report-view.php';
 
@@ -20,12 +20,22 @@ function check( $ok, $msg ) { global $fail; if ( $ok ) echo "  ok  $msg\n"; else
 
 $line = new ReflectionMethod( 'BFTD_Report_View', 'hero_line' );
 $line->setAccessible( true );
-$v = array( 'assessed_on' => '2026-08-11', 'grade' => 'Grade 8', 'assessed_by' => 3 );
+$v = array( 'assessed_on' => '2026-08-11', 'grade' => 'Grade 5 typed on the diagnostic', 'assessed_by' => 3 );
 
-BFTD_Fields::$S = array( 'birth_date' => '2013-07-06', 'school' => 'Chewelah School District' );
+BFTD_Fields::$S = array( 'birth_date' => '2013-07-06', 'school' => 'Chewelah School District', 'grade' => '8' );
 $got = $line->invoke( null, 1, 90, $v );
 check( 1 === preg_match( '/^[^·]*2026 · born [^·]*2013 · age 13 · Grade 8 · Chewelah School District · assessed by Laurel Sanders$/u', $got ),
   'the birth date sits after the assessment date, with the age it made them: ' . $got );
+
+/* Grade, birth date, age and school all come from the student record
+   (Karl, 1.151). A grade typed on an older diagnostic is not shown. */
+check( false === strpos( $got, 'Grade 5' ), 'an old grade typed on the diagnostic is ignored' );
+BFTD_Fields::$S = array( 'grade' => '12', 'school' => 'homeschool + Running Start Program' );
+$got = $line->invoke( null, 1, 90, $v );
+check( false !== strpos( $got, ' · Grade 12 · homeschool + Running Start Program · ' ), 'the stored grade is said in words, then the school: ' . $got );
+BFTD_Fields::$S = array( 'grade' => 'Grade 11 French immersion' );
+$got = $line->invoke( null, 1, 90, $v );
+check( false !== strpos( $got, 'Grade 11 French immersion' ), 'a grade not in the list is shown as typed' );
 
 BFTD_Fields::$S = array( 'school' => 'Chewelah School District' );
 $got = $line->invoke( null, 1, 90, $v );
@@ -47,19 +57,20 @@ check( false !== strpos( $rule, 'font-family:var(--font-d)' ), 'in the heading f
 $rv0 = file_get_contents( dirname( __DIR__ ) . '/includes/class-bftd-report-view.php' );
 check( false !== strpos( $rv0, '<p class="hero-title">Reading diagnostic assessment' ), 'and no longer carries the small eyebrow class' );
 
-/* "Read this part first" is prominent too: its own class, larger type, a
-   heavier border. */
-$rv = file_get_contents( dirname( __DIR__ ) . '/includes/class-bftd-report-view.php' );
-check( false !== strpos( $rv, 'class="banner banner-first"' ), 'the read-this-first banner carries its own class' );
-preg_match( '/\.bf-report \.banner\.banner-first\{([^}]*)\}/', $css, $b );
-check( isset( $b[1] ) && false !== strpos( $b[1], 'font-size:16px' ) && false !== strpos( $b[1], 'border-left-width:6px' ),
-  'and is drawn larger, with a heavy edge' );
-
-/* The paragraph under the name is the tutor's to edit: a field on the
-   overview, starting from the wording it always had, with {tutor} filled in. */
+/* Karl removed the opening paragraph and the "Read this part first" banner
+   in 1.151: the overview carries notes and instructions. Neither the words,
+   the field nor the banner remain. */
+$rv  = file_get_contents( dirname( __DIR__ ) . '/includes/class-bftd-report-view.php' );
 $sch = file_get_contents( dirname( __DIR__ ) . '/includes/class-bftd-schema.php' );
-check( 1 === preg_match( "/'intro'\s*=>\s*array\( 'type' => 'textarea'.{0,200}'default' => self::DIAGNOSTIC_INTRO/s", $sch ), 'the introduction is an editable field that starts from the old wording' );
-check( false !== strpos( $rv, "str_replace( '{tutor}'" ) && false === strpos( $rv, 'Six areas of reading and writing, so we can see' ),
-  'and the report draws the field, not hard-coded words' );
+check( false === strpos( $rv, 'banner-first' ) && false === strpos( $css, 'banner-first' ), 'no read-this-first banner on the report' );
+check( false === strpos( $rv, 'is starting from, not what they are capable of' ), 'nor its sentence' );
+check( false === strpos( $rv, 'class="lede"' ) && false === strpos( $rv, 'DIAGNOSTIC_INTRO' ), 'no opening paragraph under the name' );
+check( false === strpos( $sch, 'DIAGNOSTIC_INTRO' ) && false === strpos( $sch, 'Six areas of reading and writing' ), 'nor its wording anywhere' );
+check( 0 === preg_match( "/'intro'\s*=>\s*array\( 'type' => 'textarea', 'label' => 'Introduction at the top of the report'/", $sch ), 'and the overview no longer asks for one' );
+
+/* Headings inside report sections are large and prominent (Karl, 1.151). */
+check( 1 === preg_match( '/\.bf-report \.doc-body h3, \.bf-report \.doc-body h4\{font-family:var\(--font-d\); font-size:(\d+)px; font-weight:800[^}]*border-left:4px solid var\(--bf-purple\)/', $css, $hm ) && (int) $hm[1] >= 18,
+  'section headings are heading font, heavy, at least 18px, edged in purple' );
+check( 1 === preg_match( '/\.bf-report \.doc-body h3\{font-size:(\d+)px/', $css, $hm2 ) && (int) $hm2[1] >= 20, 'and larger still at the comfortable reading size' );
 
 exit( $fail ? 1 : 0 );

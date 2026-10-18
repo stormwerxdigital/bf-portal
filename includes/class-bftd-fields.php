@@ -107,6 +107,10 @@ class BFTD_Fields {
 
 		$val = get_post_meta( $post_id, BFTD_Schema::meta_key( $section_id, $field_key ), true );
 
+		// A choice since renamed reads as what it became (the spelling word
+		// lists paired from Grade 5 in 1.151: a stored "grade-5" is "grade-5-6").
+		if ( is_string( $val ) && isset( $field['aliases'][ $val ] ) ) $val = $field['aliases'][ $val ];
+
 		// A field that has never been saved holds '', and one saved from an
 		// untouched editor holds <p></p> or a stray newline. Both are empty
 		// to the person looking at them, so both get the standing wording

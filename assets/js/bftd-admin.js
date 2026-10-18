@@ -3528,4 +3528,41 @@ jQuery( function ( $ ) {
 		var section = $wrap.data( 'section' );
 		$( document ).on( 'input change', '[name^="bftd[' + section + ']["]', function () { refresh( $wrap ); } );
 	} );
+
+	/* ----------------------------------------------------------------
+	 * The sidebar stays in view (Karl, 1.151).
+	 *
+	 * Publish, Update and Preview sit at the foot of the right-hand column,
+	 * and on a long report that meant scrolling all the way back up to reach
+	 * them. The column now scrolls with the page until its last box is on
+	 * screen, then holds there, so those buttons stay in reach however far
+	 * down the report you are. A column shorter than the window simply holds
+	 * at the top. Position sticky rather than fixed, so the column keeps its
+	 * place in the layout and nothing slides under it. Only on two-column
+	 * screens: below WordPress's breakpoint the column drops under the
+	 * report and is left alone.
+	 * ---------------------------------------------------------------- */
+	$( function () {
+		if ( ! window.BFTD || '1' !== String( BFTD.autosave ) ) return;
+		var $side = $( '#post-body.columns-2 #postbox-container-1' );
+		if ( ! $side.length ) return;
+		$( 'body' ).addClass( 'bftd-sticky-side' );
+		var gap = 12;
+		function place() {
+			if ( ! $( '#post-body' ).hasClass( 'columns-2' ) || window.innerWidth <= 850 ) { $side.css( 'top', '' ); return; }
+			var bar  = $( '#wpadminbar' ).outerHeight() || 0;
+			// Rest above the Back to top button, which is fixed in that corner.
+			var $top = $( '.bftd-top' );
+			var foot = $top.length ? $top.outerHeight() + ( parseInt( $top.css( 'bottom' ), 10 ) || 0 ) + gap : gap;
+			var room = window.innerHeight - bar - gap - foot;
+			var tall = $side.outerHeight();
+			// Taller than the window: hold with its foot on screen.
+			$side.css( 'top', ( tall > room ? bar + gap + room - tall : bar + gap ) + 'px' );
+		}
+		place();
+		$( window ).on( 'resize', place );
+		// Boxes open, close and grow (a picker fills, a note appears).
+		if ( window.ResizeObserver ) new ResizeObserver( place ).observe( $side[0] );
+		else $( document ).on( 'click', '#postbox-container-1 .handlediv, #postbox-container-1 .hndle', function () { setTimeout( place, 50 ); } );
+	} );
 }( jQuery ) );

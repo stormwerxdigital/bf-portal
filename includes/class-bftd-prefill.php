@@ -38,10 +38,8 @@ class BFTD_Prefill {
 		return apply_filters( 'bftd_prefill_map', array(
 
 			/* The diagnostic's own header. */
-			'sec-assessment-overview.grade' => array(
-				'from' => 'grade',
-				'as'   => 'grade_label',
-			),
+			// The grade was copied in here until 1.151. The report now reads it
+			// from the student record directly (Karl), so there is no field to fill.
 			'sec-assessment-overview.assessed_by' => array(
 				'from' => 'assigned_tutor',
 				'as'   => 'raw',

@@ -155,8 +155,11 @@ check(1 !== preg_match('/bftd-reset[\s\S]{0,900}\$form\.submit\(\)/', $js),
    rewrite. So the heading is the schema's and the writing is the field's. */
 check('Notes' === $notes['label'], 'the notes field is called what the report calls it');
 check('Notes' === $notes['heading'], 'and the report draws that heading itself');
-check(false !== strpos($method['heading'], 'How does Evidence-Based Literacy Instruction'),
-  'the standing answer keeps its own question as a heading');
+check('How our method helps' === $method['heading'],
+  'the standing answer carries the standard heading (Karl, 1.151)');
+foreach (BFTD_Schema::sections() as $sid => $sec) foreach ((array) ($sec['fields'] ?? array()) as $fk => $fd)
+  if (isset($fd['heading']) && (false !== stripos($fd['heading'], 'How does') || false !== stripos($fd['heading'], 'method')))
+    check('How our method helps' === $fd['heading'], "every method heading is the same: $sid.$fk");
 $view = file_get_contents(BFTD_PATH . 'includes/class-bftd-report-view.php');
 check(1 === preg_match('/if \( ! empty\( \$field\[.heading.\] \) \) \{\s*echo \x27<h3>\x27/', $view),
   'and the report prints it, rather than trusting the writing to carry it');

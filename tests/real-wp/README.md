@@ -37,3 +37,13 @@ field survives every step, except these, which are rules rather than losses:
 - A schedule slot that overlaps another student's is refused, with a warning.
 - A second draft session for the same student and date is held as a draft.
 - An activity refuses a skill from the other track.
+
+## view-as.mjs
+
+    BFTD_PORTAL='/?page_id=5' node tests/real-wp/view-as.mjs
+
+"View as client" from the Users screen (1.150): the client row has the link
+and staff rows do not; the view matches the client's own login exactly; links
+keep the view; the page cannot post as the client and WordPress refuses a
+request sent around the page; made-up links and staff accounts do nothing;
+senior managers have it, tutor managers and tutors do not.

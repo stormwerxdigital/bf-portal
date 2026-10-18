@@ -33,7 +33,7 @@ class BFTD_Schema {
   public static function sections_for_post_type($pt){
     $dx = array(
       'sec-assessment-overview' => array('label'=>'Assessment overview','fields'=>array(
-        'grade'=>array('label'=>'Grade at assessment'),'assessed_on'=>array('label'=>'Assessment date'),
+        'assessed_on'=>array('label'=>'Assessment date'),
         'assessed_by'=>array('label'=>'Assessed by'))),
       'dxsec-3' => array('label'=>'Reading words on their own','fields'=>array('score'=>array('label'=>'Score'))),
       'dxsec-4' => array('label'=>'Reading a passage smoothly','fields'=>array('score'=>array('label'=>'Score'))),
@@ -63,8 +63,9 @@ $GLOBALS['STAFF'][$s] = array(7, 9);
 
 $v = BFTD_Prefill::values($s, 'bftd_assessment');
 
-/* --- codes become the words a report uses --- */
-check($v['sec-assessment-overview']['grade'] === 'Grade 3', 'a grade stored as 3 reaches the report as "Grade 3"');
+/* --- the grade is not copied: the report reads it from the student (Karl, 1.151) --- */
+check(!isset(BFTD_Prefill::map()['sec-assessment-overview.grade']), 'the grade is no longer copied into the diagnostic');
+check(!isset($v['sec-assessment-overview']['grade']), 'so nothing offers one');
 
 /* The reading level, the speed and the date of the assessment are read off
    the diagnostics now, not typed on the student record. Prefilling a new
@@ -102,16 +103,7 @@ check($v === array(), 'a student with nothing recorded offers nothing, rather th
 $partial = 12;
 $GLOBALS['META'][$partial] = array('_bftd_student__grade' => 'adult');
 $v = BFTD_Prefill::values($partial, 'bftd_assessment');
-check($v['sec-assessment-overview']['grade'] === 'Adult', 'an adult learner is described as one');
-check(!isset($v['sec-assessment-overview']['assessed_on']), 'and a field with no answer is left out entirely, not sent empty');
-check(!isset($v['dxsec-4']), 'along with its whole section when nothing in it is known');
-
-/* An unknown code is passed through rather than dropped, because a value
-   somebody typed is better than silence. */
-$odd = 13;
-$GLOBALS['META'][$odd] = array('_bftd_student__grade' => 'Grade 11 French immersion');
-$v = BFTD_Prefill::values($odd, 'bftd_assessment');
-check($v['sec-assessment-overview']['grade'] === 'Grade 11 French immersion', 'a value that is not one of the options is passed through');
+check($v === array(), 'a student with only a grade offers nothing, since the grade is read live');
 
 /* --- no student, nothing to say --- */
 check(BFTD_Prefill::values(0, 'bftd_assessment') === array(), 'no student means nothing to fill in');
@@ -119,7 +111,7 @@ check(BFTD_Prefill::values(0, 'bftd_assessment') === array(), 'no student means 
 /* --- the list shown on screen matches what actually happens --- */
 $explained = BFTD_Prefill::explain();
 check(count($explained) === count(BFTD_Prefill::map()), 'every mapped field is named on screen, so nothing fills in secretly');
-check(in_array('Grade at assessment (Assessment overview)', $explained, true), 'named by its label and its section');
+check(in_array('Assessed by (Assessment overview)', $explained, true), 'named by its label and its section');
 
 /* --- the subheading is shown, not typed --- */
 /* Who teaches a student is already answered by the assignment. A second place

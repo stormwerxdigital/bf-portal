@@ -104,13 +104,6 @@ class BFTD_Report_View {
 			?></p>
 			<h1><?php echo esc_html( $name ); ?></h1>
 			<div class="sub"><?php echo esc_html( self::hero_line( $report, $student_id, $v ) ); ?></div>
-			<?php
-			// Editable by the tutor (the overview's "Introduction" field), at
-			// Karl's direction. Blank falls back to the wording it always had.
-			$intro = isset( $v['intro'] ) && '' !== trim( (string) $v['intro'] ) ? (string) $v['intro'] : BFTD_Schema::DIAGNOSTIC_INTRO;
-			$intro = str_replace( '{tutor}', $tutor ? $tutor : 'your tutor', $intro );
-			?>
-			<p class="lede"><?php echo nl2br( esc_html( trim( $intro ) ) ); ?></p>
 			<div class="hero-actions">
 				<button type="button" class="btn btn-primary" onclick="window.print()">Print or save as PDF</button>
 				<?php $call = BFTD_Settings::help_bar_link(); ?>
@@ -124,19 +117,12 @@ class BFTD_Report_View {
 		/* ---- what the family has to do about this report ---- */
 		self::items_cards( $student_id, 'Reading diagnostic' );
 
-		/* ---- read this first ---- */
-		?>
-		<div class="banner banner-first" style="margin:18px 0">
-			<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8"/><path d="M10 6.5v4M10 13.6v.1"/></svg>
-			<span><b>Read this part first.</b> These numbers describe where <?php echo esc_html( self::first_name( $name ) ); ?>
-				is starting from, not what they are capable of. Every one of these six areas responds to
-				teaching, and several of them move quickly.</span>
-		</div>
-		<?php
+		// No opening paragraph and no "Read this part first" banner: Karl
+		// removed both in 1.151. The overview says what needs saying.
 
 		/* ---- the overview, open ---- */
 		if ( BFTD_Fields::section_has_content( $report, 'sec-assessment-overview' ) ) {
-			echo '<div id="dxoverview" style="margin-bottom:24px">';
+			echo '<div id="dxoverview" style="margin:18px 0 24px">';
 			self::docsec( 'sec-assessment-overview', 'Summary', 'Assessment overview',
 				self::body_html( $report, 'sec-assessment-overview', $sections['sec-assessment-overview'] ), true,
 				self::thread_for( $report, 'sec-assessment-overview', $sections['sec-assessment-overview'] ) );
@@ -1143,8 +1129,15 @@ class BFTD_Report_View {
 			$age = self::age_at( $birth, ! empty( $v['assessed_on'] ) ? $v['assessed_on'] : '' );
 			if ( $age ) $bits[] = 'age ' . $age;
 		}
-		if ( ! empty( $v['grade'] ) ) $bits[] = $v['grade'];
 		if ( $student_id ) {
+			// Grade and school from the student record, never typed on the
+			// diagnostic (Karl, 1.151). A grade is stored as "3" and said as
+			// "Grade 3"; anything not in the list is shown as it was typed.
+			$grade = (string) BFTD_Fields::get( $student_id, 'student', 'grade' );
+			if ( '' !== $grade ) {
+				$opts   = class_exists( 'BFTD_MetaBoxes' ) && method_exists( 'BFTD_MetaBoxes', 'grade_options' ) ? BFTD_MetaBoxes::grade_options() : array();
+				$bits[] = isset( $opts[ $grade ] ) ? $opts[ $grade ] : $grade;
+			}
 			$school = (string) BFTD_Fields::get( $student_id, 'student', 'school' );
 			if ( $school ) $bits[] = $school;
 		}

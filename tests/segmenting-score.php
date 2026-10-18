@@ -85,8 +85,8 @@ foreach (array('body' => 'the introduction', 'method' => 'the method answer') as
     "and only a senior manager or an administrator may change $what");
 }
 check('Intro' === $f['body']['label'], 'the introduction is labelled Intro, as the report calls it');
-check(false !== strpos($f['method']['heading'], 'phonemic awareness'),
-  'the method answer is headed with the question it answers');
+check('How our method helps' === $f['method']['heading'],
+  'the method answer carries the standard heading (1.151)');
 
 /* Practice-wide wording has to be reachable from Settings, or a change means
    editing every report by hand. The registry is built by scanning, so this is

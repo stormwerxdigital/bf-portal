@@ -586,18 +586,19 @@
 }
 .bf-report .banner svg{width:17px;height:17px;flex:0 0 auto;margin-top:2px;stroke:var(--bf-clay);fill:none;stroke-width:1.9;stroke-linecap:round}
 .bf-report .banner b{font-weight:600}
-/* "Read this part first" on the diagnostic, made prominent at Karl's direction. */
-.bf-report .banner.banner-first{font-size:16px; line-height:1.55; padding:18px 20px; gap:14px;
-  border:2px solid var(--bf-clay); border-left-width:6px}
-.bf-report .banner.banner-first svg{width:22px; height:22px; margin-top:3px; stroke-width:2.2}
-.bf-report .banner.banner-first b{display:block; font-family:var(--font-d); font-weight:800; font-size:18px;
-  color:var(--bf-clay); margin-bottom:4px}
 .bf-report .n-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--bf-sage);margin-left:6px;vertical-align:2px}
 .bf-report .linkish{background:none;border:0;padding:0;font:inherit;color:var(--bf-purple);font-weight:600;cursor:pointer;text-decoration:underline}
 .bf-report .doc-body{font-size:14px; line-height:1.68; color:var(--body)}
 .bf-report .doc-body p{margin:0 0 11px}
-.bf-report .doc-body h1, .bf-report .doc-body h2{font-size:15.5px; font-weight:700; color:var(--ink); margin:18px 0 8px}
-.bf-report .doc-body h3, .bf-report .doc-body h4{font-size:13.5px; font-weight:700; color:var(--ink); margin:15px 0 6px}
+/* Headings inside a section (Notes, How does ... help?, the tutor's own)
+   are large, heavy and edged in purple, so each part of a section is easy
+   to find when scanning (Karl, 1.151). */
+.bf-report .doc-body h1, .bf-report .doc-body h2{font-family:var(--font-d); font-size:21px; font-weight:800; line-height:1.3; color:var(--ink); margin:30px 0 10px}
+.bf-report .doc-body h3, .bf-report .doc-body h4{font-family:var(--font-d); font-size:19px; font-weight:800; line-height:1.3; color:var(--ink);
+  margin:30px 0 10px; padding:2px 0 2px 12px; border-left:4px solid var(--bf-purple)}
+.bf-report .doc-body h4{font-size:17px}
+.bf-report .doc-body > h1:first-child, .bf-report .doc-body > h2:first-child,
+.bf-report .doc-body > h3:first-child, .bf-report .doc-body > h4:first-child{margin-top:4px}
 .bf-report .doc-body strong{color:var(--ink); font-weight:600}
 .bf-report .doc-body em{font-style:italic}
 .bf-report .doc-body ul, .bf-report .doc-body ol{margin:0 0 12px; padding-left:20px}
@@ -783,8 +784,9 @@
 .bf-report .note{font-size:15.5px; line-height:1.7}
 .bf-report .doc-body{font-size:15.5px; line-height:1.72; color:var(--body)}
 .bf-report .doc-body p{margin:0 0 13px}
-.bf-report .doc-body h1, .bf-report .doc-body h2{font-size:17px; margin:22px 0 9px}
-.bf-report .doc-body h3, .bf-report .doc-body h4{font-size:15px; margin:18px 0 7px}
+.bf-report .doc-body h1, .bf-report .doc-body h2{font-size:23px; margin:32px 0 11px}
+.bf-report .doc-body h3{font-size:21px; margin:32px 0 11px}
+.bf-report .doc-body h4{font-size:18.5px; margin:28px 0 10px}
 .bf-report .doc-body li{margin-bottom:8px}
 .bf-report .doc-body table.doc th, .bf-report .doc-body table.doc td{font-size:14.5px; line-height:1.6; padding:11px 13px}
 .bf-report .doc-body table.doc tr:first-child th, .bf-report .doc-body table.doc tr:first-child td{background:var(--bf-purple-pale); color:var(--ink)}

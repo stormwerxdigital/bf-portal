@@ -9,7 +9,7 @@
  * where the goal is a per-report value, which makes it the only place where
  * the bar can be drawn against the wrong thing and still look reasonable.
  *
- * Two of the ten bands have no published figure at all. A bar cannot be drawn
+ * Kindergarten has no published figure at all. A bar cannot be drawn
  * against nothing, and the temptation is to quietly substitute a number. That
  * would put a percentage on a parent's report that no published norm supports.
  */
@@ -112,14 +112,18 @@ check('norm' === $s['benchmark_field'], 'it names the field the goal is read fro
 check('select' === $f['norm']['type'], 'and that field is chosen from the published bands');
 
 $norms = BFTD_Schema::fluency_norms();
-check(10 === count($norms), 'ten bands, kindergarten through grades nine to twelve');
+check(13 === count($norms), 'thirteen bands, Kindergarten through Grade 12, each grade on its own (1.151)');
+check(!isset($norms['grade-9-12']), 'the combined "Grades 9 to 12" band is gone');
+foreach (array('grade-9', 'grade-10', 'grade-11', 'grade-12') as $band) {
+  check(151 === BFTD_Schema::fluency_norm_wcpm($band), "$band is measured against the Grade 8 figure, 151");
+}
 foreach (array('grade-1' => 60, 'grade-2' => 100, 'grade-3' => 112, 'grade-4' => 133,
                'grade-5' => 146, 'grade-6' => 146, 'grade-7' => 150, 'grade-8' => 151) as $band => $wcpm) {
   check($wcpm === BFTD_Schema::fluency_norm_wcpm($band), "$band is measured against $wcpm");
 }
 
 /* The two that have no figure must not acquire one. */
-foreach (array('k' => 'Kindergarten', 'grade-9-12' => 'Grades nine to twelve') as $band => $what) {
+foreach (array('k' => 'Kindergarten') as $band => $what) {
   check(null === $norms[$band]['wcpm'], "$what has no published figure");
   check(0 === BFTD_Schema::fluency_norm_wcpm($band), 'and none is invented for it');
   check(!empty($norms[$band]['note']), 'the report says why instead');
@@ -144,7 +148,8 @@ check('Kindergarten, no published norm' === BFTD_Schema::goal_line('dxsec-4', ar
 
 /* ---- one list of norms, used everywhere ---- */
 $opts = BFTD_Schema::fluency_norm_options();
-check(11 === count($opts), 'the picker offers all ten, plus "not chosen"');
+check(14 === count($opts), 'the picker offers all thirteen, plus "not chosen"');
+check('Grade 10, 151 words per minute' === $opts['grade-10'], 'Grade 10 is a choice of its own at 151');
 check(false !== strpos($opts['grade-8'], '151'), 'each choice shows the figure it is measured against');
 check(false !== strpos($opts['k'], 'no published norm'), 'and says so where there is none');
 
@@ -212,7 +217,11 @@ foreach (array('Grade 1' => '60 WCPM', 'Grade 4' => '133 WCPM', 'Grade 8' => '15
 check(false !== strpos($norms_html, 'not a typo'), 'Grade 6 keeps its note about the middle-school slump');
 check(2 === substr_count($norms_html, '(2006 norms)'), 'Grades 7 and 8 say they are the 2006 norms');
 check(false !== strpos($norms_html, 'No ORF norm (pre-reading skills assessed instead)'), 'Kindergarten says there is no ORF norm');
-check(false === strpos($norms_html, 'Grades 9 to 12'), 'and the list stops at Grade 8, as the document does');
+check(false === strpos($norms_html, 'Grades 9 to 12'), 'the combined high school row is gone');
+foreach (array(9, 10, 11, 12) as $g) {
+  check(false !== strpos($norms_html, "<td>Grade $g</td><td>151 WCPM (reading rate plateaus after Grade 8; no published norms beyond Grade 8)</td>"),
+    "Grade $g has its own row at 151, saying why");
+}
 
 $res = BFTD_Schema::score_table_html('dxsec-4', $passage, 'passage_results');
 check(false !== strpos($res, '1-minute timed reading, unpracticed grade-level passage'), 'the results say what was read');
@@ -280,8 +289,8 @@ foreach (array(
   check(isset($texts['dxsec-4.' . $key]), "$key can be set portal-wide in Settings");
   check(false === strpos($f[$key]['shipped'], "\xE2\x80\x94"), "$key has no em dash");
 }
-check('How does Linguistic Literacy help?' === $f['passage_method']['heading']
-   && 'How does Linguistic Literacy help?' === $f['kinder_method']['heading'], 'both answers carry the document\'s question as their heading');
+check('How our method helps' === $f['passage_method']['heading']
+   && 'How our method helps' === $f['kinder_method']['heading'], 'both answers carry the standard heading, How our method helps (1.151)');
 check('Kindergarten word fluency assessment' === $f['kinder_intro']['heading'], 'and the word list intro its title');
 check(false !== strpos($f['kinder_intro']['shipped'], 'https://www.donpotter.net/pdf/flesch_exercises.pdf'), 'the word list intro links the Victory Drill Book');
 check(!isset($texts['dxsec-4.body']) && !isset($texts['dxsec-4.method']), 'the old single intro and answer are no longer offered in Settings');

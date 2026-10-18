@@ -23,11 +23,11 @@ const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromi
 for (const [which, mine, theirs] of [
   ['kinder',  ['Kindergarten word fluency assessment', 'we skip the paragraph reading', 'Minimum speed benchmarks',
                '1-minute timed reading, unpracticed Kindergarten word list', '130 WPM, Grade 8', 'EBLI raises reading grade level',
-               'How does Linguistic Literacy help?'],
+               'How our method helps'],
               ['Passage reading norms', 'EBLI builds fluency from the inside out', 'ORF* norm']],
   ['passage', ['Oral reading fluency isn', 'Passage reading norms for oral reading fluency', '1-minute timed reading, unpracticed grade-level passage',
                '133 WPM'.replace('WPM', 'WCPM') + ', Grade 4', 'End of year ORF* norm for enrolled grade', 'EBLI builds fluency from the inside out',
-               'How does Linguistic Literacy help?'],
+               'How our method helps'],
               ['we skip the paragraph reading', 'Minimum speed benchmarks', 'EBLI raises reading grade level']],
 ]) {
   const page = await browser.newPage({ viewport: { width: 1100, height: 900 } });

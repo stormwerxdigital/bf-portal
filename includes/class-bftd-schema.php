@@ -34,8 +34,8 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  */
 class BFTD_Schema {
 
-	/** The diagnostic's opening paragraph, as it read before it was editable. */
-	const DIAGNOSTIC_INTRO = 'Six areas of reading and writing, so we can see exactly where the gaps are. The cards below are the summary. Everything under them is the full report, section by section, exactly as {tutor} wrote it.';
+	/** The one heading every section's closing method answer carries, on the report and the editor (Karl, 1.151). */
+	const METHOD_HEADING = 'How our method helps';
 
 	const SCREEN_HOME      = 'home';
 	const SCREEN_PROGRESS  = 'progress';
@@ -174,7 +174,9 @@ class BFTD_Schema {
 	 */
 	public static function reading_levels() {
 		$levels = array( 'preprimer' => 'Preprimer', 'primer' => 'Primer' );
-		for ( $g = 1; $g <= 8; $g++ ) $levels[ 'grade-' . $g ] = 'Grade ' . $g;
+		// To Grade 12 and College (Karl, 1.151); it stopped at Grade 8.
+		for ( $g = 1; $g <= 12; $g++ ) $levels[ 'grade-' . $g ] = 'Grade ' . $g;
+		$levels['college'] = 'College';
 		return $levels;
 	}
 
@@ -212,8 +214,12 @@ class BFTD_Schema {
 			'grade-6'  => array( 'label' => 'Grade 6',  'wcpm' => 146 ),
 			'grade-7'  => array( 'label' => 'Grade 7',  'wcpm' => 150 ),
 			'grade-8'  => array( 'label' => 'Grade 8',  'wcpm' => 151 ),
-			'grade-9-12' => array( 'label' => 'Grades 9 to 12', 'wcpm' => null,
-			                     'note'  => 'No published benchmark. Fluency is considered to plateau at about 150.' ),
+			// Each high school grade on its own (Karl, 1.151), measured against
+			// the Grade 8 figure: there are no published norms past Grade 8.
+			'grade-9'  => array( 'label' => 'Grade 9',  'wcpm' => 151, 'plateau' => true ),
+			'grade-10' => array( 'label' => 'Grade 10', 'wcpm' => 151, 'plateau' => true ),
+			'grade-11' => array( 'label' => 'Grade 11', 'wcpm' => 151, 'plateau' => true ),
+			'grade-12' => array( 'label' => 'Grade 12', 'wcpm' => 151, 'plateau' => true ),
 		);
 	}
 
@@ -492,7 +498,7 @@ class BFTD_Schema {
 		return $rows;
 	}
 
-	/** The passage norms as the training document lists them, Kindergarten to Grade 8. */
+	/** The passage norms, Kindergarten to Grade 12 (9 to 12 at the Grade 8 figure, 1.151). */
 	public static function passage_norm_rows() {
 		$extra = array(
 			'grade-6' => ' (not a typo: the well-documented middle-school slump)',
@@ -501,7 +507,7 @@ class BFTD_Schema {
 		);
 		$rows = array();
 		foreach ( self::fluency_norms() as $key => $n ) {
-			if ( 'grade-9-12' === $key ) continue;   // the document lists none past Grade 8
+			if ( ! empty( $n['plateau'] ) ) $extra[ $key ] = ' (reading rate plateaus after Grade 8; no published norms beyond Grade 8)';
 			$rows[] = array( $n['label'], ( null === $n['wcpm'] )
 				? 'No ORF norm (pre-reading skills assessed instead)'
 				: $n['wcpm'] . ' WCPM' . ( isset( $extra[ $key ] ) ? $extra[ $key ] : '' ) );
@@ -571,10 +577,25 @@ class BFTD_Schema {
 		return '';
 	}
 
-	/** The word lists the spelling test is drawn from, Kindergarten to Grade 12. */
+	/**
+	 * The word lists the spelling test is drawn from: Kindergarten, Grades 1
+	 * to 4 one at a time, then two grades to a list from Grade 5 (Karl, 1.151).
+	 */
 	public static function spelling_lists() {
 		$out = array( '' => 'Not chosen', 'k' => 'Kindergarten' );
-		for ( $g = 1; $g <= 12; $g++ ) $out[ 'grade-' . $g ] = 'Grade ' . $g;
+		for ( $g = 1; $g <= 4; $g++ ) $out[ 'grade-' . $g ] = 'Grade ' . $g;
+		foreach ( array( array( 5, 6 ), array( 7, 8 ), array( 9, 10 ), array( 11, 12 ) ) as $pair ) {
+			$out[ 'grade-' . $pair[0] . '-' . $pair[1] ] = 'Grades ' . $pair[0] . ' to ' . $pair[1];
+		}
+		return $out;
+	}
+
+	/** A single grade chosen before the lists were paired reads as its pair. */
+	public static function spelling_list_aliases() {
+		$out = array();
+		foreach ( array( array( 5, 6 ), array( 7, 8 ), array( 9, 10 ), array( 11, 12 ) ) as $pair ) {
+			foreach ( $pair as $g ) $out[ 'grade-' . $g ] = 'grade-' . $pair[0] . '-' . $pair[1];
+		}
 		return $out;
 	}
 
@@ -985,13 +1006,12 @@ class BFTD_Schema {
 					'help' => 'A programme always begins with the initial assessment. An interim one can be done at any point and does not replace the three.' ),
 				'assessed_on'   => array( 'type' => 'date',   'label' => 'Assessment date', 'card' => true ),
 				'assessed_by'   => array( 'type' => 'staff',  'label' => 'Assessed by', 'card' => true ),
-				'grade'         => array( 'type' => 'text',   'label' => 'Grade at assessment', 'card' => true ),
-				// The paragraph under the name at the top of the report. Fixed
-				// wording until Karl asked for the tutor to be able to edit it.
-				// {tutor} becomes the name of whoever assessed.
-				'intro'         => array( 'type' => 'textarea', 'label' => 'Introduction at the top of the report', 'card' => true,
-					'default' => self::DIAGNOSTIC_INTRO,
-					'help'    => 'Shown under the student\'s name. {tutor} is replaced with the name of whoever assessed.' ),
+				// "Grade at assessment" used to be typed here. Karl removed it in
+				// 1.151: the report reads the grade from the student record, as it
+				// already did the birth date, age and school.
+				// An "Introduction at the top of the report" field used to sit here;
+				// Karl removed it in 1.151 (the overview carries notes and
+				// instructions). Anything typed into it stays in the database unused.
 				// A "Headline finding" sentence used to sit here; Karl removed it
 				// from the diagnostic. Anything already typed into it stays in
 				// the database and is no longer shown or edited.
@@ -1140,10 +1160,10 @@ class BFTD_Schema {
 					'caps_start' => 'Writing piece has <strong>capital letters</strong> at the beginning of every sentence',
 					'caps_proper'=> '<strong>Capital letters</strong> used appropriately for <strong>proper nouns</strong>',
 					'end_punct'  => 'Writing piece has <strong>punctuation at the end</strong> of every sentence',
-					'other_punct'=> '<strong>Other punctuation</strong> is appropriate for sentences',
+					'other_punct'=> '<strong>Other punctuation</strong> is appropriate for sentences (circled in red)',
 					'spaces'     => 'There is a <strong>space between each word</strong>',
 					'each_sound' => 'All words contain a <strong>spelling for each sound</strong>',
-					'misspelled' => 'Writing piece contains some <strong>misspelled words</strong>',
+					'misspelled' => 'Writing piece contains some <strong>misspelled words</strong> (highlighted in yellow)',
 				),
 			),
 
@@ -1161,7 +1181,7 @@ class BFTD_Schema {
 					'flow'       => 'Overall flow',
 					'order'      => 'Order of sentences makes sense, with a clear beginning, middle and end',
 					'vivid'      => 'Powerful verbs, specific nouns and colourful adjectives or adverbs',
-					'multisyll'  => 'Writing piece contains <strong>multisyllable words</strong>',
+					'multisyll'  => 'Writing piece contains <strong>multisyllable words</strong> (underlined in blue)',
 				),
 			),
 
@@ -1176,8 +1196,8 @@ class BFTD_Schema {
 
 			'method' => array(
 				'type'      => 'rich',
-				'label'     => 'How the method addresses this',
-				'heading'   => 'How does Evidence-Based Literacy Instruction support writing?',
+				'label'     => self::METHOD_HEADING,
+				'heading'   => self::METHOD_HEADING,
 				'edit_rank' => 3,
 				'help'      => 'The practice\'s standing answer. Shown under the notes.',
 				'shipped'   => self::writing_method(),
@@ -1205,6 +1225,7 @@ class BFTD_Schema {
 				'label'   => 'Word list',
 				'card'    => true,
 				'options' => self::spelling_lists(),
+				'aliases' => self::spelling_list_aliases(),
 				'help'    => 'Which graded list the twenty-five words came from.',
 			),
 			'spellings' => array(
@@ -1282,8 +1303,8 @@ class BFTD_Schema {
 
 			'method' => array(
 				'type'      => 'rich',
-				'label'     => 'How the method addresses this',
-				'heading'   => 'How does Evidence-Based Literacy Instruction support spelling?',
+				'label'     => self::METHOD_HEADING,
+				'heading'   => self::METHOD_HEADING,
 				'edit_rank' => 3,
 				'help'      => 'The practice\'s standing answer. Shown under the notes.',
 				'shipped'   => self::spelling_method(),
@@ -1410,8 +1431,8 @@ class BFTD_Schema {
 			// same level as the explanation at the top.
 			'method' => array(
 				'type'      => 'rich',
-				'label'     => 'How the method addresses this',
-				'heading'   => 'How does Evidence-Based Literacy Instruction support handwriting automaticity?',
+				'label'     => self::METHOD_HEADING,
+				'heading'   => self::METHOD_HEADING,
 				'edit_rank' => 3,
 				'help'      => 'The practice\'s standing answer. Shown under the notes.',
 				'shipped'   => self::alphabet_method(),
@@ -1487,8 +1508,8 @@ class BFTD_Schema {
 
 			'method' => array(
 				'type'      => 'rich',
-				'label'     => 'How the method addresses this',
-				'heading'   => 'How does Evidence-Based Literacy Instruction support phonemic awareness?',
+				'label'     => self::METHOD_HEADING,
+				'heading'   => self::METHOD_HEADING,
 				'edit_rank' => 3,
 				'help'      => 'The practice\'s standing answer. Shown under the notes.',
 				'shipped'   => self::segmenting_method(),
@@ -1498,14 +1519,18 @@ class BFTD_Schema {
 		/*
 		 * Reading grade level, which is a level rather than a count.
 		 *
-		 * The score is one of ten named levels, so it is chosen rather than
+		 * The score is one of the named levels, so it is chosen rather than
 		 * typed: a free text box here produced "Preprimer", "pre-primer" and
 		 * "PP" for the same finding. There is no denominator, because a level
-		 * is not a fraction, and the bar is the level's position in that list
-		 * of ten — Preprimer is the first of ten, so the card shows a tenth
-		 * filled, exactly as it would for a score of one out of ten.
+		 * is not a fraction, and the bar is the level's position in the list
+		 * against Grade 8, the tenth: Preprimer shows a tenth filled, and
+		 * Grade 8 and above (Grades 9 to 12 and College, 1.151) show full.
 		 */
-		$s['dxsec-3']['benchmark']  = 10;
+		// The bar still fills at Grade 8, as it did before Grades 9 to 12 and
+		// College were added (1.151): measured against Grade 8's place in the
+		// list, so no existing report's card changed, and anything above it
+		// shows full.
+		$s['dxsec-3']['benchmark']  = self::reading_level_rank( 'grade-8' );
 		$s['dxsec-3']['unit']       = '';
 		$s['dxsec-3']['own_order']  = true;
 		$s['dxsec-3']['score_rank'] = 'reading_level';   // how the bar reads the score
@@ -1589,8 +1614,8 @@ class BFTD_Schema {
 
 			'method' => array(
 				'type'      => 'rich',
-				'label'     => 'How the method addresses this',
-				'heading'   => 'How does Evidence-Based Literacy Instruction support word reading?',
+				'label'     => self::METHOD_HEADING,
+				'heading'   => self::METHOD_HEADING,
 				'edit_rank' => 3,
 				'help'      => 'The practice\'s standing answer. Shown under the notes.',
 				'shipped'   => self::wordreading_method(),
@@ -1753,8 +1778,8 @@ class BFTD_Schema {
 
 			'passage_method' => array(
 				'type'      => 'rich',
-				'label'     => 'How Linguistic Literacy helps, timed passage reading',
-				'heading'   => 'How does Linguistic Literacy help?',
+				'label'     => self::METHOD_HEADING . ', timed passage reading',
+				'heading'   => self::METHOD_HEADING,
 				'edit_rank' => 3,
 				'form'      => 'passage',
 				'help'      => 'The practice\'s standing answer. Shown under the notes.',
@@ -1762,8 +1787,8 @@ class BFTD_Schema {
 			),
 			'kinder_method' => array(
 				'type'      => 'rich',
-				'label'     => 'How Linguistic Literacy helps, Kindergarten word fluency',
-				'heading'   => 'How does Linguistic Literacy help?',
+				'label'     => self::METHOD_HEADING . ', Kindergarten word fluency',
+				'heading'   => self::METHOD_HEADING,
 				'edit_rank' => 3,
 				'form'      => 'kinder',
 				'help'      => 'The practice\'s standing answer. Shown under the notes.',

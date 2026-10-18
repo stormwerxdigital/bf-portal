@@ -33,7 +33,9 @@ check('select' === $f['score']['type'], 'the score is chosen from a list');
 check(!in_array('score_of', $k, true), 'there is no denominator, because a level is not a fraction');
 
 $levels = BFTD_Schema::reading_levels();
-check(10 === count($levels), 'ten levels');
+check(15 === count($levels), 'fifteen levels, Preprimer to College (1.151)');
+check('Grade 9' === $levels['grade-9'] && 'Grade 12' === $levels['grade-12'] && 'College' === $levels['college'] && 'college' === array_key_last($levels),
+  'Grades 9 to 12 and College, in order, at the top');
 check('Preprimer' === $levels['preprimer'] && 'Primer' === $levels['primer'],
   'starting at preprimer and primer');
 check('Grade 1' === $levels['grade-1'] && 'Grade 8' === $levels['grade-8'],
@@ -49,7 +51,7 @@ foreach ($levels as $key => $label) {
 }
 
 /* ---- the bar reads position, not value ---- */
-check(10 === (int) $s['benchmark'], 'the bar is out of ten, because there are ten levels');
+check(10 === (int) $s['benchmark'], 'the bar still fills at Grade 8, the tenth level, so no existing card changed when levels were added');
 check('reading_level' === $s['score_rank'],
   'and the section says its score is a level, rather than leaving the card to guess');
 
@@ -71,7 +73,7 @@ $m = BFTD_Schema::measure('dxsec-3', array('score' => 'preprimer'));
 check('Preprimer' === $m['shown'], 'the card resolves what to show');
 check('preprimer' === $m['raw'], 'from the list the choice came from');
 check(1.0 === $m['value'], 'and the bar is worked out from its position');
-check(10.0 === $m['bench'], 'against the ten levels it is one of');
+check(10.0 === $m['bench'], 'against Grade 8, where the bar fills');
 
 $view = file_get_contents(BFTD_PATH . 'includes/class-bftd-report-view.php');
 check(1 === preg_match('/<span class="num[^"]*"><\?php echo esc_html\( \$shown \)/', $view),
@@ -103,7 +105,7 @@ check('score_table' === $f['levels']['type'],
    beside the dropdown that already held the first of them. */
 foreach (array('score' => 'independent', 'instructional' => 'instructional', 'frustration' => 'frustration') as $key => $band) {
   check(isset($f[$key]) && 'select' === $f[$key]['type'], "the $band level is chosen from a list");
-  check($f[$key]['options'] === $f['score']['options'], "from the same ten levels as the others: $band");
+  check($f[$key]['options'] === $f['score']['options'], "from the same levels as the others: $band");
 }
 check(!empty($f['instructional']['card']) && !empty($f['frustration']['card']),
   'and neither is printed again as a loose row under the table that reports it');
@@ -159,8 +161,8 @@ foreach (array('body' => 'the introduction', 'method' => 'the standing answer') 
   check(3 === (int) $f[$key]['edit_rank'], "and only a senior manager may change $what");
 }
 check('Intro' === $f['body']['label'], 'the introduction is labelled Intro');
-check(false !== strpos($f['method']['heading'], 'word reading'),
-  'and the standing answer is headed with the question it answers');
+check('How our method helps' === $f['method']['heading'],
+  'and the standing answer carries the standard heading (1.151)');
 $standing = BFTD_Schema::standing_text();
 foreach (array('dxsec-3.body', 'dxsec-3.method') as $id) {
   check(isset($standing[$id]), "$id can be set portal-wide from Settings");

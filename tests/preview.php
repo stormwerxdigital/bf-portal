@@ -264,10 +264,11 @@ foreach ($tracks as $t => $numbers) {
 /* The heading fields name the report in its hero; printing them again as
    rows underneath is the mistake this guards against. */
 $ov = $sections['sec-assessment-overview']['fields'];
-foreach (array('assessed_on','assessed_by','grade') as $k) {
+foreach (array('assessed_on','assessed_by') as $k) {
   check(!empty($ov[$k]['card']), "$k is used in the heading, not printed as a row");
 }
 check(empty($ov['overview']['card']), 'while the written overview is the section itself');
+check(!isset($ov['grade']), 'and the grade is not typed here: it comes from the student record (1.151)');
 check(!isset($ov['headline']), 'and there is no headline finding at all');
 
 /* An explainer is a sentence, not a property. */
@@ -356,7 +357,8 @@ foreach (array('dxsec-1','dxsec-2','dxsec-3','dxsec-4','dxsec-5','dxsec-6') as $
     || false !== stripos($body, 'How does Linguistic Literacy help');
   foreach ($schema['fields'] as $fd) {
     if (isset($fd['heading']) && (false !== stripos($fd['heading'], 'Evidence-Based Literacy Instruction')
-      || false !== stripos($fd['heading'], 'Linguistic Literacy'))) $explains = true;
+      || false !== stripos($fd['heading'], 'Linguistic Literacy')
+      || BFTD_Schema::METHOD_HEADING === $fd['heading'])) $explains = true;
   }
   check($explains, "$sid explains how the method addresses it");
 }
@@ -472,7 +474,7 @@ foreach (array('class-bftd-report-view.php' => $view, 'class-bftd-dashboard.php'
    drift apart, the design silently stops applying and nothing errors. */
 $css  = file_get_contents(BFTD_PATH . 'assets/css/bftd-report.css');
 
-foreach (array('hero-report','pi-card','banner','docsec','docsec-h','skills','skill-head',
+foreach (array('hero-report','pi-card','docsec','docsec-h','skills','skill-head',
                'skill-fig','track','pill','chart-card','chart-head','kpis','kpit','jump',
                'page-head','acc','acc-in') as $c) {
   // The class can sit anywhere in a class attribute, alone or beside others.

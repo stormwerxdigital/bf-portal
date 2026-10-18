@@ -29,8 +29,18 @@ $k = array_keys($f);
 check('select' === $f['word_list']['type'], 'the word list is chosen, not typed');
 $lists = BFTD_Schema::spelling_lists();
 check(isset($lists['k']) && 'Kindergarten' === $lists['k'], 'from Kindergarten');
-check(isset($lists['grade-12']) && 'Grade 12' === $lists['grade-12'], 'through to Grade 12');
-check(14 === count($lists), 'which is thirteen levels, plus not chosen');
+check(isset($lists['grade-4']) && 'Grade 4' === $lists['grade-4'], 'one grade at a time to Grade 4');
+check(array('grade-5-6' => 'Grades 5 to 6', 'grade-7-8' => 'Grades 7 to 8', 'grade-9-10' => 'Grades 9 to 10', 'grade-11-12' => 'Grades 11 to 12')
+  === array_slice($lists, 6, 4, true), 'then two grades to a list from Grade 5, through to Grade 12 (1.151)');
+check(10 === count($lists), 'which is nine lists, plus not chosen');
+check(!isset($lists['grade-5']) && !isset($lists['grade-12']), 'with no single grade from 5 up');
+$alias = BFTD_Schema::spelling_list_aliases();
+check('grade-5-6' === $alias['grade-5'] && 'grade-5-6' === $alias['grade-6'] && 'grade-11-12' === $alias['grade-12'],
+  'a single grade chosen before reads as its pair');
+check($alias === $f['word_list']['aliases'], 'and the field reads stored values through that');
+$GLOBALS['META'][77] = array(BFTD_Schema::meta_key('dxsec-5', 'word_list') => 'grade-9');
+if (!function_exists('get_post_meta')) { function get_post_meta($id, $k, $single = false) { return $GLOBALS['META'][$id][$k] ?? ($single ? '' : array()); } }
+check('grade-9-10' === BFTD_Fields::get(77, 'dxsec-5', 'word_list', $f['word_list']), 'so a report saved as Grade 9 shows Grades 9 to 10');
 
 foreach (array(
   'spellings' => array('spellings_of', 'Correct spellings'),
@@ -158,7 +168,7 @@ check(0 === preg_match("/foreach \\( array\\( 'dxsec-5', 'dxsec-6' \\) as \\\$si
   'and nothing puts the generated version back over it afterwards');
 
 /* ---- the standing wording ---- */
-foreach (array('body' => 'Intro', 'method' => 'How the method addresses this') as $key => $label) {
+foreach (array('body' => 'Intro', 'method' => 'How our method helps') as $key => $label) {
   check(!empty($f[$key]['shipped']), "$label is wording the plugin ships");
   check(3 === (int) $f[$key]['edit_rank'], "and only a senior manager may change it: $label");
   check($label === $f[$key]['label'], "labelled $label");

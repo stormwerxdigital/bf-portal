@@ -5,7 +5,7 @@
  * Primary Branch: main
  * Plugin URI:  https://bftutoring.com
  * Description: The parent portal and the tutor back end for Brilliant Futures Tutoring. Reading diagnostics, living progress reports, lesson records, per-section conversations, a full activity log, and customisable email with send rules.
- * Version:     1.149.0
+ * Version:     1.152.0
  * Author:      Stormwerx Digital
  * Author URI:  https://stormwerxdigital.com
  * Text Domain: bftd
@@ -13,7 +13,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'BFTD_VERSION', '1.149.0' );
+define( 'BFTD_VERSION', '1.152.0' );
 define( 'BFTD_PATH', plugin_dir_path( __FILE__ ) );
 define( 'BFTD_URL', plugin_dir_url( __FILE__ ) );
 
@@ -22,7 +22,7 @@ foreach ( array(
 	'emails', 'notices', 'attachments', 'threads', 'fields', 'library', 'skills', 'activities', 'library-view', 'items',
 	'schedule', 'change-notify', 'autosave', 'crm', 'prefill', 'derived', 'charts', 'sample', 'report-view', 'preview', 'metaboxes', 'brand', 'admin-experience',
 	'pay-period', 'stat-holidays', 'pay', 'stat-pay', 'pay-profile', 'accessibility', 'panels',
-	'admin', 'students', 'sessions', 'oversight', 'timecards', 'settings', 'dashboard', 'ajax',
+	'admin', 'students', 'sessions', 'oversight', 'timecards', 'settings', 'dashboard', 'view-as', 'ajax',
 ) as $file ) {
 	require_once BFTD_PATH . 'includes/class-bftd-' . $file . '.php';
 }
@@ -90,6 +90,7 @@ final class BFTD_Plugin {
 		BFTD_Timecards::init();
 		BFTD_Settings::init();
 		BFTD_Dashboard::init();
+		BFTD_View_As::init();
 		BFTD_Ajax::init();
 
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'admin_assets' ) );

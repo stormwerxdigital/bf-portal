@@ -262,7 +262,7 @@ HTML,
 <p><strong>Transcribed for clarity:</strong> I like to travel the world.</p>
 <h3>Notes</h3>
 <p>Kaine willingly provided an independent writing sample. Writing conventions, end punctuation, capitalisation and complete sentence structure will be taught as part of integrated literacy instruction rather than as a separate subject.</p>
-<h3>How does Evidence-Based Literacy Instruction support writing?</h3>
+<h3>How our method helps</h3>
 <p>Writing is not saved for the end. It is part of every activity from the first session, because writing a word is what proves a student can hear its sounds and choose spellings for them. Conventions are taught inside real sentences the student has written, rather than as a worksheet about commas.</p>
 HTML,
 			),
@@ -285,7 +285,6 @@ HTML,
 				'kind'        => 'initial',
 				'assessed_on' => '2026-08-11',
 				'assessed_by' => '',
-				'grade'       => 'Grade 8',
 				'overview'    => '<p>This diagnostic establishes a baseline of Kaine&#8217;s reading and writing strengths and challenges across six core literacy areas. It is not a formal evaluation. It is designed to guide instructional planning should tutoring move forward.</p>'
 					. '<p>Kaine took part in a comprehensive assessment covering six skill areas. The results give a baseline profile of his current literacy and inform an individual plan using Evidence-Based Literacy Instruction.</p>'
 					. '<p>He told me he learned more in fifty minutes online during the assessment than he had in the past seven years, and he left excited to begin.</p>',
@@ -773,7 +772,6 @@ HTML,
 			'sec-assessment-overview' => array(
 				'kind'        => 'interim',
 				'assessed_on' => '2026-09-01',
-				'grade'       => 'Grade 3',
 				'overview'    => '<p>Jot was reassessed on 1 September, eight weeks after his baseline. Every one of the six areas has moved, and two of them have moved a long way: handwriting automaticity from 14 letters a minute to 29, and passage reading from 40 words a minute to 64.</p>'
 					. '<p>His independent reading level is now Grade 2. That is the number families ask about most, and it is the slowest one to move, so a full level in eight weeks is ahead of what I expected when we started.</p>',
 			),

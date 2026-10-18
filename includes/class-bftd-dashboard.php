@@ -60,6 +60,8 @@ class BFTD_Dashboard {
 			$section = BFTD_Schema::section( $section_id );
 			if ( $section ) $args['screen'] = $section['screen'];
 		}
+		// Viewing as a client (BFTD_View_As): every link keeps the view.
+		if ( class_exists( 'BFTD_View_As' ) ) $args += BFTD_View_As::link_args();
 		$url = $args ? add_query_arg( $args, $base ) : $base;
 		return $section_id ? $url . '#' . rawurlencode( $section_id ) : $url;
 	}

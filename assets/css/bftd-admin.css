@@ -90,11 +90,18 @@
 .bftd-jump a{background:#fff;border:1px solid var(--bftd-line);border-radius:14px;padding:5px 11px;text-decoration:none;color:var(--bftd-body)}
 .bftd-jump a:hover{border-color:var(--bftd-purple-mid);color:var(--bftd-purple-deep)}
 
-.bftd-section{border:1px solid var(--bftd-line);border-left:3px solid var(--bftd-purple);border-radius:6px;padding:18px 20px;margin:0 0 18px;background:#fff}
-.bftd-section.is-empty{border-left-color:var(--bftd-line);background:var(--bftd-sunk)}
-.bftd-section-head{display:flex;gap:18px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--bftd-line-soft)}
-.bftd-section-head h3{font-family:var(--bftd-d);font-weight:700;font-size:19px;color:var(--bftd-ink);margin:2px 0 4px}
-.bftd-eyebrow{display:block;font-family:var(--bftd-d);font-weight:700;font-size:11.5px;color:var(--bftd-purple);letter-spacing:.04em}
+/* Each report section is its own card with a banded header, so scanning a
+   long report shows plainly where one section ends and the next begins
+   (Karl, 1.151): a strong top edge, a tinted header, a clear gap between. */
+.bftd-section{border:1px solid var(--bftd-line);border-top:5px solid var(--bftd-purple);border-radius:8px;padding:0;margin:0 0 34px;background:#fff;
+  box-shadow:0 2px 10px -2px rgba(36,30,42,.14)}
+.bftd-section.is-empty{border-top-color:var(--bftd-purple-mid)}
+.bftd-section-head{display:flex;gap:18px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin:0;padding:16px 20px 15px;
+  background:var(--bftd-purple-wash);border-bottom:1px solid var(--bftd-line);border-radius:3px 3px 0 0}
+.bftd-section.is-empty .bftd-section-head{background:var(--bftd-sunk)}
+.bftd-section-body{padding:18px 20px 20px}
+.bftd-section-head h3{font-family:var(--bftd-d);font-weight:800;font-size:22px;color:var(--bftd-ink);margin:2px 0 4px}
+.bftd-eyebrow{display:block;font-family:var(--bftd-d);font-weight:800;font-size:13px;color:var(--bftd-purple);letter-spacing:.04em}
 .bftd-section-meta{text-align:right;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
 .bftd-where{font-size:12px;color:var(--bftd-muted)}
 .bftd-vis{font-size:12.5px;color:var(--bftd-body)}
@@ -775,7 +782,7 @@ input[type=search]:focus,input[type=date]:focus,input[type=time]:focus,select:fo
 
 /* A folded panel is a header on its own, so it loses the gap that separated
    the header from the fields under it. */
-.bftd-section.is-shut .bftd-section-head{border-bottom:0; margin-bottom:0; padding-bottom:4px}
+.bftd-section.is-shut .bftd-section-head{border-bottom:0; border-radius:3px}
 
 @media (prefers-reduced-motion:reduce){ .bftd-chev{transition:none} }
 
@@ -1385,3 +1392,11 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
 
 /* Fields that belong to the assessment not chosen (Timed reading). */
 .bftd-form-part[hidden]{display:none}
+
+/* The right-hand column stays in view as the report scrolls (Karl, 1.151).
+   The script sets top so a column taller than the window holds with its
+   foot, and Publish, on screen. */
+@media (min-width:851px){
+  .bftd-sticky-side #post-body.columns-2 #postbox-container-1{position:sticky}
+  .bftd-sticky-side #poststuff #post-body.columns-2{display:flow-root}
+}
