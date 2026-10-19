@@ -962,7 +962,13 @@ class BFTD_Report_View {
 
 		// (A "Headline finding" sentence used to lead the overview here; Karl
 		// removed it. A value stored before then is never drawn.)
+
+		// Two lists drawn side by side as one table (Strengths | Weaknesses).
+		$paired = ! empty( $section['pair_table'] ) ? (array) $section['pair_table'] : array();
+		if ( $paired ) echo self::pair_table( $section, $values, $paired );
+
 		foreach ( $section['fields'] as $key => $field ) {
+			if ( in_array( $key, $paired, true ) ) continue;
 			$type = isset( $field['type'] ) ? $field['type'] : 'text';
 
 			// One of two alternative assessments: only the one done is drawn.
@@ -1014,6 +1020,40 @@ class BFTD_Report_View {
 		}
 		if ( ! empty( $section['chart'] ) ) echo BFTD_Dashboard::report_chart( $section['chart'], $report, $id );
 		return ob_get_clean();
+	}
+
+	/**
+	 * Two lists as the columns of one table, row by row (Karl, 1.155). The
+	 * longer list sets the number of rows; the shorter one leaves its cells
+	 * blank below its last item. A column with nothing in it at all is left
+	 * out, and with nothing in either there is no table.
+	 */
+	public static function pair_table( $section, $values, $keys ) {
+		$cols = array();
+		foreach ( $keys as $key ) {
+			$field = isset( $section['fields'][ $key ] ) ? $section['fields'][ $key ] : null;
+			if ( ! $field ) continue;
+			$col   = isset( $field['from_list'] ) ? $field['from_list'] : 'item';
+			$items = array();
+			foreach ( BFTD_Fields::visible_rows( isset( $values[ $key ] ) ? $values[ $key ] : array() ) as $row ) {
+				$text = isset( $row[ $col ] ) ? trim( (string) $row[ $col ] ) : '';
+				if ( '' !== $text ) $items[] = $text;
+			}
+			if ( $items ) $cols[] = array( 'label' => $field['label'], 'items' => $items );
+		}
+		if ( ! $cols ) return '';
+		$n = 0;
+		foreach ( $cols as $c ) $n = max( $n, count( $c['items'] ) );
+		$w   = round( 100 / count( $cols ), 2 );
+		$out = '<div class="tablewrap"><table class="doc pair-table"><colgroup>' . str_repeat( '<col style="width:' . $w . '%">', count( $cols ) ) . '</colgroup><thead><tr>';
+		foreach ( $cols as $c ) $out .= '<th>' . esc_html( $c['label'] ) . '</th>';
+		$out .= '</tr></thead><tbody>';
+		for ( $i = 0; $i < $n; $i++ ) {
+			$out .= '<tr>';
+			foreach ( $cols as $c ) $out .= '<td>' . ( isset( $c['items'][ $i ] ) ? esc_html( $c['items'][ $i ] ) : '' ) . '</td>';
+			$out .= '</tr>';
+		}
+		return $out . '</tbody></table></div>';
 	}
 
 	/**

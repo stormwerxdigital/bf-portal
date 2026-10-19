@@ -3529,6 +3529,15 @@ jQuery( function ( $ ) {
 		$( document ).on( 'input change', '[name^="bftd[' + section + ']["]', function () { refresh( $wrap ); } );
 	} );
 
+}( jQuery ) );
+
+/* ==========================================================================
+   The sidebar stays in view, on every record screen. Its own block: it once
+   sat inside the results-table block, which stops early on screens with no
+   live table, so progress reports never got it (fixed 1.154).
+   ========================================================================== */
+( function ( $ ) {
+	'use strict';
 	/* ----------------------------------------------------------------
 	 * The sidebar stays in view (Karl, 1.151).
 	 *
@@ -3548,17 +3557,27 @@ jQuery( function ( $ ) {
 		if ( ! $side.length ) return;
 		$( 'body' ).addClass( 'bftd-sticky-side' );
 		var gap = 12;
+		// Pinned beside the report with its own scroll (Karl, 1.155): it never
+		// slides away under the toolbar, no box is laid over another, and
+		// every box is one short scroll of the column away, whatever the
+		// page's position. It ends above the Back to top button.
 		function place() {
-			if ( ! $( '#post-body' ).hasClass( 'columns-2' ) || window.innerWidth <= 850 ) { $side.css( 'top', '' ); return; }
+			if ( ! $( '#post-body' ).hasClass( 'columns-2' ) || window.innerWidth <= 850 ) { $side.css( { top: '', maxHeight: '' } ); return; }
 			var bar  = $( '#wpadminbar' ).outerHeight() || 0;
-			// Rest above the Back to top button, which is fixed in that corner.
 			var $top = $( '.bftd-top' );
 			var foot = $top.length ? $top.outerHeight() + ( parseInt( $top.css( 'bottom' ), 10 ) || 0 ) + gap : gap;
-			var room = window.innerHeight - bar - gap - foot;
-			var tall = $side.outerHeight();
-			// Taller than the window: hold with its foot on screen.
-			$side.css( 'top', ( tall > room ? bar + gap + room - tall : bar + gap ) + 'px' );
+			// Before it reaches the top it starts lower down the page, so the
+			// height is from where it actually is: Publish is on screen from
+			// the first view, not only once the page has been scrolled.
+			var at = Math.max( bar + gap, $side[0].getBoundingClientRect().top );
+			$side.css( { top: ( bar + gap ) + 'px', maxHeight: Math.max( 240, window.innerHeight - at - foot ) + 'px' } );
 		}
+		var queued = false;
+		$( window ).on( 'scroll', function () {
+			if ( queued ) return;
+			queued = true;
+			window.requestAnimationFrame( function () { queued = false; place(); } );
+		} );
 		place();
 		$( window ).on( 'resize', place );
 		// Boxes open, close and grow (a picker fills, a note appears).

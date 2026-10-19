@@ -111,6 +111,11 @@ class BFTD_Fields {
 		// lists paired from Grade 5 in 1.151: a stored "grade-5" is "grade-5-6").
 		if ( is_string( $val ) && isset( $field['aliases'][ $val ] ) ) $val = $field['aliases'][ $val ];
 
+		// A list that became rows (Strengths and Weaknesses, 1.155): a report
+		// saved while it was one bulleted editor reads each bullet as a row,
+		// until it is next saved as rows.
+		if ( ! empty( $field['from_list'] ) && is_string( $val ) ) $val = self::list_to_rows( $val, $field['from_list'] );
+
 		// A field that has never been saved holds '', and one saved from an
 		// untouched editor holds <p></p> or a stray newline. Both are empty
 		// to the person looking at them, so both get the standing wording
@@ -286,6 +291,26 @@ class BFTD_Fields {
 	}
 
 	/** Every field of a section, as a flat map. */
+	/**
+	 * Bullets, paragraphs or lines of old rich text as rows of one column.
+	 * Each item is plain text; empty items are dropped.
+	 */
+	public static function list_to_rows( $html, $col ) {
+		$html = (string) $html;
+		if ( ! self::has_value( $html ) ) return array();
+		if ( preg_match_all( '#<li[^>]*>(.*?)</li>#is', $html, $m ) ) {
+			$items = $m[1];
+		} else {
+			$items = preg_split( '#</p>|<br\s*/?>|\r?\n#i', $html );
+		}
+		$rows = array();
+		foreach ( $items as $item ) {
+			$text = trim( preg_replace( '/\s+/u', ' ', html_entity_decode( wp_strip_all_tags( (string) $item ), ENT_QUOTES, 'UTF-8' ) ) );
+			if ( '' !== $text ) $rows[] = array( $col => $text );
+		}
+		return $rows;
+	}
+
 	public static function get_section( $post_id, $section_id ) {
 		$section = BFTD_Schema::section( $section_id );
 		if ( ! $section ) return array();
@@ -963,6 +988,22 @@ class BFTD_Fields {
 	 * empty-field rule applied to a row. The note beside it is optional and is
 	 * what turns "yes" into something a parent can picture.
 	 */
+	/**
+	 * A checklist's answers as marks: yes a green tick, no a red cross, N/A
+	 * in words, and not assessed a dash, in that order. Values unchanged.
+	 */
+	public static function mark_choices( $options ) {
+		$look = array(
+			'yes' => array( 'cls' => 'yes',  'show' => '&#10003;', 'title' => 'Yes' ),
+			'no'  => array( 'cls' => 'no',   'show' => '&#10007;', 'title' => 'No' ),
+			'na'  => array( 'cls' => 'na',   'show' => 'N/A',      'title' => 'N/A' ),
+			''    => array( 'cls' => 'none', 'show' => '&ndash;',  'title' => 'Not assessed' ),
+		);
+		$out = array();
+		foreach ( $look as $v => $m ) if ( array_key_exists( $v, (array) $options ) ) $out[ $v ] = $m;
+		return $out;
+	}
+
 	private static function render_checklist( $post_id, $section_id, $key, $field ) {
 		$saved = self::get( $post_id, $section_id, $key, $field );
 		$saved = is_array( $saved ) ? $saved : array();
@@ -994,11 +1035,22 @@ class BFTD_Fields {
 					?>
 					<div class="bftd-cl-row">
 						<label class="bftd-cl-item" for="<?php echo esc_attr( $id ); ?>"><?php echo wp_kses_post( $label ); ?></label>
+						<?php if ( ! empty( $field['marks'] ) ) : // Tick, cross, N/A or nothing (Karl, 1.155). ?>
+						<span class="bftd-crit-mark bftd-cl-mark" role="radiogroup" aria-label="<?php echo esc_attr( 'Result for: ' . wp_strip_all_tags( $label ) ); ?>">
+							<?php foreach ( self::mark_choices( $field['options'] ) as $ov => $m ) : ?>
+								<label class="bftd-crit-opt bftd-crit-opt-<?php echo esc_attr( $m['cls'] ); ?>" title="<?php echo esc_attr( $m['title'] ); ?>">
+									<input type="radio" name="<?php echo $name; ?>[<?php echo esc_attr( $rid ); ?>][value]" value="<?php echo esc_attr( $ov ); ?>"<?php checked( $val, (string) $ov ); ?>>
+									<span aria-hidden="true"><?php echo $m['show']; ?></span><span class="screen-reader-text"><?php echo esc_html( $m['title'] ); ?></span>
+								</label>
+							<?php endforeach; ?>
+						</span>
+						<?php else : ?>
 						<select id="<?php echo esc_attr( $id ); ?>" name="<?php echo $name; ?>[<?php echo esc_attr( $rid ); ?>][value]">
 							<?php foreach ( $field['options'] as $ov => $ol ) : ?>
 								<option value="<?php echo esc_attr( $ov ); ?>" <?php selected( $val, $ov ); ?>><?php echo esc_html( $ol ); ?></option>
 							<?php endforeach; ?>
 						</select>
+						<?php endif; ?>
 						<input type="text" name="<?php echo $name; ?>[<?php echo esc_attr( $rid ); ?>][note]"
 							value="<?php echo esc_attr( $note ); ?>" placeholder="Optional note">
 					</div>

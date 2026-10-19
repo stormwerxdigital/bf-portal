@@ -1151,6 +1151,8 @@ class BFTD_Schema {
 
 			'conventions' => array(
 				'type'     => 'checklist',
+				// Answered with the green tick and red cross, N/A in words (Karl, 1.155).
+				'marks'    => true,
 				'label'    => 'Writing conventions',
 				'headings' => array( 'value' => 'Result', 'item' => 'Writing convention' ),
 				'help'     => 'A row left at "Not assessed" is left out of the family\'s report, and out of both figures on the card.',
@@ -1169,6 +1171,7 @@ class BFTD_Schema {
 
 			'grammar' => array(
 				'type'     => 'checklist',
+				'marks'    => true,
 				'label'    => 'Grammar and word usage',
 				'title'    => 'Grammar and word usage are correct',
 				'headings' => array( 'value' => 'Result', 'item' => 'Grammar and word usage' ),
@@ -1825,9 +1828,18 @@ class BFTD_Schema {
 			'label'   => 'Strengths and areas for growth',
 			'eyebrow' => 'Profile',
 			'thread'  => true,
+			// One row per point, in two lists, drawn on the report as one table:
+			// Strengths in the first column, Weaknesses in the second (Karl,
+			// 1.155). Both lists were bulleted editors before; a report saved
+			// then reads its bullets as rows (BFTD_Fields::get, 'from_list').
+			'pair_table' => array( 'strengths', 'growth' ),
 			'fields'  => array(
-				'strengths' => array( 'type' => 'rich', 'label' => 'Strengths' ),
-				'growth'    => array( 'type' => 'rich', 'label' => 'Areas for growth' ),
+				'strengths' => array( 'type' => 'rows', 'label' => 'Strengths', 'add_label' => 'Add a strength', 'from_list' => 'item',
+					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Strength' ) ),
+					'help' => 'One strength per row. Shown in the first column of the table on the report.' ),
+				'growth'    => array( 'type' => 'rows', 'label' => 'Weaknesses', 'add_label' => 'Add a weakness', 'from_list' => 'item',
+					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Weakness' ) ),
+					'help' => 'One weakness per row. Shown in the second column, beside the strengths.' ),
 			),
 		);
 

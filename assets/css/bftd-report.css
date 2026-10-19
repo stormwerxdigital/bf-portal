@@ -608,6 +608,10 @@
 .bf-report .doc-body table.doc{min-width:420px; font-size:13px; border:1px solid var(--line); border-radius:4px; overflow:hidden}
 .bf-report .doc-body table.doc th, .bf-report .doc-body table.doc td{border-bottom:1px solid var(--line-soft); border-right:1px solid var(--line-soft); font-family:var(--font-b); font-size:13px; color:var(--body); vertical-align:top; padding:9px 11px}
 .bf-report .doc-body table.doc tr:first-child th, .bf-report .doc-body table.doc tr:first-child td{background:var(--bf-purple-wash); color:var(--ink); font-weight:600}
+/* Strengths beside weaknesses, two equal columns (Karl, 1.155). */
+.bf-report .doc-body table.doc.pair-table{width:100%; table-layout:fixed}
+.bf-report .doc-body table.doc.pair-table th{font-family:var(--font-d); font-weight:800; font-size:15px; background:var(--bf-purple-pale); color:var(--ink)}
+/* The generic first-row header look is for tables without a head; this one has one. */
 .bf-report .doc-body figure.shot{margin:12px 0}
 .bf-report .doc-body figure.shot img{width:100%; border-radius:5px; border:1px solid var(--line); display:block; cursor:zoom-in; background:var(--card)}
 .bf-report .doc-body>*:first-child{margin-top:0}
@@ -880,6 +884,14 @@
 .bf-report .doc-body table.doc ul{margin:9px 0 0; padding-left:19px}
 .bf-report .doc-body table.doc blockquote{border:0; padding:0; margin:0}
 .bf-report .doc-body figure.shot img{max-width:520px}
+/* Strengths and weaknesses: a plain two-column table with a tinted head.
+   Undoes the rules meant for label-and-value tables (bold first cell, a
+   narrow sunk first header, a header look on the first body row). */
+.bf-report .doc-body table.doc.pair-table thead tr:first-child th, .bf-report .doc-body table.doc.pair-table thead tr:first-child th:first-child{
+  width:auto; background:var(--bf-purple-pale); font-family:var(--font-d); font-weight:800; font-size:16px; color:var(--ink); padding:13px 16px}
+.bf-report .doc-body table.doc.pair-table tbody td, .bf-report .doc-body table.doc.pair-table tbody td:first-child,
+.bf-report .doc-body table.doc.pair-table tbody tr:first-child td{font-weight:400; color:var(--body); background:transparent}
+.bf-report .doc-body table.doc.pair-table tbody tr:nth-child(even) td{background:var(--row-zebra)}
 .bf-report .chart-card{padding:0; overflow:hidden}
 .bf-report .chart-head{background:var(--bf-purple); color:#fff; padding:18px 20px}
 .bf-report[data-theme="dark"] .chart-head{background:#3B2F47}
@@ -1147,6 +1159,10 @@
 .bf-report .conv-v.yes{background:var(--bf-sage-pale); color:var(--bf-sage-deep); box-shadow:inset 0 0 0 1px rgba(90,107,44,.28)}
 .bf-report .conv-v.no{background:var(--bf-clay-pale); color:var(--bf-clay); box-shadow:inset 0 0 0 1px rgba(184,92,46,.28)}
 .bf-report .conv-v.na{background:var(--line-soft); color:var(--muted); box-shadow:inset 0 0 0 1px var(--line)}
+/* A tick or a cross instead of the words Yes and No (Karl, 1.155). */
+.bf-report .conv-v.conv-mark svg{width:18px; height:18px; display:block; fill:none; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round}
+.bf-report .conv-v.conv-mark.yes svg{stroke:#2E7D32}
+.bf-report .conv-v.conv-mark.no svg{stroke:#C62828}
 .bf-report .conv-t{font-size:15px; line-height:1.55; color:var(--ink)}
 .bf-report .conv-t b{font-weight:700}
 .bf-report .conv-n{font-size:13.5px; line-height:1.6; color:var(--muted); margin-top:5px; font-style:italic}

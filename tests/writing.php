@@ -144,5 +144,15 @@ foreach (BFTD_Schema::standing_text() as $id => $item) {
 check(false !== strpos(BFTD_Schema::writing_intro(), 'The student was encouraged'),
   'so this one says the student');
 
+/* Writing answers are marks: green tick, red cross, N/A in words (Karl, 1.155). */
+check(!empty($f['conventions']['marks']) && !empty($f['grammar']['marks']), 'both writing checklists are answered with marks');
+$mc = BFTD_Fields::mark_choices($f['conventions']['options']);
+check(array('yes', 'no', 'na', '') === array_map('strval', array_keys($mc)), 'tick, cross, N/A, then not assessed');
+check('&#10003;' === $mc['yes']['show'] && '&#10007;' === $mc['no']['show'] && 'N/A' === $mc['na']['show'], 'drawn as a tick, a cross and the letters N/A');
+$fsrc = file_get_contents(BFTD_PATH . 'includes/class-bftd-fields.php');
+check(false !== strpos($fsrc, '<?php if ( ! empty( $field[\'marks\'] ) ) : // Tick, cross, N/A or nothing'), 'the editor draws them in place of the dropdown');
+$dsrc = file_get_contents(BFTD_PATH . 'includes/class-bftd-dashboard.php');
+check(false !== strpos($dsrc, 'if ( ! empty( $field[\'marks\'] ) && in_array( $val, array( \'yes\', \'no\' ), true ) ) {'), 'and the report shows a tick or a cross, N/A staying in words');
+
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

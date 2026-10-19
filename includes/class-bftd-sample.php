@@ -391,19 +391,19 @@ HTML,
 			),
 
 			'sec-strengths-areas-for-growth' => array(
-				'strengths' => '<ul>'
-					. '<li>Cooperative, willing and fully engaged throughout the assessment</li>'
-					. '<li>Strong self-awareness: he recognises and can explain his own reading confusion</li>'
-					. '<li>High motivation and buy-in, eager to begin and felt he learned a great deal</li>'
-					. '<li>No letter reversals of b, d, p or q, and left-to-right directionality is intact</li>'
-					. '</ul>',
-				'growth' => '<ul>'
-					. '<li>Phonemic awareness, hearing individual sounds in sequence, currently 16 of 36</li>'
-					. '<li>Applying multi-letter spelling patterns, where two to four letters spell one sound</li>'
-					. '<li>Handwriting automaticity, consistent lowercase formation, and telling upper from lowercase</li>'
-					. '<li>Word and oral reading fluency, independent level Preprimer at 12 correct words per minute</li>'
-					. '<li>Writing conventions: end punctuation, capitalisation and complete sentences</li>'
-					. '</ul>',
+				'strengths' => array(
+					array( 'item' => 'Cooperative, willing and fully engaged throughout the assessment' ),
+					array( 'item' => 'Strong self-awareness: he recognises and can explain his own reading confusion' ),
+					array( 'item' => 'High motivation and buy-in, eager to begin and felt he learned a great deal' ),
+					array( 'item' => 'No letter reversals of b, d, p or q, and left-to-right directionality is intact' ),
+				),
+				'growth' => array(
+					array( 'item' => 'Phonemic awareness, hearing individual sounds in sequence, currently 16 of 36' ),
+					array( 'item' => 'Applying multi-letter spelling patterns, where two to four letters spell one sound' ),
+					array( 'item' => 'Handwriting automaticity, consistent lowercase formation, and telling upper from lowercase' ),
+					array( 'item' => 'Word and oral reading fluency, independent level Preprimer at 12 correct words per minute' ),
+					array( 'item' => 'Writing conventions: end punctuation, capitalisation and complete sentences' ),
+				),
 			),
 
 			'sec-recommended-approach' => array(

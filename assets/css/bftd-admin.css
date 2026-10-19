@@ -720,6 +720,8 @@ input[type=search]:focus,input[type=date]:focus,input[type=time]:focus,select:fo
 .bftd-crit-opt-yes:has(input:checked){background:#2E7D32;color:#fff}
 .bftd-crit-opt-no:has(input:checked){background:#C62828;color:#fff}
 .bftd-crit-opt-none:has(input:checked){background:var(--bftd-purple-wash);color:var(--bftd-ink)}
+.bftd-crit-opt-na{width:auto;padding:0 10px;font-size:12.5px;font-weight:700}
+.bftd-crit-opt-na:has(input:checked){background:#5E5868;color:#fff}
 .bftd-crit-foot{padding:12px 14px;background:var(--bftd-purple-wash);border-top:1px solid var(--bftd-line-soft)}
 .bftd-crit-foot b{display:block;font-size:13px;color:var(--bftd-ink);margin-bottom:4px}
 .bftd-crit-foot span{font-family:var(--bftd-abc);font-size:20px;line-height:1.6;letter-spacing:.14em;color:var(--bftd-ink)}
@@ -828,7 +830,7 @@ input[type=search]:focus,input[type=date]:focus,input[type=time]:focus,select:fo
 
 .bftd-cl{border:1px solid var(--bftd-line); border-radius:4px; overflow:hidden}
 .bftd-cl-head, .bftd-cl-row{
-	display:grid; grid-template-columns:minmax(200px,1.5fr) 150px minmax(160px,1.4fr);
+	display:grid; grid-template-columns:minmax(200px,1.5fr) 172px minmax(160px,1.4fr);
 	gap:12px; align-items:center; padding:9px 12px;
 }
 .bftd-cl-head{
@@ -1397,7 +1399,7 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
    The script sets top so a column taller than the window holds with its
    foot, and Publish, on screen. */
 @media (min-width:851px){
-  .bftd-sticky-side #post-body.columns-2 #postbox-container-1{position:sticky}
+  .bftd-sticky-side #post-body.columns-2 #postbox-container-1{position:sticky;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-gutter:stable}
   .bftd-sticky-side #poststuff #post-body.columns-2{display:flow-root}
 }
 

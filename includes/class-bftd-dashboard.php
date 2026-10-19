@@ -658,6 +658,7 @@ class BFTD_Dashboard {
 					'label'    => $field['label'],
 					'headings' => isset( $field['headings'] ) ? $field['headings'] : array(),
 					'columns'  => array( 'value' => array( 'options' => $field['options'] ) ),
+					'marks'    => ! empty( $field['marks'] ),
 				), $made );
 			}
 			return;
@@ -800,7 +801,13 @@ class BFTD_Dashboard {
 
 			$label = isset( $opts[ $val ] ) ? $opts[ $val ] : $val;
 			echo '<div class="conv-row">';
-			echo '<span class="conv-v ' . esc_attr( $val ) . '">' . esc_html( $label ) . '</span>';
+			if ( ! empty( $field['marks'] ) && in_array( $val, array( 'yes', 'no' ), true ) ) {
+				// The green tick and red cross the tutor chose (Karl, 1.155).
+				$path = 'yes' === $val ? 'M3.5 8.4l3 3 6-6.6' : 'M4.5 4.5l7 7M11.5 4.5l-7 7';
+				echo '<span class="conv-v conv-mark ' . esc_attr( $val ) . '"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="' . $path . '"/></svg><span class="screen-reader-text">' . esc_html( $label ) . '</span></span>';
+			} else {
+				echo '<span class="conv-v ' . esc_attr( $val ) . '">' . esc_html( $label ) . '</span>';
+			}
 			echo '<div class="conv-b"><div class="conv-t">' . wp_kses_post( $item ) . '</div>';
 			if ( '' !== $note ) echo '<div class="conv-n">' . wp_kses_post( $note ) . '</div>';
 			echo '</div></div>';
