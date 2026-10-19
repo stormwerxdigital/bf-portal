@@ -1400,3 +1400,16 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
   .bftd-sticky-side #post-body.columns-2 #postbox-container-1{position:sticky}
   .bftd-sticky-side #poststuff #post-body.columns-2{display:flow-root}
 }
+
+/* Every heading inside a report section on the edit screen matches the
+   report's own headings: heading font, large, heavy, a purple bar at the
+   left, and room above, so Intro, Results, Work samples, Notes and How our
+   method helps are easy to find when scanning (Karl, 1.152). Only a field's
+   own heading: a label nested inside a row or a pair keeps its small size. */
+.bftd-section-body .bftd-label{font-family:var(--bftd-d);font-weight:800;font-size:19px;line-height:1.3;color:var(--bftd-ink);
+  margin:0 0 10px;padding:2px 0 2px 12px;border-left:4px solid var(--bftd-purple)}
+.bftd-section-body .bftd-field{margin-top:28px}
+.bftd-section-body > .bftd-field:first-child, .bftd-section-body > :first-child .bftd-field:first-child{margin-top:4px}
+.bftd-section-body .bftd-field .bftd-field{margin-top:12px}
+.bftd-section-body .bftd-field .bftd-field .bftd-label,
+.bftd-section-body .bftd-rows .bftd-label, .bftd-section-body table .bftd-label{font-size:13px;font-weight:700;padding:0;border:0;margin-bottom:5px}

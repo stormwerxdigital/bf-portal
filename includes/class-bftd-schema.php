@@ -77,7 +77,7 @@ class BFTD_Schema {
 				$out[ $sid . '.' . $key ] = array(
 					'section' => $sid,
 					'field'   => $key,
-					'label'   => $section['label'] . ': ' . $field['label'],
+					'label'   => $section['label'] . ': ' . ( isset( $field['settings_label'] ) ? $field['settings_label'] : $field['label'] ),
 					'heading' => isset( $field['heading'] ) ? $field['heading'] : '',
 					'shipped' => $field['shipped'],
 				);
@@ -1778,21 +1778,25 @@ class BFTD_Schema {
 
 			'passage_method' => array(
 				'type'      => 'rich',
-				'label'     => self::METHOD_HEADING . ', timed passage reading',
+				'label'     => self::METHOD_HEADING,
 				'heading'   => self::METHOD_HEADING,
 				'edit_rank' => 3,
 				'form'      => 'passage',
 				'help'      => 'The practice\'s standing answer. Shown under the notes.',
 				'shipped'   => self::passage_method(),
+				// Settings lists both; say which is which there only.
+				'settings_label' => self::METHOD_HEADING . ', timed passage reading',
 			),
 			'kinder_method' => array(
 				'type'      => 'rich',
-				'label'     => self::METHOD_HEADING . ', Kindergarten word fluency',
+				'label'     => self::METHOD_HEADING,
 				'heading'   => self::METHOD_HEADING,
 				'edit_rank' => 3,
 				'form'      => 'kinder',
 				'help'      => 'The practice\'s standing answer. Shown under the notes.',
 				'shipped'   => self::kinder_method(),
+				// Settings lists both; say which is which there only.
+				'settings_label' => self::METHOD_HEADING . ', Kindergarten word fluency',
 			),
 		);
 
