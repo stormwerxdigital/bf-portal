@@ -204,11 +204,7 @@ class BFTD_Dashboard {
 					default:                            self::screen_home( $student_id );
 				}
 				?>
-				<?php BFTD_Settings::render_help_bar(); ?>
-				<?php $contact = BFTD_Settings::portal()['contact_line']; ?>
-				<?php if ( trim( (string) $contact ) ) : ?>
-					<p class="bf-foot"><?php echo esc_html( $contact ); ?></p>
-				<?php endif; ?>
+				<?php // The help bar and contact line were removed from the portal (Karl, 1.159). ?>
 			</div>
 		</div>
 		<?php
@@ -617,11 +613,7 @@ class BFTD_Dashboard {
 						</article>
 					<?php endforeach; ?>
 				</div>
-				<?php BFTD_Settings::render_help_bar(); ?>
-				<?php $contact = BFTD_Settings::portal()['contact_line']; ?>
-				<?php if ( trim( (string) $contact ) ) : ?>
-					<p class="bf-foot"><?php echo esc_html( $contact ); ?></p>
-				<?php endif; ?>
+				<?php // The help bar and contact line were removed from the portal (Karl, 1.159). ?>
 			</div>
 		</div>
 		<?php

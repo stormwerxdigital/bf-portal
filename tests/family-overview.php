@@ -24,5 +24,7 @@ check(false !== strpos($d, 'class="bf-allkids"'), 'and a family with several stu
 check(false === strpos(substr($d, strpos($d, 'private static function screen_schedule'), 2500), 'Reschedule</button>'), 'the family schedule offers no staff controls');
 $c = file_get_contents("$root/assets/css/bftd-portal.css");
 check(false !== strpos($c, '.bf-kids{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr))'), 'cards flow as many across as fit, one column on a phone');
+/* The help bar and contact line are gone from the client portal (Karl, 1.159). */
+check(false === strpos($d, 'render_help_bar()') && false === strpos($d, "portal()['contact_line']"), 'no help bar and no contact line on any portal screen');
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);
