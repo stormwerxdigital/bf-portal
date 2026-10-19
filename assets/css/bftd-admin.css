@@ -646,6 +646,7 @@ input[type=search]:focus,input[type=date]:focus,input[type=time]:focus,select:fo
 .media-modal .uploader-inline{margin:0;padding:20px;border:0;height:100%;box-sizing:border-box}
 .media-modal .uploader-inline-content{
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  position:relative;top:auto;
   height:100%;min-height:300px;box-sizing:border-box;
   padding:34px 24px;border:2px dashed var(--bftd-line);border-radius:10px;
   background:var(--bftd-purple-wash);transition:border-color .12s,background .12s}
@@ -664,9 +665,15 @@ input[type=search]:focus,input[type=date]:focus,input[type=time]:focus,select:fo
 
 .bftd-paste-status{position:absolute;left:0;right:0;bottom:0;z-index:20;margin:0;padding:11px 20px;
   background:var(--bftd-purple-deep);color:#fff;font-size:13.5px;line-height:1.5;text-align:center}
-.media-frame-content{position:relative}
+/* (A rule here once set .media-frame-content to position:relative. Core
+   positions that pane absolutely between the tabs and the toolbar; overriding
+   it collapsed the upload tab to a 40px strip. Removed in 1.157. Core's
+   absolute pane still anchors .bftd-paste-status.) */
 .media-modal .media-frame-content .uploader-inline{display:flex;align-items:stretch}
 .media-modal .media-frame-content .uploader-inline > .uploader-inline-content{flex:1}
+/* Inside an empty Media Library it sits under the filters, so it takes its own height there. */
+.media-modal .attachments-browser .uploader-inline{height:auto}
+.media-modal .attachments-browser .uploader-inline-content{height:auto}
 
 /* Back to the top of a very long screen. */
 .bftd-top{position:fixed;right:26px;bottom:26px;z-index:9999;display:inline-flex;align-items:center;gap:8px;

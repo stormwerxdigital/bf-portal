@@ -164,12 +164,20 @@ class BFTD_Dashboard {
 
 		if ( ! $students ) return self::empty_state( $user_id );
 
-		$student_id = isset( $_GET['student'] ) ? (int) $_GET['student'] : (int) $students[0];
-		if ( ! in_array( $student_id, array_map( 'absint', $students ), true ) ) $student_id = (int) $students[0];
+		$picked     = isset( $_GET['student'] ) ? (int) $_GET['student'] : 0;
+		$student_id = $picked ? $picked : (int) $students[0];
+		if ( ! in_array( $student_id, array_map( 'absint', $students ), true ) ) { $student_id = (int) $students[0]; $picked = 0; }
 
 		$screen = isset( $_GET['screen'] ) ? sanitize_key( wp_unslash( $_GET['screen'] ) ) : BFTD_Schema::SCREEN_HOME;
-		if ( ! array_key_exists( $screen, BFTD_Schema::screens() ) && 'messages' !== $screen ) {
+		if ( ! array_key_exists( $screen, BFTD_Schema::screens() ) && ! in_array( $screen, array( 'messages', 'schedule' ), true ) ) {
 			$screen = BFTD_Schema::SCREEN_HOME;
+		}
+
+		// Two or more students: the family starts on an overview of all of
+		// them and picks one to see that student's reports (Karl, 1.158).
+		// One student goes straight to that student, as before.
+		if ( count( $students ) > 1 && ! $picked ) {
+			return self::family_overview( $students, $family_id, $user_id );
 		}
 
 		ob_start();
@@ -192,6 +200,7 @@ class BFTD_Dashboard {
 					case BFTD_Schema::SCREEN_RESOURCES: self::screen_library( $student_id, 'sec-home-practice' ); break;
 					case BFTD_Schema::SCREEN_SETUP:     self::screen_library( $student_id, 'sec-setup' ); break;
 					case 'messages':                    self::screen_messages( $student_id ); break;
+					case 'schedule':                    self::screen_schedule( $student_id ); break;
 					default:                            self::screen_home( $student_id );
 				}
 				?>
@@ -389,6 +398,7 @@ class BFTD_Dashboard {
 				<div class="bf-mark">Brilliant Futures <span>Tutoring</span></div>
 			<?php endif; ?>
 			<?php if ( count( $students ) > 1 ) : ?>
+				<a class="bf-allkids" href="<?php echo esc_url( self::overview_url( $family_id ) ); ?>">All students</a>
 				<select class="bf-switch" onchange="window.location=this.value">
 					<?php foreach ( $students as $sid ) : ?>
 						<option value="<?php echo esc_url( $family_id ? self::url_for_family( $family_id, $sid ) : self::url( $sid ) ); ?>" <?php selected( $sid, $student_id ); ?>><?php echo esc_html( get_the_title( $sid ) ); ?></option>
@@ -464,6 +474,7 @@ class BFTD_Dashboard {
 				<?php if ( BFTD_Fields::has_value( $f( 'join_url' ) ) ) : ?>
 					<p><a class="bf-btn" href="<?php echo esc_url( $f( 'join_url' ) ); ?>">Join the session</a></p>
 				<?php endif; ?>
+				<p class="bf-next-more"><a href="<?php echo esc_url( self::schedule_url( $student_id ) ); ?>">See the schedule</a></p>
 				<?php if ( $bank['purchased'] ) : ?>
 					<p class="bf-bank"><?php
 						echo esc_html( $bank['used'] . ' of ' . $bank['purchased'] . ' sessions used' );
@@ -493,6 +504,161 @@ class BFTD_Dashboard {
 				<?php if ( $speed['wpm_start'] && $speed['wpm_start'] !== $speed['wpm'] ) : ?>
 					<p class="bf-sub">Started at <?php echo (int) $speed['wpm_start']; ?>.</p>
 				<?php endif; ?>
+			</div>
+		<?php endif; ?>
+		<?php
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Families with more than one student (Karl, 1.158)                   */
+	/* ------------------------------------------------------------------ */
+
+	/** The overview of every student, for the family (or a staff member viewing it). */
+	public static function overview_url( $family_id = 0 ) {
+		$base = self::url();
+		$url  = remove_query_arg( array( 'student', 'screen' ), $base );
+		return $family_id ? add_query_arg( 'family', (int) $family_id, $url ) : $url;
+	}
+
+	/** One student's portal, from the overview. */
+	private static function student_url( $student_id, $family_id = 0 ) {
+		return $family_id ? self::url_for_family( $family_id, $student_id ) : self::url( $student_id );
+	}
+
+	/** One student's schedule. */
+	public static function schedule_url( $student_id ) {
+		return add_query_arg( 'screen', 'schedule', self::url( $student_id ) );
+	}
+
+	/**
+	 * What the overview says about one student, all of it read from the
+	 * records: who teaches them, how often they come, what is paid for and
+	 * left, the last lesson taught and the next one booked.
+	 */
+	public static function student_summary( $student_id ) {
+		$tutors = array();
+		foreach ( BFTD_CPT::staff_ids( $student_id ) as $uid ) {
+			$u = get_userdata( $uid );
+			if ( $u ) $tutors[] = $u->display_name;
+		}
+
+		$report = BFTD_CPT::report_for( $student_id, BFTD_CPT::PROGRESS );
+		$att    = ( $report && class_exists( 'BFTD_Derived' ) ) ? BFTD_Derived::attendance( $report ) : array();
+
+		$taught = BFTD_Schedule::taught_sessions( $student_id );
+		$last   = $taught ? max( $taught ) : '';
+
+		return array(
+			'name'      => get_the_title( $student_id ),
+			'tutors'    => $tutors,
+			'held'      => isset( $att['held'] ) ? (int) $att['held'] : 0,
+			'missed'    => isset( $att['missed'] ) ? (int) $att['missed'] : 0,
+			'moved'     => isset( $att['rescheduled'] ) ? (int) $att['rescheduled'] : 0,
+			'bank'      => BFTD_Schedule::bank( $student_id ),
+			'last'      => $last ? BFTD_Time::day( $last, self::date_format() ) : '',
+			'next'      => BFTD_Schedule::next_lesson_label( $student_id ),
+		);
+	}
+
+	private static function family_overview( $students, $family_id, $user_id ) {
+		$user = wp_get_current_user();
+		$logo = BFTD_Brand::logo_url();
+		ob_start();
+		?>
+		<div class="bf-portal bf-portal-overview">
+			<?php if ( $family_id ) self::staff_bar( $family_id, (int) $students[0] ); ?>
+			<div class="bf-bar">
+				<?php if ( $logo ) : ?>
+					<img class="bf-logo" src="<?php echo esc_url( $logo ); ?>" alt="Brilliant Futures Tutoring">
+				<?php else : ?>
+					<div class="bf-mark">Brilliant Futures <span>Tutoring</span></div>
+				<?php endif; ?>
+				<span class="bf-who"><?php echo esc_html( count( $students ) . ' students' ); ?></span>
+			</div>
+			<div class="bf-screen">
+				<?php BFTD_Settings::render_banner( $user_id ); ?>
+				<div class="bf-head">
+					<p class="bf-eyebrow"><?php echo esc_html( BFTD_Time::format( 'l, j F' ) ); ?></p>
+					<h1>Good <?php echo esc_html( self::part_of_day() ); ?>, <?php echo esc_html( $user->first_name ? $user->first_name : $user->display_name ); ?></h1>
+					<p class="lede">Your students at a glance. Choose a student to see their reports.</p>
+				</div>
+				<div class="bf-kids">
+					<?php foreach ( $students as $sid ) :
+						$s    = self::student_summary( $sid );
+						$open = self::student_url( $sid, $family_id );
+						$b    = $s['bank'];
+						?>
+						<article class="bf-kid">
+							<h2 class="bf-kid-name"><a href="<?php echo esc_url( $open ); ?>"><?php echo esc_html( $s['name'] ); ?></a></h2>
+							<dl class="bf-kid-facts">
+								<div><dt>Tutor</dt><dd><?php echo $s['tutors'] ? esc_html( implode( ', ', $s['tutors'] ) ) : '<span class="bf-none">Not assigned yet</span>'; ?></dd></div>
+								<div><dt>Attendance</dt><dd><?php
+									if ( $s['held'] || $s['missed'] || $s['moved'] ) {
+										$bits = array( $s['held'] . ' attended' );
+										if ( $s['missed'] ) $bits[] = $s['missed'] . ' missed';
+										if ( $s['moved'] )  $bits[] = $s['moved'] . ' rescheduled';
+										echo esc_html( implode( ' · ', $bits ) );
+									} else {
+										echo '<span class="bf-none">No sessions yet</span>';
+									}
+								?></dd></div>
+								<div><dt>Sessions</dt><dd><?php
+									echo $b['purchased']
+										? esc_html( $b['remaining'] . ' of ' . $b['purchased'] . ' remaining' )
+										: '<span class="bf-none">None purchased yet</span>';
+								?></dd></div>
+								<div><dt>Last session</dt><dd><?php echo $s['last'] ? esc_html( $s['last'] ) : '<span class="bf-none">None yet</span>'; ?></dd></div>
+								<div><dt>Next session</dt><dd><?php echo $s['next'] ? '<strong>' . esc_html( $s['next'] ) . '</strong>' : '<span class="bf-none">Nothing booked</span>'; ?></dd></div>
+							</dl>
+							<p class="bf-kid-do">
+								<a class="bf-btn" href="<?php echo esc_url( $open ); ?>">See reports</a>
+								<a class="bf-btn bf-btn-ghost" href="<?php echo esc_url( add_query_arg( 'screen', 'schedule', $open ) ); ?>">Schedule</a>
+							</p>
+						</article>
+					<?php endforeach; ?>
+				</div>
+				<?php BFTD_Settings::render_help_bar(); ?>
+				<?php $contact = BFTD_Settings::portal()['contact_line']; ?>
+				<?php if ( trim( (string) $contact ) ) : ?>
+					<p class="bf-foot"><?php echo esc_html( $contact ); ?></p>
+				<?php endif; ?>
+			</div>
+		</div>
+		<?php
+		return ob_get_clean();
+	}
+
+	/**
+	 * One student's schedule, read only: the booked sessions ahead, and any
+	 * that were moved or cancelled, from the same schedule the tutor keeps.
+	 */
+	private static function screen_schedule( $student_id ) {
+		$list = array_slice( BFTD_Schedule::occurrences( $student_id, BFTD_Time::today(), '', 120 ), 0, 20 );
+		$b    = BFTD_Schedule::bank( $student_id );
+		$labels = array( 'booked' => 'Booked', 'moved' => 'Rescheduled', 'cancelled' => 'Cancelled', 'held' => 'Taught' );
+		?>
+		<div class="bf-head">
+			<p class="bf-eyebrow">Schedule</p>
+			<h1><?php echo esc_html( get_the_title( $student_id ) ); ?></h1>
+			<?php if ( $b['purchased'] ) : ?>
+				<p class="lede"><?php echo esc_html( $b['remaining'] . ' of ' . $b['purchased'] . ' sessions remaining' . ( $b['last_label'] ? ', booked through ' . $b['last_label'] : '' ) . '.' ); ?></p>
+			<?php endif; ?>
+		</div>
+		<?php if ( ! $list ) : ?>
+			<div class="bf-card"><p>No sessions are booked yet. Your tutor will add them here.</p></div>
+		<?php else : ?>
+			<div class="bf-card bf-sched">
+				<ul class="bf-sched-list">
+					<?php foreach ( $list as $o ) :
+						$st = isset( $labels[ $o['status'] ] ) ? $o['status'] : 'booked';
+						?>
+						<li class="bf-sched-row is-<?php echo esc_attr( $st ); ?>">
+							<span class="bf-sched-day"><?php echo esc_html( BFTD_Time::day( $o['date'], 'l j F' ) ); ?></span>
+							<span class="bf-sched-time"><?php echo esc_html( BFTD_Schedule::pretty_time( $o['time'] ) ); ?></span>
+							<span class="bf-sched-status"><?php echo esc_html( $labels[ $st ] ); ?></span>
+						</li>
+					<?php endforeach; ?>
+				</ul>
 			</div>
 		<?php endif; ?>
 		<?php

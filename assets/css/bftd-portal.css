@@ -548,3 +548,31 @@ body.bftd-portal-page{margin:0;background:#F9F4F2}
 .bftd-portal-page .bf-nav{padding:0 clamp(8px,2.4vw,32px)}
 .bftd-portal-page .bf-screen{padding:24px 16px 40px}
 @media (min-width:800px){.bftd-portal-page .bf-screen{padding:32px clamp(24px,3vw,48px) 48px}}
+
+/* Families with more than one student: the overview (Karl, 1.158). One card
+   per student, as many across as fit, one column on a phone. */
+.bf-kids{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:18px;margin:6px 0 24px}
+.bf-kid{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--bf-purple);border-radius:8px;padding:18px 20px 16px;display:flex;flex-direction:column}
+.bf-kid-name{font-size:22px;margin:0 0 12px}
+.bf-kid-name a{color:var(--ink);text-decoration:none}
+.bf-kid-name a:hover{color:var(--bf-purple-deep);text-decoration:underline}
+.bf-kid-facts{margin:0 0 16px;display:grid;gap:0}
+.bf-kid-facts > div{display:grid;grid-template-columns:118px 1fr;gap:10px;padding:8px 0;border-top:1px solid var(--line-soft)}
+.bf-kid-facts > div:first-child{border-top:0}
+.bf-kid-facts dt{font-weight:600;color:var(--muted);font-size:14px}
+.bf-kid-facts dd{margin:0;color:var(--body);font-size:15px}
+.bf-kid-facts dd strong{color:var(--ink)}
+.bf-none{color:var(--muted);font-style:italic}
+.bf-kid-do{margin:auto 0 0;display:flex;flex-wrap:wrap;gap:10px}
+.bf-allkids{color:#fff;font-weight:600;font-size:14px;text-decoration:underline;margin-left:auto}
+.bf-allkids + .bf-switch{margin-left:12px}
+.bf-next-more{margin:10px 0 0}
+.bf-next-more a{color:#fff;font-weight:600}
+.bf-sched-list{list-style:none;margin:0;padding:0}
+.bf-sched-row{display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;padding:11px 2px;border-top:1px solid var(--line-soft)}
+.bf-sched-row:first-child{border-top:0}
+.bf-sched-day{font-weight:600;color:var(--ink)}
+.bf-sched-status{font-size:13px;font-weight:600;padding:3px 10px;border-radius:12px;background:var(--bf-sage-pale);color:var(--bf-sage-deep)}
+.bf-sched-row.is-moved .bf-sched-status,.bf-sched-row.is-cancelled .bf-sched-status{background:var(--bf-clay-pale);color:var(--bf-clay)}
+.bf-sched-row.is-cancelled .bf-sched-day,.bf-sched-row.is-cancelled .bf-sched-time{text-decoration:line-through;color:var(--muted)}
+@media (max-width:480px){.bf-kid-facts > div{grid-template-columns:1fr;gap:2px}.bf-sched-row{grid-template-columns:1fr auto}.bf-sched-time{grid-row:2}}
