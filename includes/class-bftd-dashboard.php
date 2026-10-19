@@ -24,6 +24,21 @@ class BFTD_Dashboard {
 	public static function init() {
 		add_shortcode( self::SHORTCODE, array( __CLASS__, 'render' ) );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ) );
+		// The portal page draws full width from the plugin's own template,
+		// not inside the theme's content column (Karl, 1.156).
+		add_filter( 'template_include', array( __CLASS__, 'full_width_template' ), 99 );
+	}
+
+	/** Is this request the portal page itself? */
+	public static function is_portal_page() {
+		$page = self::page_id();
+		return $page && is_page( $page );
+	}
+
+	public static function full_width_template( $template ) {
+		if ( ! self::is_portal_page() ) return $template;
+		$ours = BFTD_PATH . 'templates/portal-page.php';
+		return file_exists( $ours ) ? $ours : $template;
 	}
 
 	/* ------------------------------------------------------------------ */

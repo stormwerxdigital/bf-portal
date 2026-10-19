@@ -537,3 +537,14 @@ html.no-js .bf-acc{grid-template-rows:1fr}
 .bf-items{margin-bottom:14px}
 
 }
+
+/* The portal page, full width (Karl, 1.156). The plugin's own page template
+   draws it edge to edge: the bar and navigation run the width of the window,
+   and the screen below keeps a comfortable gutter that grows with it. */
+body.bftd-portal-page{margin:0;background:#F9F4F2}
+.bftd-portal-main{display:block;min-height:100vh}
+.bftd-portal-page .bf-portal{border-radius:0;min-height:100vh}
+.bftd-portal-page .bf-bar{padding:14px clamp(16px,3vw,40px)}
+.bftd-portal-page .bf-nav{padding:0 clamp(8px,2.4vw,32px)}
+.bftd-portal-page .bf-screen{padding:24px 16px 40px}
+@media (min-width:800px){.bftd-portal-page .bf-screen{padding:32px clamp(24px,3vw,48px) 48px}}
