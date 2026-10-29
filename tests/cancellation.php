@@ -78,6 +78,7 @@ $M = 'includes/class-bftd-metaboxes.php';
 eval('class MB { '
   . lift($M, "\tpublic static function session_fields(", "\t/**\n\t * The people this session")
   . lift($M, "\tpublic static function cancelled_by_options(", "\t/**\n\t * Which lesson this is")
+  . lift($M, "\tpublic static function hold_pending(", "\tpublic static function hold_unexplained(")
   . lift($M, "\tpublic static function hold_unexplained(", "\n\t/**\n\t * Linking a caregiver")
   . ' }');
 
@@ -195,6 +196,31 @@ $GLOBALS['SESSION_META'][40] = array('status' => 'missed', 'missed_by' => '', 'm
 $GLOBALS['UPDATES'] = array();
 check(false === MB::hold_unexplained(40, $GLOBALS['POSTS'][40]), 'a draft is left alone');
 check(array() === $GLOBALS['UPDATES'], 'and nothing is written to say so');
+
+/* ---- late start and pending (Laurel, 1.162) ---- */
+$opts = MB::session_fields(40)['status']['options'];
+check('Late start' === ($opts['late'] ?? null) && 'Pending' === ($opts['pending'] ?? null),
+  'What happened offers Late start and Pending, got ' . json_encode($opts));
+check('Attended' === $opts['held'], 'and Attended is still stored as held');
+check('textarea' === (MB::session_fields(40)['status_why']['type'] ?? ''), 'with a Why box of its own');
+
+function pend($status, $post_status = 'publish') {
+  $GLOBALS['UPDATES'] = array(); $GLOBALS['TRANS'] = array();
+  $GLOBALS['POSTS'][40]->post_status = $post_status;
+  $GLOBALS['SESSION_META'][40] = array('status' => $status);
+  return MB::hold_pending(40, $GLOBALS['POSTS'][40]);
+}
+check(true === pend('pending'), 'publishing a pending session is held');
+check('draft' === $GLOBALS['POSTS'][40]->post_status, 'as a draft, which every count and the time card leave out');
+check(0 === strpos((string) get_transient('bftd_held_1'), 'pending'), 'and the tutor is told why');
+check(false === pend('late'), 'a late start publishes');
+check(false === pend('held'), 'and so does a session that went ahead');
+check(false === pend('pending', 'draft'), 'a pending draft is left alone');
+check(array() === $GLOBALS['UPDATES'], 'with nothing written');
+
+check(false !== strpos($save, 'self::hold_pending( $post_id, $post )'), 'the save holds a pending session');
+check(false !== strpos(file_get_contents(BFTD_PATH . 'includes/class-bftd-sessions.php'), 'BFTD_MetaBoxes::hold_pending( $sid, $as_published )'),
+  'and so does Publish on the sessions screen');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

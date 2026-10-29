@@ -42,6 +42,7 @@ class BFTD_MetaBoxes {
   }
   public static function hold_duplicate_draft($sid, $post){ return self::hold('duplicate', $sid, $post); }
   public static function hold_unexplained($sid, $post){ return self::hold('unexplained', $sid, $post); }
+  public static function hold_pending($sid, $post){ return self::hold('pending', $sid, $post); }
   public static function hold_unclaimed($sid, $post){ return self::hold('unclaimed', $sid, $post); }
 }
 require BFTD_PATH . 'includes/class-bftd-sessions.php';
@@ -57,12 +58,12 @@ function run($sid){
 /* ---- a session that passes ---- */
 $log = run(7);
 check('nonce:bftd_publish_session_7' === $log[0], 'the link is signed for that one session');
-check(array('claim', 'duplicate:publish/draft', 'unexplained:publish/draft', 'unclaimed:publish/draft', 'update:publish') === array_slice($log, 1, 5),
+check(array('claim', 'duplicate:publish/draft', 'unexplained:publish/draft', 'pending:publish/draft', 'unclaimed:publish/draft', 'update:publish') === array_slice($log, 1, 6),
   'Taught by is filled in, then each hold is asked about it as published while it is still a draft, then it is published: ' . implode(', ', $log));
 check(false !== strpos(end($log), 'page=bftd-sessions&paged=2&bftd_published=7'), 'and it comes back to the list it was on, saying so');
 
 /* ---- each hold keeps it a draft ---- */
-foreach (array('duplicate' => 'a duplicate of another draft', 'unexplained' => 'a cancellation with no reason', 'unclaimed' => 'a session with nobody to pay') as $h => $why) {
+foreach (array('duplicate' => 'a duplicate of another draft', 'unexplained' => 'a cancellation with no reason', 'pending' => 'a session still marked Pending', 'unclaimed' => 'a session with nobody to pay') as $h => $why) {
   $GLOBALS['STATUS'] = array(); $GLOBALS['HOLD'] = $h;
   $log = run(8);
   check(!in_array('update:publish', $log, true) && 'draft' === get_post_status(8), "held as $why, it is never published");

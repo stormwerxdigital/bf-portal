@@ -315,7 +315,7 @@ check(1 === preg_match("/'held'\s*=>\s*'Attended'/", $mb),
 /* The label changed; the stored value did not. Every lesson already recorded
  * holds 'held', and so does the figure the paid-for bank is counted from. */
 $sched = file_get_contents(BFTD_PATH . 'includes/class-bftd-schedule.php');
-check(1 === preg_match("/'held'\s*!==\s*\\\$status/", $sched),
+check(false !== strpos($sched, "in_array( \$status, array( 'held', 'late', 'missed' ), true )"),
   'the lessons-used count still recognises what an attended lesson is stored as');
 check(0 === preg_match("/'attended'\s*=>/i", $mb),
   'so nothing was renamed underneath it');

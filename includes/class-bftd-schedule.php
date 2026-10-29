@@ -701,7 +701,8 @@ class BFTD_Schedule {
 		foreach ( BFTD_CPT::sessions_for( $report ) as $sid ) {
 			$date   = BFTD_Fields::get( $sid, 'session', 'session_date' );
 			$status = BFTD_Fields::get( $sid, 'session', 'status' );
-			if ( ! $date || 'held' !== $status ) continue;
+			// A late start went ahead, so it spends a session like any other.
+			if ( ! $date || ! in_array( $status, array( 'held', 'late' ), true ) ) continue;
 			$out[ (int) $sid ] = (string) $date;
 		}
 		return $out;
@@ -779,7 +780,7 @@ class BFTD_Schedule {
 				if ( ! BFTD_Fields::get( $sid, 'session', 'session_date' ) ) continue;
 
 				$status = (string) BFTD_Fields::get( $sid, 'session', 'status' );
-				if ( 'held' !== $status && 'missed' !== $status ) continue;
+				if ( ! in_array( $status, array( 'held', 'late', 'missed' ), true ) ) continue;
 
 				$out[ $owner ]++;
 			}

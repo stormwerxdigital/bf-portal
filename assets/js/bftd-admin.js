@@ -2918,6 +2918,10 @@ function bftdThumb( id, thumb, full ) {
 		// one div; PHP has already put it in the right state, so this only
 		// has to follow the dropdown.
 		$( '.bftd-onlymissed' ).toggleClass( 'is-on', on );
+		// The Why for a late start or a pending session, which is not the
+		// cancellation's Why and is not required.
+		var v = $sel.val();
+		$( '.bftd-onlywhy' ).toggleClass( 'is-on', 'late' === v || 'pending' === v );
 		// Announced rather than only drawn, so somebody working through the
 		// form with a screen reader is told before they reach the button.
 		$( '#bftd_session_missed_by, #bftd_session_missed_why' ).attr( 'aria-required', on ? 'true' : 'false' );

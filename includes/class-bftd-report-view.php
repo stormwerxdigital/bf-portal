@@ -143,8 +143,8 @@ class BFTD_Report_View {
 		/* ---- the full report ---- */
 		?>
 		<h2 style="margin:30px 0 12px" id="dxdoc">Assessment details</h2>
-		<p class="lede dim" style="max-width:64ch;margin-bottom:14px">Every area in full, then strengths and growth
-			areas, the recommended approach, the instructional plan and the conclusion.</p>
+		<p class="lede dim" style="max-width:64ch;margin-bottom:14px">Every area in full, then strengths and
+			weaknesses, the recommended approach, the instructional plan and the conclusion.</p>
 		<div id="dxplan">
 			<?php
 			foreach ( $sections as $id => $section ) {
@@ -954,6 +954,25 @@ class BFTD_Report_View {
 	/* Content                                                             */
 	/* ------------------------------------------------------------------ */
 
+	/**
+	 * A tick list's lines and a rows field's lines as one bulleted list.
+	 * Empty when neither has anything, so the section is not headed by a
+	 * list with nothing in it.
+	 */
+	public static function plan_list( $values, $keys ) {
+		list( $ticked, $other ) = array_pad( $keys, 2, '' );
+		$items = array();
+		foreach ( (array) ( $values[ $ticked ] ?? array() ) as $line ) {
+			if ( BFTD_Fields::has_value( $line ) ) $items[] = wp_kses_post( (string) $line );
+		}
+		foreach ( BFTD_Fields::visible_rows( $values[ $other ] ?? array() ) as $row ) {
+			$t = trim( (string) ( $row['item'] ?? '' ) );
+			if ( '' !== $t ) $items[] = esc_html( $t );
+		}
+		if ( ! $items ) return '';
+		return '<ul class="plan-list"><li>' . implode( '</li><li>', $items ) . '</li></ul>';
+	}
+
 	/** A section's fields, as the document body the design expects. */
 	private static function body_html( $report, $id, $section ) {
 		$values = BFTD_Fields::get_section( $report, $id );
@@ -966,6 +985,12 @@ class BFTD_Report_View {
 		// Two lists drawn side by side as one table (Strengths | Weaknesses).
 		$paired = ! empty( $section['pair_table'] ) ? (array) $section['pair_table'] : array();
 		if ( $paired ) echo self::pair_table( $section, $values, $paired );
+
+		// Ticked lines, then the tutor's own, as one list (the instructional
+		// plan, 1.165).
+		$planned = ! empty( $section['plan_list'] ) ? (array) $section['plan_list'] : array();
+		if ( $planned ) echo self::plan_list( $values, $planned );
+		$paired = array_merge( $paired, $planned );
 
 		foreach ( $section['fields'] as $key => $field ) {
 			if ( in_array( $key, $paired, true ) ) continue;

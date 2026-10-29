@@ -151,6 +151,18 @@ check(47 === $rec[1001]['total'], 'the total counts them all, got ' . $rec[1001]
 check(0 === $rec[1003]['total'], 'a student with no sessions has none, rather than nothing');
 check('' === $rec[1003]['last'], 'and no last date to show');
 
+/* A late start went ahead (Laurel, 1.162). */
+$late = sess(1002,'2026-03-17','late');
+$rec2 = BFTD_Sessions::records(array(1002));
+check(2 === $rec2[1002]['held'], 'a late start is counted as attended, got ' . $rec2[1002]['held']);
+ob_start(); BFTD_Sessions::happened_cell($late); $lc = ob_get_clean();
+check(false !== strpos($lc, '>Late start<') && false !== strpos($lc, 'is-held'), 'and says Late start, in the attended colour: ' . $lc);
+$pend = sess(1003,'','pending',false);
+ob_start(); BFTD_Sessions::happened_cell($pend); $pc = ob_get_clean();
+check(false !== strpos($pc, '>Pending<'), 'a pending one says Pending: ' . $pc);
+$GLOBALS['POSTS'][$late]->post_status = 'trash';
+$GLOBALS['POSTS'][$pend]->post_status = 'trash';
+
 /* ---- and the row it becomes ---- */
 $rows = BFTD_Sessions::rows(array(1001,1002));
 check(isset($rows[1001]['record']), 'the row carries the record');

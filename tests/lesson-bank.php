@@ -91,6 +91,14 @@ check($b['purchased'] === 8, 'the saved figure is what the tiles show by default
 check($b['used'] === 3, 'used counts the lessons actually recorded');
 check($b['remaining'] === 5, 'remaining is purchased minus used');
 
+/* A late start went ahead, so it spends a session like any other
+   (Laurel, 1.162). */
+$GLOBALS['SESSION_META'][803]['status'] = 'late';
+check(BFTD_Schedule::bank($s)['used'] === 3, 'a late start counts as used, got ' . BFTD_Schedule::bank($s)['used']);
+check(isset(BFTD_Schedule::taught_sessions($s)[803]), 'and as taught');
+check(3 === BFTD_Schedule::used_counts(array($s))[$s], 'in the bulk count too');
+$GLOBALS['SESSION_META'][803]['status'] = 'held';
+
 /* --- the override: a figure typed but not saved --- */
 $b20 = BFTD_Schedule::bank($s, 20);
 printf("typed 20:          purchased %d, remaining %d, over %d\n", $b20['purchased'], $b20['remaining'], $b20['over']);

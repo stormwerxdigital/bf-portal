@@ -1218,9 +1218,19 @@ class BFTD_MetaBoxes {
 			// from: renaming the key would quietly reset both.
 			'status'         => array( 'type' => 'select', 'label' => 'What happened', 'options' => array(
 				'held'        => 'Attended',
+				// Late start went ahead, so it counts as attended everywhere a
+				// session is counted. Pending has not been decided, and is kept
+				// a draft until it is (hold_pending). Laurel's feedback, 1.162.
+				'late'        => 'Late start',
 				'rescheduled' => 'Rescheduled',
 				'missed'      => 'Missed',
+				'pending'     => 'Pending',
 			) ),
+			'status_why'     => array(
+				'type'  => 'textarea',
+				'label' => 'Why',
+				'help'  => 'Why it started late, or what it is waiting on. Kept for the practice; not shown to the family.',
+			),
 			// Whose hour this was, and so whose time card it lands on.
 			// Whoever creates the session, unless somebody changes it in the
 			// Taught by box beside Also shared with. Drawn there by
@@ -1343,6 +1353,7 @@ class BFTD_MetaBoxes {
 		};
 
 		$draw( array( 'session_date', 'session_time', 'status' ) );
+		self::why_block( $post, $fields );
 		self::missed_block( $post, $fields );
 		self::lesson_number_line( $post );
 		$draw( array( 'notes' ) );
@@ -1425,6 +1436,23 @@ class BFTD_MetaBoxes {
 		}
 		echo '</div>';
 		echo '<p class="description bftd-missed-rule">A cancelled session counts against the sessions remaining. A rescheduled one does not, and is settled by management.</p>';
+		echo '</div>';
+	}
+
+	/**
+	 * Why a session started late, or what a pending one is waiting on.
+	 *
+	 * Its own box rather than a second use of the cancellation Why: that one
+	 * is shown to the family on their missed sessions table, and this one is
+	 * not. Shown and hidden the way the cancellation box is, from what is
+	 * stored, with the script following the dropdown.
+	 */
+	private static function why_block( $post, $fields ) {
+		$status = (string) BFTD_Fields::get( $post->ID, 'session', 'status' );
+		$on     = in_array( $status, array( 'late', 'pending' ), true );
+
+		echo '<div class="bftd-box bftd-onlywhy' . ( $on ? ' is-on' : '' ) . '">';
+		BFTD_Fields::render_field( $post->ID, 'session', 'status_why', $fields['status_why'] );
 		echo '</div>';
 	}
 
@@ -1590,6 +1618,7 @@ class BFTD_MetaBoxes {
 			self::claim_session( $post_id );
 			self::hold_duplicate_draft( $post_id, $post );
 			self::hold_unexplained( $post_id, $post );
+			self::hold_pending( $post_id, $post );
 			self::hold_unclaimed( $post_id, $post );
 			self::save_report_staff( $post_id );
 			self::attach_session_to_report( $post_id );
@@ -2034,6 +2063,26 @@ class BFTD_MetaBoxes {
 		return true;
 	}
 
+	/**
+	 * A pending session stays a draft.
+	 *
+	 * Pending means nobody has decided yet whether it went ahead. A draft is
+	 * already what every count, the time card and the family's report leave
+	 * out, so keeping it one is how a pending session is left out of them
+	 * all, without each of them learning a new word.
+	 */
+	public static function hold_pending( $post_id, $post ) {
+		if ( 'publish' !== $post->post_status ) return false;
+		if ( 'pending' !== (string) BFTD_Fields::get( $post_id, 'session', 'status' ) ) return false;
+
+		remove_action( 'save_post', array( __CLASS__, 'save' ), 10 );
+		wp_update_post( array( 'ID' => $post_id, 'post_status' => 'draft' ) );
+		add_action( 'save_post', array( __CLASS__, 'save' ), 10, 2 );
+
+		set_transient( 'bftd_held_' . get_current_user_id(), 'pending|', 60 );
+		return true;
+	}
+
 	public static function hold_unexplained( $post_id, $post ) {
 		if ( 'publish' !== $post->post_status ) return false;
 
@@ -2255,7 +2304,11 @@ class BFTD_MetaBoxes {
 		if ( $held ) {
 			delete_transient( $hkey );
 			list( $what, $missing ) = array_pad( explode( '|', (string) $held, 2 ), 2, '' );
-			if ( 'unclaimed' === $what ) {
+			if ( 'pending' === $what ) {
+				echo '<div class="notice notice-warning"><p><strong>Kept as a draft.</strong> '
+					. 'This session is marked Pending. Everything you wrote has been saved. '
+					. 'Change What happened once it is decided and publish, and the family will see it then.</p></div>';
+			} elseif ( 'unclaimed' === $what ) {
 				// A different sentence, because this one is not about the
 				// family. Nothing is withheld from them by it; what is
 				// withheld is a payment nobody can attribute.

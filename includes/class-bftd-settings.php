@@ -349,6 +349,9 @@ class BFTD_Settings {
 				<?php if ( $item['heading'] ) : ?>
 					<p class="description">Appears under the heading &ldquo;<?php echo esc_html( $item['heading'] ); ?>&rdquo;.</p>
 				<?php endif; ?>
+				<?php if ( ! empty( $item['note'] ) ) : ?>
+					<p class="description"><?php echo esc_html( $item['note'] ); ?></p>
+				<?php endif; ?>
 
 				<?php if ( $may ) : ?>
 					<?php wp_editor( $value, $id, array(

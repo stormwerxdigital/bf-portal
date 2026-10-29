@@ -73,13 +73,17 @@ class BFTD_Schema {
 		$out = array();
 		foreach ( self::sections() as $sid => $section ) {
 			foreach ( $section['fields'] as $key => $field ) {
-				if ( ! isset( $field['shipped'] ) ) continue;
+				// A tick list's master list is the practice's too, and is
+				// edited in the same place (the instructional plan, 1.165).
+				$shipped = isset( $field['shipped'] ) ? $field['shipped'] : ( isset( $field['master'] ) ? $field['master'] : null );
+				if ( null === $shipped ) continue;
 				$out[ $sid . '.' . $key ] = array(
 					'section' => $sid,
 					'field'   => $key,
 					'label'   => $section['label'] . ': ' . ( isset( $field['settings_label'] ) ? $field['settings_label'] : $field['label'] ),
 					'heading' => isset( $field['heading'] ) ? $field['heading'] : '',
-					'shipped' => $field['shipped'],
+					'note'    => isset( $field['settings_note'] ) ? $field['settings_note'] : '',
+					'shipped' => $shipped,
 				);
 			}
 		}
@@ -104,6 +108,94 @@ class BFTD_Schema {
 
 		$ours = BFTD_Settings::standing_text( $section_id . '.' . $field_key );
 		return ( '' !== trim( (string) $ours ) ) ? $ours : $shipped;
+	}
+
+	/**
+	 * The lines a tick list offers, from its master list.
+	 *
+	 * The practice's own list where somebody has saved one under Settings,
+	 * the shipped one otherwise. One line per top-level bullet, kept as the
+	 * HTML inside it, so a line with points under it keeps them.
+	 */
+	public static function master_lines( $section_id, $field_key ) {
+		$section = self::section( $section_id );
+		$field   = isset( $section['fields'][ $field_key ] ) ? $section['fields'][ $field_key ] : array();
+		$html    = isset( $field['master'] ) ? (string) $field['master'] : '';
+		if ( class_exists( 'BFTD_Settings' ) ) {
+			$ours = (string) BFTD_Settings::standing_text( $section_id . '.' . $field_key );
+			if ( '' !== trim( $ours ) ) $html = $ours;
+		}
+		return self::top_bullets( $html );
+	}
+
+	/** Each top-level <li> of a list, as the HTML inside it. */
+	public static function top_bullets( $html ) {
+		$html = trim( (string) $html );
+		if ( '' === $html ) return array();
+
+		$out = array();
+		if ( class_exists( 'DOMDocument' ) ) {
+			$doc = new DOMDocument();
+			$was = libxml_use_internal_errors( true );
+			$doc->loadHTML( '<?xml encoding="utf-8"?><div id="bftd-root">' . $html . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
+			libxml_clear_errors();
+			libxml_use_internal_errors( $was );
+			$root = $doc->getElementById( 'bftd-root' );
+			if ( $root ) {
+				foreach ( $root->childNodes as $list ) {
+					if ( ! in_array( strtolower( (string) $list->nodeName ), array( 'ul', 'ol' ), true ) ) continue;
+					foreach ( $list->childNodes as $li ) {
+						if ( 'li' !== strtolower( (string) $li->nodeName ) ) continue;
+						$inner = '';
+						foreach ( $li->childNodes as $c ) $inner .= $doc->saveHTML( $c );
+						$inner = trim( $inner );
+						if ( '' !== trim( wp_strip_all_tags( $inner ) ) ) $out[] = $inner;
+					}
+				}
+			}
+			return $out;
+		}
+
+		// No DOM extension: one line per bullet, flat.
+		foreach ( BFTD_Fields::list_to_rows( $html, 'item' ) as $row ) $out[] = esc_html( $row['item'] );
+		return $out;
+	}
+
+	/**
+	 * Two lines are the same line when they say the same words. Tags and
+	 * spacing an editor adds or drops do not make a different line.
+	 */
+	public static function line_key( $html ) {
+		$text = html_entity_decode( wp_strip_all_tags( (string) $html ), ENT_QUOTES, 'UTF-8' );
+		return strtolower( trim( preg_replace( '/\s+/u', ' ', $text ) ) );
+	}
+
+	/**
+	 * The instructional plan's master list, as Laurel wrote it (1.165).
+	 * Edited under Settings, Report wording.
+	 */
+	public static function plan_master() {
+		return '<ul>'
+			. '<li>Provide consistent EBLI-based instruction: 2 sessions per week.</li>'
+			. '<li>Reinforce the core elements of EBLI instruction:<ul>'
+				. '<li>Each sound can be represented by 1–4 letters</li>'
+				. '<li>A single sound can be spelled in multiple ways</li>'
+				. '<li>A single spelling can represent multiple sounds</li>'
+				. '<li>A strategy for decoding multisyllable words</li>'
+			. '</ul></li>'
+			. '<li>Alphabet handwriting practice (3-5 minutes per session) to build automaticity and fluency in written expression and oral reading skills.</li>'
+			. '<li>Reinforce spelling conventions through word sorts and patterns (no memorization or flashcard drills), such as when to use -ck or -k at the end, c or k at the beginning of a word, and ch or tch at the end of a word.</li>'
+			. '<li>Spelling rules (e.g. dropping silent-e at the end of a word before adding a vowel suffix, doubling a consonant at the end of a CVC word before adding a vowel suffix). Taught as part of integrated literacy instruction during creative writing, reading, and spelling activities.</li>'
+			. '<li>As the student is an emerging reader with minimal knowledge of the basic sounds of the letters a-z and basic digraphs (th, sh, ch, ck, wh), the basic code will be introduced through a phoneme manipulation activity.</li>'
+			. '<li>Reinforce basic code involving 2 and 3-letter teams using word sorts: th, sh, ch, wh, ck, tch.</li>'
+			. '<li>Review common spelling patterns.</li>'
+			. '<li>Word Fluency drills to build recognition of spelling patterns.</li>'
+			. '<li>Paragraph Fluency Drills to build Oral Reading Fluency.</li>'
+			. '<li>Explicit writing instruction.</li>'
+			. '<li>Build vocabulary and spelling skills through explicit instruction, including morphology, plus a home activity of audiobooks with printed text.</li>'
+			. '<li>Focus on comprehension using the KAT (Knowledge, Acquisition, and Transformation) method of instruction.</li>'
+			. '<li>Regular progress updates, including activities introduced and completed, shared via a Google document that the parent and any designated party may access at any time.</li>'
+			. '</ul>';
 	}
 
 	/**
@@ -1348,9 +1440,18 @@ class BFTD_Schema {
 				'help'  => 'What the one minute timing produced. The goal of 40 is fixed, and the bar on the card is worked out from it.',
 			),
 			// Always forty, at Karl's direction: stated, not typed, the way the
-			// segmentation task's 36 is. The results table's "Total letters
-			// written" row reads it too, and Karl chose to keep that row.
+			// segmentation task's 36 is. It is the goal the card's bar is drawn
+			// against, not how many letters the child wrote.
 			'score_of'  => array( 'type' => 'number', 'label' => 'Out of', 'card' => true, 'in_pair' => true, 'fixed' => 40 ),
+			// How many the child actually wrote, typed. The "Total letters
+			// written" row read the fixed 40, so every report said 40: Kaine
+			// wrote 26 and his read 25 correct of 40 written (Laurel, 1.163).
+			// Left empty, the row is left off, as any row with no figure is.
+			'written'   => array(
+				'type'  => 'number',
+				'label' => 'Letters written',
+				'help'  => 'Every letter written in the minute, right or wrong. Shown as "Total letters written" in the results table.',
+			),
 			// Standing wording. It explains what the task measures and why it
 			// matters, which is the same on every report the practice sends,
 			// so it is not one tutor's to reword on a Tuesday. It says "the
@@ -1374,7 +1475,7 @@ class BFTD_Schema {
 				'head'  => array( 'Score', 'Detail' ),
 				'rows'  => array(
 					array( 'Letters produced correctly', '{score}' ),
-					array( 'Total letters written',      '{score_of}' ),
+					array( 'Total letters written',      '{written}' ),
 					array( 'Goal',                       '40 correct lowercase letters per minute' ),
 				),
 			),
@@ -1835,7 +1936,9 @@ class BFTD_Schema {
 
 		$s['sec-strengths-areas-for-growth'] = array(
 			'screen'  => self::SCREEN_REPORT,
-			'label'   => 'Strengths and areas for growth',
+			// Matches its own columns since 1.155 (Laurel, 1.164). The key
+			// keeps its old name, because saved reports are stored under it.
+			'label'   => 'Strengths and weaknesses',
 			'eyebrow' => 'Profile',
 			'thread'  => true,
 			// One row per point, in two lists, drawn on the report as one table:
@@ -1868,7 +1971,22 @@ class BFTD_Schema {
 			'label'   => 'Instructional plan',
 			'eyebrow' => 'The plan',
 			'thread'  => true,
+			// The ticked lines, then any of the tutor's own, drawn as one list
+			// above the free text (Laurel, 1.165).
+			'plan_list' => array( 'lines', 'other' ),
 			'fields'  => array(
+				'lines'     => array(
+					'type'           => 'ticklist',
+					'label'          => 'Plan',
+					'master'         => self::plan_master(),
+					'master_of'      => array( 'sec-instructional-plan', 'lines' ),
+					'settings_label' => 'Master list',
+					'settings_note'  => 'One bullet per tick box on every report\'s instructional plan, in this order. Points under a bullet stay with it. A change here changes the choices from now on; a report keeps the wording of the lines already ticked on it.',
+					'help'           => 'Untick anything that does not apply. A new report starts with every line ticked. The list itself is kept under Settings, Report wording.',
+				),
+				'other'     => array( 'type' => 'rows', 'label' => 'Other', 'add_label' => 'Add a line',
+					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Line' ) ),
+					'help' => 'Anything this plan needs that the list does not have. Shown after the ticked lines.' ),
 				'body'      => array( 'type' => 'rich', 'label' => 'Instructional plan' ),
 				'frequency' => array( 'type' => 'text', 'label' => 'Recommended frequency' ),
 				'duration'  => array( 'type' => 'text', 'label' => 'Expected duration' ),

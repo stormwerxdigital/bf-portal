@@ -154,7 +154,7 @@ check(1 === preg_match('/\$may_judge\s*=\s*isset\(\s*\$section\[.fields.\]\[.sta
 /* ---- the sample says what it measured ---- */
 require BFTD_PATH . 'includes/class-bftd-sample.php';
 $v = BFTD_Sample::get('diagnostic')['fields']['dxsec-1'];
-check('25' === $v['score'] && '26' === $v['score_of'], 'the sample is 25 of the 26 letters he wrote');
+check('25' === $v['score'] && '26' === $v['written'], 'the sample is 25 of the 26 letters he wrote');
 foreach (array('unit','status','meter_pct','baseline','card_note') as $gone) {
   check(!isset($v[$gone]), "the sample carries no $gone either");
 }

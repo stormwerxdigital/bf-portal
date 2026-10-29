@@ -584,6 +584,10 @@ class BFTD_Fields {
 			self::render_checklist( $post_id, $section_id, $key, $field );
 			return;
 		}
+		if ( 'ticklist' === $type ) {
+			self::render_ticklist( $post_id, $section_id, $key, $field );
+			return;
+		}
 		// Fixed reference wording: shown as the family will read it, with no
 		// box, because nothing in it belongs to one report.
 		if ( 'reference' === $type ) {
@@ -1016,6 +1020,52 @@ class BFTD_Fields {
 		$out = array();
 		foreach ( $look as $v => $m ) if ( array_key_exists( $v, (array) $options ) ) $out[ $v ] = $m;
 		return $out;
+	}
+
+	/**
+	 * Lines from the practice's master list, each ticked or not.
+	 *
+	 * What is stored is the wording of the lines ticked, so a report keeps
+	 * what it said when the master list is reworded later. A ticked line the
+	 * list no longer has is still offered, ticked, rather than lost.
+	 *
+	 * A new report starts with every line ticked; one saved before this list
+	 * existed starts with none, so an approved plan does not grow lines
+	 * nobody chose.
+	 */
+	private static function render_ticklist( $post_id, $section_id, $key, $field ) {
+		$saved  = self::get( $post_id, $section_id, $key, $field );
+		$master = BFTD_Schema::master_lines( $section_id, $key );
+		$fresh  = ! is_array( $saved ) && 'auto-draft' === get_post_status( $post_id );
+		$saved  = is_array( $saved ) ? $saved : array();
+		$name   = self::name( $section_id, $key );
+		$base   = 'bftd_' . str_replace( '-', '_', $section_id ) . '_' . $key;
+
+		$on = array();
+		foreach ( $saved as $line ) $on[ BFTD_Schema::line_key( $line ) ] = (string) $line;
+
+		$offer = array();
+		foreach ( $master as $line ) $offer[ BFTD_Schema::line_key( $line ) ] = array( $line, $fresh || isset( $on[ BFTD_Schema::line_key( $line ) ] ), false );
+		foreach ( $on as $k => $line ) if ( ! isset( $offer[ $k ] ) ) $offer[ $k ] = array( $line, true, true );
+		?>
+		<div class="bftd-field bftd-field-ticklist">
+			<label class="bftd-label"><?php echo esc_html( $field['label'] ); ?></label>
+			<?php if ( ! empty( $field['help'] ) ) : ?>
+				<p class="description" style="margin:0 0 9px"><?php echo esc_html( $field['help'] ); ?></p>
+			<?php endif; ?>
+			<?php // Always posts, so unticking every line is saved as none rather than ignored. ?>
+			<input type="hidden" name="<?php echo $name; ?>[on]" value="1">
+			<ul class="bftd-ticks">
+				<?php $i = 0; foreach ( $offer as $o ) : $id = $base . '_' . ( $i++ ); ?>
+					<li>
+						<input type="checkbox" id="<?php echo esc_attr( $id ); ?>" name="<?php echo $name; ?>[lines][]" value="<?php echo esc_attr( $o[0] ); ?>"<?php checked( $o[1] ); ?>>
+						<label for="<?php echo esc_attr( $id ); ?>"><?php echo wp_kses_post( $o[0] ); ?><?php if ( $o[2] ) : ?>
+							<span class="description">(no longer on the master list)</span><?php endif; ?></label>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+		</div>
+		<?php
 	}
 
 	private static function render_checklist( $post_id, $section_id, $key, $field ) {
@@ -1675,6 +1725,21 @@ class BFTD_Fields {
 				// Every figure in it came from somewhere else, so there is
 				// nothing posted and nothing to keep.
 				return '';
+			case 'ticklist':
+				// Only lines the master list offers, or that this report
+				// already had ticked: nothing posted can add a line of its own
+				// to a family's report. Kept in the order posted, which is the
+				// order they were offered.
+				$raw   = is_array( $raw ) ? $raw : array();
+				$allow = array();
+				foreach ( BFTD_Schema::master_lines( $field['master_of'][0] ?? '', $field['master_of'][1] ?? '' ) as $line ) $allow[ BFTD_Schema::line_key( $line ) ] = $line;
+				foreach ( (array) ( $field['stored'] ?? array() ) as $line ) $allow[ BFTD_Schema::line_key( $line ) ] = (string) $line;
+				$out = array();
+				foreach ( (array) ( $raw['lines'] ?? array() ) as $line ) {
+					$k = BFTD_Schema::line_key( $line );
+					if ( isset( $allow[ $k ] ) && ! in_array( $allow[ $k ], $out, true ) ) $out[] = wp_kses_post( $allow[ $k ] );
+				}
+				return $out;
 			case 'checklist':
 				// Only the rows the schema declares, and only the answers it
 				// offers. Nothing posted can add a finding to a family's

@@ -114,6 +114,7 @@ class BFTD_Sessions {
 		$as_published->post_status = 'publish';
 		$held = BFTD_MetaBoxes::hold_duplicate_draft( $sid, $as_published )
 			|| BFTD_MetaBoxes::hold_unexplained( $sid, $as_published )
+			|| BFTD_MetaBoxes::hold_pending( $sid, $as_published )
 			|| BFTD_MetaBoxes::hold_unclaimed( $sid, $as_published );
 
 		if ( ! $held ) wp_update_post( array( 'ID' => $sid, 'post_status' => 'publish' ) );
@@ -210,6 +211,8 @@ class BFTD_Sessions {
 				}
 
 				$status = (string) BFTD_Fields::get( $sid, 'session', 'status' );
+				// A late start went ahead, so it is counted as attended.
+				if ( 'late' === $status ) $status = 'held';
 				if ( isset( $out[ $owner ][ $status ] ) ) $out[ $owner ][ $status ]++;
 
 				$date = (string) BFTD_Fields::get( $sid, 'session', 'session_date' );
@@ -466,8 +469,8 @@ class BFTD_Sessions {
 	/** Attended, rescheduled or missed. Shared by the drawer and the advanced view. */
 	public static function happened_cell( $sid ) {
 		$status = (string) BFTD_Fields::get( $sid, 'session', 'status' );
-		$words  = array( 'held' => 'Attended', 'rescheduled' => 'Rescheduled', 'missed' => 'Missed' );
-		$kind   = array( 'held' => 'held', 'rescheduled' => 'moved', 'missed' => 'missed' );
+		$words  = array( 'held' => 'Attended', 'late' => 'Late start', 'rescheduled' => 'Rescheduled', 'missed' => 'Missed', 'pending' => 'Pending' );
+		$kind   = array( 'held' => 'held', 'late' => 'held', 'rescheduled' => 'moved', 'missed' => 'missed', 'pending' => 'draft' );
 		echo isset( $words[ $status ] )
 			? '<span class="bftd-att-b is-' . esc_attr( $kind[ $status ] ) . '">' . esc_html( $words[ $status ] ) . '</span>'
 			: '<span class="bftd-none">Not recorded</span>';

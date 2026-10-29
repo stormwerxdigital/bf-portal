@@ -297,7 +297,7 @@ HTML,
 			// and the two tables under the prose are drawn rather than typed.
 			'dxsec-1' => array(
 				'score'     => '25',
-				'score_of'  => '26',
+				'written'   => '26',
 				'marking'   => array(
 					'lowercase' => 'He wrote a to z with the order reversed for m and n. The letter e was illegible and counted as an error.',
 					'bottom_up' => 'Kaine wrote his letters top to bottom.',
@@ -774,7 +774,7 @@ HTML,
 				'overview'    => '<p>Jot was reassessed on 1 September, eight weeks after his baseline. Every one of the six areas has moved, and two of them have moved a long way: handwriting automaticity from 14 letters a minute to 29, and passage reading from 40 words a minute to 64.</p>'
 					. '<p>His independent reading level is now Grade 2. That is the number families ask about most, and it is the slowest one to move, so a full level in eight weeks is ahead of what I expected when we started.</p>',
 			),
-			'dxsec-1' => array( 'score' => '29', 'score_of' => '32' ),
+			'dxsec-1' => array( 'score' => '29', 'written' => '32' ),
 			'dxsec-2' => array( 'score' => '36', 'score_of' => '36' ),
 			'dxsec-3' => array( 'score' => 'grade-2' ),
 			// Two of the six work their score out rather than being told it:

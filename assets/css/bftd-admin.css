@@ -170,6 +170,9 @@
    rather than as an optional afterthought. */
 .bftd-onlymissed{display:none}
 .bftd-onlymissed.is-on{display:block}
+/* The Why for a late start or a pending session, on the same terms. */
+.bftd-onlywhy{display:none}
+.bftd-onlywhy.is-on{display:block}
 .bftd-missed-rule{margin-top:10px}
 /* Said once, on the field, when somebody tries to publish without it. Clay
    rather than red: this is a thing still to do, not an error. */
@@ -836,6 +839,14 @@ input[type=search]:focus,input[type=date]:focus,input[type=time]:focus,select:fo
    -------------------------------------------------------------------------- */
 
 .bftd-cl{border:1px solid var(--bftd-line); border-radius:4px; overflow:hidden}
+/* A tick list from a master list (the instructional plan). Each line's
+   points sit indented under it, as they do on the report. */
+.bftd-ticks{margin:0;padding:0;list-style:none}
+.bftd-ticks > li{display:flex;gap:9px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--bftd-line);margin:0}
+.bftd-ticks > li:first-child{border-top:0}
+.bftd-ticks > li input{margin-top:3px;flex:none}
+.bftd-ticks label ul{list-style:disc;margin:4px 0 0 20px}
+.bftd-ticks label li{margin:2px 0}
 .bftd-cl-head, .bftd-cl-row{
 	display:grid; grid-template-columns:minmax(200px,1.5fr) 172px minmax(160px,1.4fr);
 	gap:12px; align-items:center; padding:9px 12px;

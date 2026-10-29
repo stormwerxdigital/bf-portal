@@ -32,11 +32,15 @@ check(isset($f['score_table']) && 'score_table' === $f['score_table']['type'], '
 check('' === BFTD_Fields::sanitize_value('anything posted', $f['score_table']),
   'and it stores nothing, because there is nothing to store');
 
-$html = BFTD_Schema::score_table_html('dxsec-1', array('score' => '25', 'score_of' => '26'));
+$html = BFTD_Schema::score_table_html('dxsec-1', array('score' => '25', 'written' => '26'));
 check(false !== strpos($html, '<td>25</td>'), 'the numerator is the letters produced correctly');
 check(40 === (int) $f['score_of']['fixed'], 'the denominator is fixed at 40, at Karl\'s direction, so it is never typed');
+/* "Total letters written" is what the child wrote, typed, not the goal of
+   40 (Laurel, 1.163: Kaine wrote 26 and his report said 40). */
+check(false !== strpos($html, '<td>Total letters written</td><td>26</td>'), 'the "Total letters written" row reads what was written, got ' . $html);
+check('number' === ($f['written']['type'] ?? ''), 'from a number the tutor types');
 $fixed = BFTD_Schema::score_table_html('dxsec-1', array('score' => '25', 'score_of' => ''));
-check(false !== strpos($fixed, '<td>Total letters written</td><td>40</td>'), 'and the "Total letters written" row Karl kept reads 40');
+check(false === strpos($fixed, 'Total letters written'), 'and with nothing typed the row is left off rather than reading 40');
 check(false !== strpos($html, '40 correct lowercase letters per minute'), 'and the goal is fixed');
 check(3 === substr_count($html, '<tr><td>'), 'three rows of figures');
 check(2 === substr_count($html, '<tr><th'), 'under a title and a header row');
@@ -63,7 +67,7 @@ check(0 === preg_match('#<th><strong>16 / 36</strong>#', $seg),
   'and is not also drawn as a column label');
 
 /* Both shapes still carry their title above everything. */
-foreach (array('dxsec-1' => array('score' => 25, 'score_of' => 26), 'dxsec-2' => array('score' => 16)) as $sid => $v) {
+foreach (array('dxsec-1' => array('score' => 25, 'written' => 26), 'dxsec-2' => array('score' => 16)) as $sid => $v) {
   $h = BFTD_Schema::score_table_html($sid, $v);
   check(1 === preg_match('#<thead>\s*<tr><th colspan#s', $h), "$sid keeps its title above the table");
 }
