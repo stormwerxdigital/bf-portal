@@ -146,7 +146,7 @@ foreach (array("'summary'" => 'the one-line summary', "'home_practice'" => 'what
 $dash = code_of(BFTD_PATH . 'includes/class-bftd-dashboard.php');
 check(0 === preg_match("/get\(\s*'summary'\s*\)/", $dash), 'and off the family\'s report');
 check(0 === preg_match("/'home_practice'/", $dash), 'both of them');
-check(1 === preg_match("/'homework'\s*=>\s*array\(\s*'Homework'/", $dash),
+check(1 === preg_match('#<summary class="blk-h">Homework</summary>#', $dash),
   'while the homework block stays, which is the one they were duplicating');
 
 $sample = code_of(BFTD_PATH . 'includes/class-bftd-sample.php');

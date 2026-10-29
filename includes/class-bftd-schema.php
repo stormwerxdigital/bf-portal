@@ -1181,8 +1181,10 @@ class BFTD_Schema {
 					'run_on'     => 'Run-on sentences',
 					'combined'   => 'Simple sentences combined',
 					'variety'    => 'A variety of sentence structures and lengths',
-					'flow'       => 'Overall flow',
-					'order'      => 'Order of sentences makes sense, with a clear beginning, middle and end',
+					// "Overall flow" was a row of its own; it is now the start
+					// of this one, in Laurel's words. A stored answer for the
+					// old row is no longer drawn.
+					'order'      => 'Overall flow: Order of sentences makes sense, with a clear beginning, middle, and end',
 					'vivid'      => 'Powerful verbs, specific nouns and colourful adjectives or adverbs',
 					'multisyll'  => 'Writing piece contains <strong>multisyllable words</strong> (underlined in blue)',
 				),
@@ -1405,6 +1407,14 @@ class BFTD_Schema {
 							'reversals' => array(
 								'label' => 'Reversals. Examples of reversals are b for d, p for q, n for u',
 								'empty' => 'No reversals',
+							),
+							// Anything else that cost a letter, such as one too
+							// hard to read (Laurel). Left off the report when
+							// nothing is marked or written against it, because
+							// a tick beside a bare "Other" says nothing.
+							'other' => array(
+								'label'        => 'Other',
+								'only_if_said' => true,
 							),
 						),
 					),

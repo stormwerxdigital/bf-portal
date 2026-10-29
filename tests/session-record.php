@@ -123,7 +123,7 @@ check(false !== strpos($html, 'Sound Lines'), 'the activity is named on the repo
  * The activity's block said only its own name, so a title like "Up tea earn
  * weigh" read as one more section of the record rather than as the thing the
  * child worked on. */
-check(1 === preg_match('#<div class="blk-h">.*?Activity:.*?Sound Lines#s', $html),
+check(1 === preg_match('#<summary class="blk-h">.*?Activity:.*?Sound Lines#s', $html),
   'and labelled as an activity, before its name');
 check(false === strpos($html, 'Activity: </div>'), 'never the label on its own');
 check(false === strpos($html, 'Track 1 · 2 · Sound Lines'),
@@ -148,8 +148,8 @@ check(1 === $lines, 'a half-typed text row is not a line on the report, got ' . 
    that is actually behind the chevron, or the chevron is a lie. */
 if (preg_match('/(\d+) parts/', $html, $m)) {
   $parts = (int) $m[1];
-  // The block divs themselves, not the headings inside them.
-  $drawn = preg_match_all('/<div class="blk[ "]/', $html);
+  // The part folds themselves, not the headings inside them.
+  $drawn = preg_match_all('/<details class="blk[ "]/', $html);
   check($parts === $drawn, "the header counts the parts that are there, says $parts and draws $drawn");
 } else {
   check(false, 'the header says how many parts there are');
@@ -171,7 +171,7 @@ echo $fail ? "\nFAIL\n" : "\nPASS\n";
  * activity, and the tutor's notes on the whole session are three different
  * voices, and on the family's page they ran together. Each now says what it
  * is, and the description is folded so the notes are what shows. */
-check(1 === preg_match('#<div class="blk-h">Tutor session notes</div>\s*<div class="doc-body">.{0,10}He read it twice#s', $html),
+check(1 === preg_match('#<summary class="blk-h">Tutor session notes</summary>\s*<div class="doc-body">.{0,10}He read it twice#s', $html),
   'the session notes are headed Tutor session notes');
 check(false === strpos($html, 'A note from your tutor'), 'and no longer by the old heading');
 
@@ -187,5 +187,27 @@ check(1 === preg_match('#<details class="about-fold">\s*<summary>\s*<span class=
 check(false === strpos($kat, 'about-gist'), 'one that opens with a heading shows the label, not its headings run together');
 check(1 === preg_match('#</details>\s*<div class="act-note">\s*<div class="act-note-h">Tutor activity notes</div>\s*<div class="doc-body">.{0,10}Main idea expanded#s', $kat),
   'the tutor\'s notes on the activity follow it, outside the fold, headed Tutor activity notes');
+
+/* ---- one part at a time (Laurel, 1.161) ----
+ *
+ * The tutor's notes come first, where the tutor writes them. Each part folds
+ * on its own and the server ships it open. The head lists the notes and what
+ * was read beside the activities, and each tag names the part it opens. */
+$at_notes = strpos($html, '<summary class="blk-h">Tutor session notes');
+$at_act   = strpos($html, 'Activity:</span>');
+check(false !== $at_notes && false !== $at_act && $at_notes < $at_act, 'the tutor\'s session notes come before the activities');
+preg_match_all('#<details class="blk[^"]*" id="([^"]+)" open>\s*<summary class="blk-h">#', $html, $folds);
+check(count($folds[1]) === preg_match_all('#<details class="blk#', $html) && count($folds[1]) > 1,
+  'every part is a fold with an id, shipped open, its heading the switch');
+// An activity with nothing written about it has a tag and no part, and its
+// tag opens the session whole; the notes and the reading always have both.
+preg_match_all('#tag-part" data-part="([^"]+)"#', $html, $own);
+preg_match_all('#class="tag-act" data-part="([^"]+)"#', $html, $acts);
+check($own[1] && !array_diff($own[1], $folds[1]), 'the notes and reading tags each name their part');
+check((bool) array_intersect($acts[1], $folds[1]), 'and an activity\'s tag names that activity\'s part');
+check(1 === preg_match('#<span class="tags">\s*<span class="tag-act tag-part" data-part="[^"]+-notes">Tutor session notes</span>#', $html),
+  'the head lists the tutor\'s notes first among the tags');
+check(false !== strpos($html, 'data-part="session-') && 1 === preg_match('#tag-part" data-part="[^"]+-read">What we read</span>#', $html),
+  'and what was read, beside the activities');
 
 exit($fail ? 1 : 0);

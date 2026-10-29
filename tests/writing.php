@@ -25,7 +25,7 @@ $f = $s['fields'];
 $k = array_keys($f);
 
 /* ---- two fixed lists ---- */
-foreach (array('conventions' => 8, 'grammar' => 8) as $key => $n) {
+foreach (array('conventions' => 8, 'grammar' => 7) as $key => $n) {
   check('checklist' === $f[$key]['type'], "$key is a fixed list");
   check($n === count($f[$key]['rows']), "with $n rows nobody retypes");
   foreach (array('' => 'Not assessed', 'yes' => 'Yes', 'no' => 'No', 'na' => 'N/A') as $ov => $ol) {
@@ -80,14 +80,14 @@ $put = function ($conv, $gram) use ($f) {
 
 check(array('2', '3') === $put(
   array('indent' => array('value' => 'yes'), 'spaces' => array('value' => 'no')),
-  array('flow' => array('value' => 'yes'))
+  array('order' => array('value' => 'yes'))
 ), 'two of three answered were yes');
 
 /* A row nobody assessed is in neither figure, so a part-finished section is
    not a child scored on questions nobody asked. */
 check(array('1', '2') === $put(
   array('indent' => array('value' => 'yes'), 'spaces' => array('value' => '', 'note' => 'x')),
-  array('flow' => array('value' => 'na'))
+  array('order' => array('value' => 'na'))
 ), 'an unanswered row counts in neither figure');
 
 /* Nothing answered is no figure at all, rather than nought out of nought. */

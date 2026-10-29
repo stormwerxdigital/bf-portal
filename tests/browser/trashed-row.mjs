@@ -17,12 +17,10 @@
  * only way to see it is to press the button.
  */
 import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 
-const require_ = createRequire(import.meta.url);
-const { chromium } = require_(execFileSync('npm', ['root', '-g']).toString().trim() + '/playwright');
+import { chromium, launchOptions } from './pw.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const page_path = execFileSync('php', [here + '/build-lesson-row.php']).toString().trim();
@@ -30,7 +28,7 @@ const page_path = execFileSync('php', [here + '/build-lesson-row.php']).toString
 let fail = 0;
 const check = (ok, msg) => { console.log(`${ok ? '  ok ' : 'FAIL'}  ${msg}`); if (!ok) fail++; };
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const browser = await chromium.launch(launchOptions);
 const page = await browser.newPage({ viewport: { width: 900, height: 900 } });
 const errors = [];
 page.on('pageerror', e => { if (!/sortable is not a function/.test(String(e))) errors.push(String(e)); });

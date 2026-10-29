@@ -10,12 +10,10 @@
  * out, and clearing it has to put them away again.
  */
 import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 
-const require_ = createRequire(import.meta.url);
-const { chromium } = require_(execFileSync('npm', ['root', '-g']).toString().trim() + '/playwright');
+import { chromium, launchOptions } from './pw.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const page_path = execFileSync('php', [here + '/build-lesson-row.php']).toString().trim();
@@ -23,7 +21,7 @@ const page_path = execFileSync('php', [here + '/build-lesson-row.php']).toString
 let fail = 0;
 const check = (ok, msg) => { console.log(`${ok ? '  ok ' : 'FAIL'}  ${msg}`); if (!ok) fail++; };
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const browser = await chromium.launch(launchOptions);
 const page = await browser.newPage({ viewport: { width: 900, height: 800 } });
 const errors = [];
 page.on('pageerror', e => { if (!/sortable is not a function/.test(String(e))) errors.push(String(e)); });
@@ -42,7 +40,7 @@ const built = await page.evaluate(() => (window.__ed || []).map(e => ({ id: e.id
 const filledId = await page.evaluate(() => (document.querySelector('#filled .bftd-rowpanel.is-open .bftd-rowpanel-a') || {}).id);
 const mine = built.find(e => e.id === filledId);
 check(!!filledId && !!mine, 'notes already written open in the full editor, got ' + JSON.stringify(built.map(e => e.id)));
-check(mine && /formatselect/.test(mine.s.tinymce.toolbar1) && /forecolor/.test(mine.s.tinymce.toolbar2), 'with the full toolbar');
+check(mine && /formatselect/.test(mine.s.tinymce.toolbar1) && /forecolor/.test(mine.s.tinymce.toolbar1), 'with the full toolbar, text colour on its first row');
 check(mine && true === mine.s.mediaButtons, 'and Add Media');
 check(!built.some(e => /empty/.test(e.id)) && built.length === 1, 'while closed panels wait to be opened, got ' + built.length);
 

@@ -65,7 +65,7 @@ file_put_contents(__DIR__.'/skill-page.html',
   . '<p>This is the description for activity 1</p></textarea>'
   . '</div>'
   . '<script src="' . BFTD_PATH . 'tests/browser/jquery.js"></script>'
-  . '<script>window.BFTD={ajax_url:"/ajax",nonce:"n",post_id:88,autosave:0,tracks:'
+  . '<script>window.BFTD={ajax_url:"http://bftd.test/ajax",nonce:"n",post_id:88,autosave:0,tracks:'
   . json_encode(BFTD_Activities::tracks()) . '};</script>'
   . '<script>' . $js . '</script>');
 
@@ -118,7 +118,7 @@ file_put_contents(__DIR__.'/skill-page-mce.html',
   . '<p><b>The description (visual)</b></p>' . $fake
   . '</div>'
   . '<script src="' . BFTD_PATH . 'tests/browser/jquery.js"></script>'
-  . '<script>window.BFTD={ajax_url:"/ajax",nonce:"n",post_id:88,autosave:0,tracks:'
+  . '<script>window.BFTD={ajax_url:"http://bftd.test/ajax",nonce:"n",post_id:88,autosave:0,tracks:'
   . json_encode(BFTD_Activities::tracks()) . '};</script>'
   . $shim
   . '<script>' . $js . '</script>');

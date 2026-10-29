@@ -354,6 +354,25 @@ class BFTD_MetaBoxes {
 				<?php endforeach; ?>
 
 				<?php
+				// Grade and how sessions are held, here at Laurel's request,
+				// beside "Attending to". Not the CRM's: student_fields() saves
+				// them, and the sync never touches them.
+				$student = self::student_fields();
+				foreach ( self::in_contact() as $key ) {
+					BFTD_Fields::render_field( $post->ID, 'student', $key, $student[ $key ] );
+				}
+				?>
+			</div>
+
+			<?php
+			// Where the student is in the programme, on one row beside their
+			// diagnostic (Laurel). The track box keeps its class and
+			// data-track: the script that shows the right starting number
+			// looks for it.
+			?>
+			<div class="bftd-grid bftd-track-box" style="margin-top:14px" data-track="<?php
+				echo esc_attr( (string) BFTD_Fields::get( $post->ID, 'student', 'track', array( 'type' => 'select' ) ) ); ?>">
+				<?php
 				/*
 				 * Read from the reading diagnostics rather than typed.
 				 *
@@ -372,6 +391,10 @@ class BFTD_MetaBoxes {
 					?></p>
 					<p class="description">The most recent reading diagnostic. Record one and this follows it.</p>
 				</div>
+
+				<?php foreach ( self::track_fields() as $key => $field ) : ?>
+					<?php BFTD_Fields::render_field( $post->ID, 'student', $key, $field ); ?>
+				<?php endforeach; ?>
 			</div>
 
 			<?php $held = BFTD_CRM::held_back( $post->ID ); ?>
@@ -481,30 +504,20 @@ class BFTD_MetaBoxes {
 	}
 
 	public static function box_student( $post ) {
+		// "Started with us" was shown here; "Attending from" under Contact and
+		// history says it better (Laurel). Grade and "Sessions are" are drawn
+		// there too, so this keeps the rest of student_fields().
 		echo '<div class="bftd-box bftd-grid">';
-
-		// When a family started with us is not something anyone should have
-		// to type: it is the day the student was added. Shown rather than
-		// asked for, so it cannot be left blank or contradicted.
-		?>
-		<div class="bftd-field">
-			<span class="bftd-label">Started with us</span>
-			<p class="bftd-readonly"><?php echo esc_html( BFTD_CPT::started_on_label( $post ) ); ?></p>
-			<p class="description">Taken from the day this student was added.</p>
-		</div>
-		<?php
-
 		foreach ( self::student_fields() as $key => $field ) {
+			if ( in_array( $key, self::in_contact(), true ) ) continue;
 			BFTD_Fields::render_field( $post->ID, 'student', $key, $field );
 		}
 		echo '</div>';
+	}
 
-		echo '<div class="bftd-box bftd-grid bftd-track-box" data-track="'
-			. esc_attr( (string) BFTD_Fields::get( $post->ID, 'student', 'track', array( 'type' => 'select' ) ) ) . '">';
-		foreach ( self::track_fields() as $key => $field ) {
-			BFTD_Fields::render_field( $post->ID, 'student', $key, $field );
-		}
-		echo '</div>';
+	/** The student details drawn under Contact and history rather than here. */
+	private static function in_contact() {
+		return array( 'grade', 'mode' );
 	}
 
 	/**
@@ -1042,12 +1055,23 @@ class BFTD_MetaBoxes {
 
 		$post_type = isset( $_POST['post_type'] ) ? sanitize_key( wp_unslash( $_POST['post_type'] ) ) : '';
 
+		// A session's "Cancelled by" names this student's people, so it
+		// follows the student picked. Pairs, because a script object would
+		// reorder numeric keys ahead of "Choose someone".
+		$cancelled = array();
+		if ( BFTD_CPT::SESSION === $post_type ) {
+			foreach ( self::cancelled_by_options( 0, $student_id ) as $value => $label ) {
+				$cancelled[] = array( (string) $value, $label );
+			}
+		}
+
 		wp_send_json_success( array(
 			'title'    => get_the_title( $student_id ),
 			'subtitle' => self::assigned_line( $student_id ),
 			// Everything the report asks for that the student record already
 			// answers, so none of it has to be typed twice.
 			'prefill'  => BFTD_Prefill::values( $student_id, $post_type ),
+			'cancelled_by' => $cancelled,
 		) );
 	}
 
@@ -1239,13 +1263,24 @@ class BFTD_MetaBoxes {
 	 * one of the two words this used to offer — keeps it as an option, or
 	 * opening the record would silently blank an answer somebody gave.
 	 */
-	public static function cancelled_by_options( $post_id ) {
+	public static function cancelled_by_options( $post_id, $student = 0 ) {
 		$options = array( '' => 'Choose someone' );
 
-		$student = $post_id ? BFTD_CPT::student_id( $post_id ) : 0;
+		// The student saved on the session, or, on a new session opened from
+		// a student, the one it was opened for. The list used to come only
+		// from the saved session, so a new one offered nobody at all.
+		if ( ! $student ) $student = $post_id ? BFTD_CPT::student_id( $post_id ) : 0;
+		if ( ! $student && isset( $_GET['student'] ) ) {
+			$asked = (int) $_GET['student'];
+			if ( $asked && BFTD_Access::can_staff_view( $asked ) ) $student = $asked;
+		}
 		foreach ( BFTD_CPT::people_on( $student ) as $uid => $label ) {
 			$options[ (string) $uid ] = $label;
 		}
+
+		// A family with no client account linked can still cancel. Stored as
+		// the old "family" answer, which the report already reads.
+		if ( $student && ! BFTD_CPT::client_ids( $student ) ) $options['family'] = 'Client';
 
 		$have = $post_id ? (string) BFTD_Fields::get( $post_id, 'session', 'missed_by' ) : '';
 		if ( '' !== $have && ! isset( $options[ $have ] ) ) {
@@ -1280,14 +1315,6 @@ class BFTD_MetaBoxes {
 	}
 
 	/** The activity rows, as the lesson screen and the save both see them. */
-	/** One skill a child reached today, beyond what the activities claim. */
-	public static function skill_columns() {
-		return array(
-			'id'   => array( 'type' => 'skill', 'label' => 'Skill' ),
-			'note' => array( 'type' => 'rich',  'label' => 'Notes' ),
-		);
-	}
-
 	public static function activity_columns() {
 		return array(
 			'id'      => array( 'type' => 'activity', 'label' => 'Activity' ),
@@ -1331,16 +1358,9 @@ class BFTD_MetaBoxes {
 		) );
 		echo '</div>';
 
-		echo '<div class="bftd-box"><h4>Skills reached today</h4>';
-		echo '<p class="description">Every activity already carries the skills it builds, and those arrive on the report by themselves. This is for a skill the child got to today that the programme did not promise, which is the sentence a parent remembers.</p>';
-		BFTD_Fields::render_field( $post->ID, 'session', 'skills', array(
-			'type'      => 'rows',
-			'label'     => 'Skills',
-			'layout'    => 'stack',
-			'add_label' => 'Add skill',
-			'columns'   => self::skill_columns(),
-		) );
-		echo '</div>';
+		// "Skills reached today" was a box here. Removed at Laurel's request:
+		// a skill is reached through an activity, never on its own. Skills
+		// already saved on a session still count (BFTD_Skills reads them).
 
 		/*
 		 * The texts read, on the lesson rather than on the activity.
@@ -1565,7 +1585,6 @@ class BFTD_MetaBoxes {
 			$changed += self::save_subtitle( $post_id );
 			$changed += self::save_flat( $post_id, 'session', self::session_fields( $post_id ) );
 			$changed += self::save_rows_field( $post_id, 'session', 'activities', self::activity_columns(), 'Activities covered' );
-			$changed += self::save_rows_field( $post_id, 'session', 'skills', self::skill_columns(), 'Skills reached' );
 			$changed += self::save_rows_field( $post_id, 'session', 'texts', self::text_columns(), 'Texts read' );
 			self::stamp_missed( $post_id );
 			self::claim_session( $post_id );

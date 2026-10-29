@@ -1128,6 +1128,14 @@ class BFTD_Dashboard {
 			);
 		}
 		if ( $texts )  $blocks++;
+
+		// Every part of the session folds on its own, and each tag in the
+		// head opens the session at its own part with the rest folded. A
+		// tag's part is found by this id; the head itself opens everything.
+		$has_notes = BFTD_Fields::has_value( $get( 'notes' ) );
+		$part      = function ( $key ) use ( $session_id ) {
+			return 'session-' . (int) $session_id . '-' . $key;
+		};
 		?>
 		<article class="session" id="session-<?php echo (int) $session_id; ?>" data-n="<?php echo esc_attr( $num ); ?>">
 			<button class="session-head" type="button" aria-expanded="false">
@@ -1144,18 +1152,24 @@ class BFTD_Dashboard {
 						if ( $blocks ) $bits[] = $blocks . ( 1 === $blocks ? ' part' : ' parts' );
 						echo esc_html( implode( ' · ', $bits ) );
 					?></span>
-					<?php if ( $acts ) : ?>
+					<?php if ( $acts || $has_notes || $texts ) : ?>
 						<span class="tags">
-							<?php foreach ( $acts as $a ) :
+							<?php if ( $has_notes ) : ?>
+								<span class="tag-act tag-part" data-part="<?php echo esc_attr( $part( 'notes' ) ); ?>">Tutor session notes</span>
+							<?php endif; ?>
+							<?php foreach ( $acts as $i => $a ) :
 								$is_new = ( null === $first )
 									|| ( isset( $first[ $a['key'] ] ) && (int) $first[ $a['key'] ] === (int) $session_id );
 								?>
-								<span class="tag-act"><?php
+								<span class="tag-act" data-part="<?php echo esc_attr( $part( 'act-' . $i ) ); ?>"><?php
 									if ( $is_new ) echo '<span class="new">New</span>';
 									// The name alone. See the bf-tag above.
 									echo esc_html( $a['name'] );
 								?></span>
 							<?php endforeach; ?>
+							<?php if ( $texts ) : ?>
+								<span class="tag-act tag-part" data-part="<?php echo esc_attr( $part( 'read' ) ); ?>">What we read</span>
+							<?php endif; ?>
 						</span>
 					<?php endif; ?>
 				</span>
@@ -1181,19 +1195,33 @@ class BFTD_Dashboard {
 				$newkeys = array();
 				foreach ( $new as $a ) $newkeys[ $a['key'] ] = true;
 
-				foreach ( $acts as $a ) :
+				/*
+				 * The tutor's notes come first, where the tutor writes them on
+				 * the session record, at Laurel's request. The headings say who
+				 * is speaking: an activity description is the practice
+				 * explaining an activity, and this is the tutor writing to this
+				 * family about this child, the part a parent came for.
+				 */
+				if ( $has_notes ) : ?>
+					<details class="blk blk-notes" id="<?php echo esc_attr( $part( 'notes' ) ); ?>" open>
+						<summary class="blk-h">Tutor session notes</summary>
+						<div class="doc-body"><?php echo wp_kses_post( wpautop( $get( 'notes' ) ) ); ?></div>
+					</details>
+				<?php endif;
+
+				foreach ( $acts as $i => $a ) :
 					$is_new  = isset( $newkeys[ $a['key'] ] );
 					$about   = $is_new ? trim( (string) $a['about'] ) : '';
 					$note    = trim( (string) $a['note'] );
 					$shots   = array_filter( (array) $a['samples'] );
 					if ( '' === $about && '' === wp_strip_all_tags( $note ) && ! $shots ) continue;
 					?>
-					<?php echo self::activity_block( $a, $is_new, $about, $note, $shots ); ?>
+					<?php echo self::activity_block( $a, $is_new, $about, $note, $shots, $part( 'act-' . $i ) ); ?>
 				<?php endforeach; ?>
 
 				<?php if ( $texts ) : ?>
-					<div class="blk blk-read">
-						<div class="blk-h">What we read</div>
+					<details class="blk blk-read" id="<?php echo esc_attr( $part( 'read' ) ); ?>" open>
+						<summary class="blk-h">What we read</summary>
 						<ul class="text-list">
 							<?php foreach ( $texts as $t ) : ?>
 								<li>
@@ -1204,41 +1232,24 @@ class BFTD_Dashboard {
 								</li>
 							<?php endforeach; ?>
 						</ul>
-					</div>
+					</details>
 				<?php endif; ?>
 
-				<?php
-				/*
-				 * The headings say who is speaking.
-				 *
-				 * An activity description is the practice explaining what an
-				 * activity is. A skill description is the practice explaining
-				 * what a skill is. This is the tutor writing to this family
-				 * about this child, and it was headed "What we did", which read
-				 * as one more block of the same curriculum text. It is the part
-				 * a parent came for, so it says so.
-				 */
-				$blks = array(
-					'notes'    => array( 'Tutor session notes', 'blk-notes' ),
-					// Homework keeps its name. Only the tutor's note needed one.
-					'homework' => array( 'Homework', 'blk-hw' ),
-				);
-				foreach ( $blks as $k => $meta ) :
-					if ( ! BFTD_Fields::has_value( $get( $k ) ) ) continue; ?>
-					<div class="blk <?php echo esc_attr( $meta[1] ); ?>">
-						<div class="blk-h"><?php echo esc_html( $meta[0] ); ?></div>
-						<div class="doc-body"><?php echo wp_kses_post( wpautop( $get( $k ) ) ); ?></div>
-					</div>
-				<?php endforeach; ?>
+				<?php if ( BFTD_Fields::has_value( $get( 'homework' ) ) ) : ?>
+					<details class="blk blk-hw" id="<?php echo esc_attr( $part( 'homework' ) ); ?>" open>
+						<summary class="blk-h">Homework</summary>
+						<div class="doc-body"><?php echo wp_kses_post( wpautop( $get( 'homework' ) ) ); ?></div>
+					</details>
+				<?php endif; ?>
 
 				<?php $samples = array_filter( (array) $get( 'samples' ) ); ?>
 				<?php if ( $samples ) : ?>
-					<div class="blk blk-work">
-						<div class="blk-h">Work from the session</div>
+					<details class="blk blk-work" id="<?php echo esc_attr( $part( 'work' ) ); ?>" open>
+						<summary class="blk-h">Work from the session</summary>
 						<div class="samples"><?php
 							foreach ( $samples as $aid ) echo self::work_shot( (int) $aid );
 						?></div>
-					</div>
+					</details>
 				<?php endif; ?>
 
 				<?php if ( self::recording_live( $session_id, $student_id ) ) : ?>
@@ -1290,11 +1301,11 @@ class BFTD_Dashboard {
 	 * notes on it and the child's work from it. Public so a browser test can
 	 * draw it with the real code rather than a copy of its markup.
 	 */
-	public static function activity_block( $a, $is_new, $about, $note, $shots ) {
+	public static function activity_block( $a, $is_new, $about, $note, $shots, $id = '' ) {
 		ob_start();
 		?>
-		<div class="blk<?php echo $is_new ? ' blk-new' : ''; ?>">
-			<div class="blk-h"><?php
+		<details class="blk<?php echo $is_new ? ' blk-new' : ''; ?>"<?php if ( '' !== $id ) echo ' id="' . esc_attr( $id ) . '"'; ?> open>
+			<summary class="blk-h"><?php
 				if ( $is_new ) echo '<span class="newpill">New</span>';
 				/*
 				 * Named as an activity, not just named. On a
@@ -1306,7 +1317,7 @@ class BFTD_Dashboard {
 				 */
 				echo '<span class="blk-k">Activity:</span> ';
 				echo esc_html( $a['name'] );
-			?></div>
+			?></summary>
 			<?php if ( '' !== $about ) : ?>
 				<?php
 				/*
@@ -1362,7 +1373,7 @@ class BFTD_Dashboard {
 					foreach ( $shots as $aid ) echo self::work_shot( (int) $aid );
 				?></div>
 			<?php endif; ?>
-		</div>
+		</details>
 		<?php
 		return ob_get_clean();
 	}

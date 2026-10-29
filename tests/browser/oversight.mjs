@@ -11,12 +11,10 @@
  * measures fine on white and fails where it actually sits.
  */
 import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 
-const require_ = createRequire(import.meta.url);
-const { chromium } = require_(execFileSync('npm', ['root', '-g']).toString().trim() + '/playwright');
+import { chromium, launchOptions } from './pw.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const page_path = execFileSync('php', [here + '/build-oversight.php']).toString().trim();
@@ -36,7 +34,7 @@ const ratio = (a, b) => {
   return (hi + 0.05) / (lo + 0.05);
 };
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const browser = await chromium.launch(launchOptions);
 const p = await browser.newPage({ viewport: { width: 1340, height: 1000 } });
 await p.goto('file://' + page_path);
 await p.waitForTimeout(250);

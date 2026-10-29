@@ -18,11 +18,14 @@ done
 # Anything that is only true in a browser. Three bugs this session were
 # invisible to every source-level check and obvious the moment a page was
 # driven, so the ones that matter are driven. Skipped, loudly, where there is no
-# browser to drive.
+# browser to drive. Playwright is found the way browser/pw.mjs finds it.
+browser=yes
+command -v node >/dev/null 2>&1 && node --input-type=module -e "await import('./browser/pw.mjs')" >/dev/null 2>&1 || browser=no
 for t in browser/*.mjs; do
   [ -e "$t" ] || continue
+  [ "$t" = "browser/pw.mjs" ] && continue
   printf '%-28s' "$(basename "$t")"
-  if [ ! -x /opt/pw-browsers/chromium ] || ! command -v node >/dev/null 2>&1; then
+  if [ "$browser" = no ]; then
     echo "SKIP (no browser here)"
   elif node "$t" >/tmp/bftd-test-out 2>&1; then echo "PASS"; else echo "FAIL"; cat /tmp/bftd-test-out; fail=1; fi
 done

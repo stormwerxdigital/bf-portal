@@ -1087,6 +1087,7 @@ class BFTD_Report_View {
 					$cell  = BFTD_Fields::criteria_cell( isset( $notes[ $rid ] ) ? $notes[ $rid ] : '' );
 					$mark  = $cell['mark'];
 					$note  = trim( $cell['note'] );
+					if ( ! empty( $rule['only_if_said'] ) && ! $mark && '' === $note ) continue;
 					?>
 					<div class="crit-row">
 						<div class="crit-rule"><?php echo esc_html( $label ); ?></div>

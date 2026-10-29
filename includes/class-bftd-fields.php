@@ -533,6 +533,19 @@ class BFTD_Fields {
 	}
 
 	/**
+	 * The rich editor's two toolbar rows, for editors drawn with the page and
+	 * the ones bftd-admin.js builds alike. Text colour is on the first row,
+	 * at Laurel's request: on WordPress's second row it stayed hidden behind
+	 * "Toolbar toggle", so nobody found it.
+	 */
+	public static function toolbars() {
+		return array(
+			'toolbar1' => 'formatselect,bold,italic,underline,forecolor,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,unlink,wp_adv',
+			'toolbar2' => 'strikethrough,hr,pastetext,removeformat,charmap,outdent,indent,undo,redo',
+		);
+	}
+
+	/**
 	 * One field on an edit screen.
 	 *
 	 * $value is passed only where the value does not live in the section
@@ -623,6 +636,7 @@ class BFTD_Fields {
 						'textarea_rows' => 10,
 						'media_buttons' => true,
 						'teeny'         => false,
+						'tinymce'       => self::toolbars(),
 					) );
 					// Standing wording can be edited for one report and put
 					// back again. Without a way back, the only way to undo a
@@ -1099,6 +1113,7 @@ class BFTD_Fields {
 						// if this is left alone, so it says that rather than
 						// something generic a tutor has to guess the effect of.
 						$blank = ( is_array( $rule ) && isset( $rule['empty'] ) ) ? $rule['empty'] : 'Comment (optional)';
+						if ( is_array( $rule ) && ! empty( $rule['only_if_said'] ) ) $blank = 'Left off the report unless marked or filled in';
 						$id    = 'bftd_' . str_replace( '-', '_', $section_id ) . '_' . $key . '_' . $rid;
 						$cell  = self::criteria_cell( isset( $saved[ $rid ] ) ? $saved[ $rid ] : '' );
 						$val   = $cell['note'];
@@ -1141,7 +1156,13 @@ class BFTD_Fields {
 		echo '<div class="bftd-gallery-prev">';
 		foreach ( $ids as $aid ) {
 			$src = wp_get_attachment_image_url( $aid, 'thumbnail' );
-			if ( $src ) echo '<span class="bftd-thumb"><img alt="" src="' . esc_url( $src ) . '"><button type="button" class="bftd-thumb-x" data-id="' . (int) $aid . '" aria-label="Remove">&times;</button></span>';
+			if ( ! $src ) continue;
+			// Opens at full size in the same viewer the family has
+			// (bftd-report.js), so handwriting can be read off it.
+			$full = wp_get_attachment_image_url( $aid, 'full' );
+			echo '<span class="bftd-thumb"><a class="shot-open" href="' . esc_url( $full ? $full : $src ) . '" aria-label="Open this work sample at full size">'
+				. '<img alt="" src="' . esc_url( $src ) . '"></a>'
+				. '<button type="button" class="bftd-thumb-x" data-id="' . (int) $aid . '" aria-label="Remove">&times;</button></span>';
 		}
 		echo '</div>';
 		// Focusable, so a screenshot can be pasted here without a mouse.

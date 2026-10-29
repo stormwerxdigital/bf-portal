@@ -86,7 +86,8 @@ check(isset($m['groups']['correct'], $m['groups']['incorrect']), 'with a correct
 check('sage' === $m['groups']['correct']['tone'] && 'clay' === $m['groups']['incorrect']['tone'],
   'told apart by the report\'s own two tones');
 check(3 === count($m['groups']['correct']['rows']), 'three rules count as correct');
-check(1 === count($m['groups']['incorrect']['rows']), 'and one counts as incorrect');
+check(array('reversals', 'other') === array_keys($m['groups']['incorrect']['rows']), 'two count as incorrect: reversals, and anything other');
+check(!empty($m['groups']['incorrect']['rows']['other']['only_if_said']), 'the other row is left off the report unless something is said');
 check(false !== strpos($m['footer']['value'], 'a b c d'), 'the alphabet is printed underneath');
 
 /* Each row stores a mark (a green tick, a red cross, or neither, at Karl's
@@ -153,6 +154,22 @@ check(false !== strpos($view, 'crit-marked crit-<?php echo esc_attr( $mark ); ?>
 check(false !== strpos($view, '<span class="crit-said">Yes</span>') && false !== strpos($view, '<span class="crit-said">No</span>'), 'and read aloud as Yes or No');
 check(1 === preg_match('/\.crit-yes svg\{stroke:#2E7D32\}/', $rcss) && 1 === preg_match('/\.crit-no svg\{stroke:#C62828\}/', $rcss), 'the tick green, the cross red');
 check(false !== strpos($fields_src, '[mark]') && false !== strpos($fields_src, '[note]'), 'the editor offers a mark and a comment on every row');
+
+/* "Other" under Counted as incorrect (Laurel, 1.161): a bare "Other" with a
+   tick beside it says nothing, so the row is left off the family's report
+   until something is marked or written against it. Drawn by the real table
+   code, lifted out of the renderer. */
+$a = strpos($view, "\tprivate static function criteria_table(");
+$b = strpos($view, "\n\t/**", $a);
+eval('class CritView { ' . str_replace('private static function criteria_table(', 'public static function criteria_table(', substr($view, $a, $b - $a)) . ' }');
+$crit = function ($notes) use ($m) { ob_start(); CritView::criteria_table($m, $notes); return ob_get_clean(); };
+$blank = $crit(array());
+check(false === strpos($blank, '>Other<') && false !== strpos($blank, 'No reversals'),
+  'a blank Other row is left off the report, while the rest are drawn');
+check(false !== strpos($crit(array('other' => array('mark' => 'no', 'note' => 'The letter e was illegible'))), 'The letter e was illegible'),
+  'and one with something said is drawn, with what was said');
+check(false !== strpos($crit(array('other' => array('mark' => 'yes', 'note' => ''))), '>Other<'),
+  'as is one with only a mark');
 
 /* ---- one renderer, two places ---- */
 /* The admin preview and the family's copy are the same markup from the same

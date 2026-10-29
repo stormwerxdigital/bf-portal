@@ -5,12 +5,10 @@
  * parent sees is the page, not the source.
  */
 import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-const require_ = createRequire(import.meta.url);
-const { chromium } = require_(execFileSync('npm', ['root', '-g']).toString().trim() + '/playwright');
+import { chromium, launchOptions } from './pw.mjs';
 const here = dirname(fileURLToPath(import.meta.url));
 
 let fail = 0;
@@ -18,7 +16,7 @@ const check = (ok, msg) => { console.log(`${ok ? '  ok ' : 'FAIL'}  ${msg}`); if
 
 for (const w of ['kinder', 'passage']) execFileSync('php', [join(here, 'build-timed.php'), w]);
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const browser = await chromium.launch(launchOptions);
 
 for (const [which, mine, theirs] of [
   ['kinder',  ['Kindergarten word fluency assessment', 'we skip the paragraph reading', 'Minimum speed benchmarks',

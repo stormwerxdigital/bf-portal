@@ -5,7 +5,7 @@
  * Primary Branch: main
  * Plugin URI:  https://bftutoring.com
  * Description: The parent portal and the tutor back end for Brilliant Futures Tutoring. Reading diagnostics, living progress reports, lesson records, per-section conversations, a full activity log, and customisable email with send rules.
- * Version:     1.159.0
+ * Version:     1.161.0
  * Author:      Stormwerx Digital
  * Author URI:  https://stormwerxdigital.com
  * Text Domain: bftd
@@ -13,7 +13,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'BFTD_VERSION', '1.159.0' );
+define( 'BFTD_VERSION', '1.161.0' );
 define( 'BFTD_PATH', plugin_dir_path( __FILE__ ) );
 define( 'BFTD_URL', plugin_dir_url( __FILE__ ) );
 
@@ -147,6 +147,10 @@ final class BFTD_Plugin {
 		// build with. Loading them everywhere would put the whole editor
 		// bundle on screens that have no editor.
 		if ( $ours && function_exists( 'wp_enqueue_editor' ) ) wp_enqueue_editor();
+		// The portal's full-size picture viewer, so a work sample opens at
+		// full size on the tutor's screen too. Its report half does nothing
+		// here: it looks for a report on the page and finds none.
+		if ( $ours ) wp_enqueue_script( 'bftd-report', BFTD_URL . 'assets/js/bftd-report.js', array(), BFTD_VERSION, true );
 		$draft = ( $ours && class_exists( 'BFTD_Autosave' ) ) ? BFTD_Autosave::is_draft( $post ) : false;
 
 		wp_localize_script( 'bftd-admin', 'BFTD', array(
@@ -164,6 +168,9 @@ final class BFTD_Plugin {
 			// groups without the names being written out a second time in a
 			// script where nobody would think to look for them.
 			'tracks'   => class_exists( 'BFTD_Activities' ) ? BFTD_Activities::tracks() : array(),
+			// The editor toolbars, so editors the script builds match the
+			// ones drawn with the page.
+			'toolbars' => class_exists( 'BFTD_Fields' ) ? BFTD_Fields::toolbars() : array(),
 			'groups'   => class_exists( 'BFTD_Skills' ) ? BFTD_Skills::groups() : array(),
 			// Accessibility mode, for the editors the script builds itself.
 			'a11y'     => class_exists( 'BFTD_Accessibility' ) ? BFTD_Accessibility::script_config() : array( 'on' => 0 ),

@@ -508,12 +508,6 @@ class BFTD_CPT {
 		return $ts ? BFTD_Time::format( 'Y-m-d', $ts ) : '';
 	}
 
-	/** The same date, written out for a person. */
-	public static function started_on_label( $post, $format = 'j F Y' ) {
-		$ymd = self::started_on( $post );
-		return $ymd ? BFTD_Time::day( $ymd, $format ) : 'Not yet, this student has not been saved.';
-	}
-
 	public static function client_ids( $student_id ) {
 		$ids = array_map( 'absint', (array) get_post_meta( $student_id, self::CLIENT_KEY ) );
 		return array_values( array_filter( array_unique( $ids ) ) );

@@ -11,20 +11,18 @@
  * the panel's own, and the panel looked cut off.
  */
 import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import fs from 'node:fs';
 
-const require_ = createRequire(import.meta.url);
-const { chromium } = require_(execFileSync('npm', ['root', '-g']).toString().trim() + '/playwright');
+import { chromium, launchOptions } from './pw.mjs';
 const here = dirname(fileURLToPath(import.meta.url));
 execFileSync('php', [here + '/build-report.php']);
 
 let fail = 0;
 const check = (ok, msg) => { console.log(`${ok ? '  ok ' : 'FAIL'}  ${msg}`); if (!ok) fail++; };
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const browser = await chromium.launch(launchOptions);
 const page = await browser.newPage({ viewport: { width: 1100, height: 900 } });
 
 /* The real progress report, with no theme around it. */

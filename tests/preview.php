@@ -393,7 +393,7 @@ check($bare === array(), 'every assessment area shows its results'
    writing them out. The heading row that used to divide the writing list is a
    second list of its own, which is what it always was. */
 check(count($dx['fields']['dxsec-6']['conventions']) >= 8, 'the writing conventions are all answered');
-check(count($dx['fields']['dxsec-6']['grammar']) >= 8, 'and so is the grammar list');
+check(count($dx['fields']['dxsec-6']['grammar']) >= 7, 'and so is the grammar list');
 check(count($dx['fields']['dxsec-5']['challenges']) >= 5, 'and the spelling challenges (five since "puts blends together" was removed)');
 foreach (array('dxsec-6' => array('conventions', 'grammar'), 'dxsec-5' => array('challenges')) as $sid => $keys) {
   foreach ($keys as $key) {

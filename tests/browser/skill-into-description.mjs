@@ -14,15 +14,8 @@
  *   picking the same skill in two rows both do that.
  */
 import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 
-/* Playwright is installed globally in this environment rather than beside the
-   plugin, and the plugin ships no node_modules. Resolved through the global
-   root so the test runs where it runs and skips cleanly where it does not. */
-const require_ = createRequire(import.meta.url);
-const { chromium } = require_(
-  execFileSync('npm', ['root', '-g']).toString().trim() + '/playwright'
-);
+import { chromium, launchOptions } from './pw.mjs';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 
@@ -42,7 +35,7 @@ const WORDS = {
   101: { name: 'Hearing the middle sound in a word', words: '<p>Saying the sound in the middle.</p>' },
 };
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const browser = await chromium.launch(launchOptions);
 const page = await browser.newPage({ viewport: { width: 820, height: 800 } });
 
 const errors = [];
@@ -51,7 +44,8 @@ page.on('pageerror', e => { if (!/sortable is not a function/.test(String(e))) e
 /* Stands in for the endpoint the script asks for a skill's words. */
 await page.route('**/ajax', async route => {
   const id = /skill_id=(\d+)/.exec(route.request().postData() || '')[1];
-  await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: WORDS[id] }) });
+  await route.fulfill({ contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' },
+    body: JSON.stringify({ success: true, data: WORDS[id] }) });
 });
 
 await page.goto('file://' + page_path);
@@ -129,7 +123,8 @@ const mce = await browser.newPage({ viewport: { width: 820, height: 800 } });
 mce.on('pageerror', e => { if (!/sortable is not a function/.test(String(e))) errors.push(String(e)); });
 await mce.route('**/ajax', async route => {
   const id = /skill_id=(\d+)/.exec(route.request().postData() || '')[1];
-  await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: WORDS[id] }) });
+  await route.fulfill({ contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' },
+    body: JSON.stringify({ success: true, data: WORDS[id] }) });
 });
 await mce.goto('file://' + mce_path);
 await mce.waitForTimeout(250);

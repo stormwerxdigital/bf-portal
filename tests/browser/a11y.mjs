@@ -10,12 +10,10 @@
  * the checks are measuring something.
  */
 import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 
-const require_ = createRequire(import.meta.url);
-const { chromium } = require_(execFileSync('npm', ['root', '-g']).toString().trim() + '/playwright');
+import { chromium, launchOptions } from './pw.mjs';
 const here = dirname(fileURLToPath(import.meta.url));
 execFileSync('php', [here + '/build-a11y.php']);
 
@@ -53,7 +51,7 @@ function problems() {
   return out;
 }
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const browser = await chromium.launch(launchOptions);
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 const errors = [];
 page.on('pageerror', e => { if (!/sortable is not a function/.test(String(e))) errors.push(String(e)); });

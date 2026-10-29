@@ -113,12 +113,45 @@
 				return;
 			}
 
+			/* A tag in a session's head opens that session at the one part it
+			   names, with the others folded, rather than the whole session.
+			   A tag with no part drawn under it opens the session as the head
+			   does. */
+			var tag = e.target.closest( '.session-head .tag-act[data-part]' );
+			if ( tag ) {
+				var ses  = tag.closest( '.session' );
+				var want = document.getElementById( tag.getAttribute( 'data-part' ) );
+				e.preventDefault();
+				if ( ses ) {
+					Array.prototype.forEach.call( ses.querySelectorAll( 'details.blk' ), function ( d ) {
+						d.open = ! want || d === want;
+					} );
+					ses.classList.add( 'is-open' );
+					var sh2 = ses.querySelector( '.session-head' );
+					if ( sh2 ) sh2.setAttribute( 'aria-expanded', 'true' );
+				}
+				if ( want ) {
+					var sum = want.querySelector( 'summary' );
+					// After the session's own opening has started, so the
+					// page scrolls to where the part will be.
+					setTimeout( function () {
+						want.scrollIntoView( { behavior: still() ? 'auto' : 'smooth', block: 'nearest' } );
+						if ( sum ) sum.focus( { preventScroll: true } );
+					}, still() ? 0 : 300 );
+				}
+				return;
+			}
+
 			var head = e.target.closest( '.docsec-h, .pi-head, .session-head' );
 			if ( head ) {
 				var box = head.closest( '.docsec, .pi-card, .session' );
 				if ( box ) {
 					var open = box.classList.toggle( 'is-open' );
 					head.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+					// Opened from its head, a session shows every part.
+					if ( open && box.classList.contains( 'session' ) ) {
+						Array.prototype.forEach.call( box.querySelectorAll( 'details.blk' ), function ( d ) { d.open = true; } );
+					}
 				}
 				e.preventDefault();
 				return;
@@ -239,7 +272,7 @@
 				el.classList.add( 'is-open' );
 			} );
 			// Folded activity descriptions print in full.
-			Array.prototype.forEach.call( root.querySelectorAll( 'details.about-fold' ), function ( el ) {
+			Array.prototype.forEach.call( root.querySelectorAll( 'details.about-fold, details.blk' ), function ( el ) {
 				el.open = true;
 			} );
 		} );

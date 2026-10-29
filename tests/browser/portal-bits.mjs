@@ -6,19 +6,18 @@
  * opens looks like an ordinary link. Neither shows up in a unit test and
  * neither throws.
  */
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 const here = dirname(fileURLToPath(import.meta.url));
-execSync('php ' + join(here, 'build-portal-bits.php'), { stdio: 'pipe' });
+execFileSync('php', [join(here, 'build-portal-bits.php')], { stdio: 'pipe' });
 
-const root = execSync('npm root -g').toString().trim();
-const { chromium } = await import(root + '/playwright/index.mjs');
+import { chromium, launchOptions } from './pw.mjs';
 
 let fail = 0;
 const check = (ok, msg) => { console.log((ok ? '  ok   ' : 'FAIL   ') + msg); if (!ok) fail++; };
 
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const b = await chromium.launch(launchOptions);
 const p = await b.newPage();
 await p.goto('file://' + join(here, 'portal-bits.html'));
 await p.waitForTimeout(300);
@@ -68,7 +67,7 @@ const note = await p.evaluate(() => {
   const blk = document.querySelectorAll('.bf-report > .blk')[1];
   const n = blk.querySelector('.act-note');
   return n ? { head: n.querySelector('.act-note-h').textContent.trim(), text: n.innerText,
-    outside: !n.closest('details'), border: getComputedStyle(n).borderLeftStyle } : null;
+    outside: !n.closest('details.about-fold'), border: getComputedStyle(n).borderLeftStyle } : null;
 });
 check(note && 'Tutor activity notes' === note.head, 'the tutor\'s notes on an activity are headed Tutor activity notes');
 check(note && /completed the problem and the solution/.test(note.text), 'and hold what the tutor wrote');

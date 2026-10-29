@@ -68,6 +68,10 @@ class BFTD_Roles {
 class BFTD_Fields {
   public static function get($id, $g, $k, $f = array()) { return $GLOBALS['SESSION_META'][$id][$k] ?? ''; }
 }
+$GLOBALS['CAN_VIEW'] = true;
+class BFTD_Access {
+  public static function can_staff_view($sid) { return $GLOBALS['CAN_VIEW']; }
+}
 
 /* The three methods under test, lifted out rather than booting the plugin. */
 $M = 'includes/class-bftd-metaboxes.php';
@@ -133,6 +137,31 @@ check(false !== strpos($save, 'self::session_fields( $post_id )'),
 $bare = MB::session_fields();
 check(array('' => 'Choose someone') === $bare['missed_by']['options'],
   'asked without a session it offers nobody, rather than guessing, got ' . json_encode($bare['missed_by']['options']));
+
+/* ---- a new session (Laurel, 1.161) ----
+ *
+ * "Under Emmanuel no options are available": the list came only from the
+ * student saved on the session, so a new one offered nobody. Picking the
+ * student now asks for the list by student, and a session opened from a
+ * student's screen starts with that student's people. */
+$picked = MB::cancelled_by_options(0, 11);
+check(isset($picked['20'], $picked['21'], $picked['5']), 'asked by student, a new session offers that student\'s people');
+check(!isset($picked['family']), 'and no stand-in client where a real one is linked');
+
+$_GET['student'] = 11;
+check(isset(MB::cancelled_by_options(0)['20']), 'a new session opened from a student offers their people before it is saved');
+$GLOBALS['CAN_VIEW'] = false;
+check(!isset(MB::cancelled_by_options(0)['20']), 'but not a student the person cannot see');
+$GLOBALS['CAN_VIEW'] = true;
+unset($_GET['student']);
+
+/* "Cancelled by: option limited to tutor. ADD Client": a family with no
+   client account linked can still cancel. */
+$GLOBALS['META'][12] = array('_bftd_assigned_staff' => array(5));
+$lone = MB::cancelled_by_options(0, 12);
+check(isset($lone['family']) && 'Client' === $lone['family'] && isset($lone['5']),
+  'a student with no client account linked offers Client beside the tutor, got ' . json_encode($lone));
+check('Family' === BFTD_CPT::cancelled_by_label('family', 12), 'which the report reads as it always read that answer');
 
 /* ---- and it cannot be published without them ---- */
 function held($status, $by, $why) {

@@ -12,12 +12,10 @@
  * on, and reads what is actually visible.
  */
 import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 
-const require_ = createRequire(import.meta.url);
-const { chromium } = require_(execFileSync('npm', ['root', '-g']).toString().trim() + '/playwright');
+import { chromium, launchOptions } from './pw.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const page_path = execFileSync('php', [here + '/build-report-tabs.php']).toString().trim();
@@ -25,7 +23,7 @@ const page_path = execFileSync('php', [here + '/build-report-tabs.php']).toStrin
 let fail = 0;
 const check = (ok, msg) => { console.log(`${ok ? '  ok ' : 'FAIL'}  ${msg}`); if (!ok) fail++; };
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const browser = await chromium.launch(launchOptions);
 
 /* ---- scripts blocked ---- */
 const noJs = await browser.newContext({ javaScriptEnabled: false });

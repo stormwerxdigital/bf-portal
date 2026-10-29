@@ -10,13 +10,11 @@
  * noticing the change and putting the heading in the right place, once.
  */
 import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const require_ = createRequire(import.meta.url);
-const { chromium } = require_(execFileSync('npm', ['root', '-g']).toString().trim() + '/playwright');
+import { chromium, launchOptions } from './pw.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = dirname(dirname(here));
@@ -48,7 +46,7 @@ ${rows.map(([t, n, name], i) =>
 
 writeFileSync(here + '/track-list.html', html);
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const browser = await chromium.launch(launchOptions);
 const page = await browser.newPage({ viewport: { width: 1000, height: 600 } });
 const errors = [];
 page.on('pageerror', e => { if (!/sortable is not a function/.test(String(e))) errors.push(String(e)); });

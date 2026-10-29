@@ -634,6 +634,16 @@
 .bf-report .blk:last-child{margin-bottom:0}
 .bf-report .blk:last-child:not(.blk-new):not(.blk-hw):not(.blk-home):not(.blk-skills):not(.blk-read){padding-bottom:0; border-bottom:0}
 .bf-report .blk-h{font-family:var(--font-d); font-weight:700; font-size:15px; color:var(--ink); margin-bottom:8px}
+/* Each part of a session folds on its own; its heading is the switch. */
+.bf-report details.blk > summary{display:block; list-style:none; cursor:pointer}
+.bf-report details.blk > summary::-webkit-details-marker{display:none}
+.bf-report details.blk > summary::after{content:""; display:inline-block; width:7px; height:7px; margin-left:10px;
+  border:solid var(--muted); border-width:0 2px 2px 0; transform:rotate(45deg); vertical-align:3px; transition:transform .2s}
+.bf-report details.blk[open] > summary::after{transform:rotate(-135deg); vertical-align:-1px}
+.bf-report details.blk:not([open]) > summary{margin-bottom:0}
+.bf-report details.blk > summary:focus-visible{outline:2px solid var(--bf-purple); outline-offset:3px; border-radius:3px}
+.bf-report .session-head .tag-act[data-part]{cursor:pointer}
+.bf-report .session-head .tag-act[data-part]:hover{border-color:var(--bf-purple)}
 /* "Activity:" in front of the name, set back so the name still reads as
    the heading and the label only says what kind of thing it is. */
 .bf-report .blk-k{color:var(--muted); font-weight:600}
@@ -923,6 +933,9 @@
 .bf-report .page-head h1{font-size:34px; line-height:1.1; margin:10px 0 12px; letter-spacing:-.015em}
 .bf-report .page-head .lede{font-size:17px; line-height:1.6; max-width:60ch}
 .bf-report .page-head .eyebrow{margin-bottom:0}
+/* The student's name, grade, start date and tutor above the progress report:
+   the size of the card headings below it, at Laurel's request. */
+.bf-report .page-head p.eyebrow{font-size:21px; letter-spacing:0; line-height:1.3}
 .bf-report .kpis{margin-bottom:26px !important}
 .bf-report .jump{margin-bottom:24px !important}
 @container (min-width:700px){
@@ -1546,6 +1559,8 @@
   .bf-report .tabbtn,
   .bf-report .skl-all{min-height:44px; padding-top:11px; padding-bottom:11px}
   .bf-report .chart-data summary{min-height:44px; display:flex; align-items:center}
+  /* The heading of each part of a session, which opens and closes it. */
+  .bf-report details.blk > summary{min-height:44px; padding:9px 0; box-sizing:border-box}
   /* The composer a family writes a question in. Five buttons the width of a
      fingernail is a toolbar nobody uses from a phone. */
   .bf-report .rt-bar button{min-height:44px; min-width:44px; white-space:nowrap}

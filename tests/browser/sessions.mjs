@@ -8,12 +8,10 @@
  * without a mouse can open a row at all.
  */
 import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 
-const require_ = createRequire(import.meta.url);
-const { chromium } = require_(execFileSync('npm', ['root', '-g']).toString().trim() + '/playwright');
+import { chromium, launchOptions } from './pw.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const page_path = execFileSync('php', [here + '/build-sessions.php']).toString().trim();
@@ -21,7 +19,7 @@ const page_path = execFileSync('php', [here + '/build-sessions.php']).toString()
 let fail = 0;
 const check = (ok, msg) => { console.log(`${ok ? '  ok ' : 'FAIL'}  ${msg}`); if (!ok) fail++; };
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const browser = await chromium.launch(launchOptions);
 const p = await browser.newPage({ viewport: { width: 1340, height: 1000 } });
 const errors = [];
 p.on('pageerror', e => { if (!/sortable is not a function/.test(String(e))) errors.push(String(e)); });

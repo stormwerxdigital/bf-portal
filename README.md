@@ -3,7 +3,7 @@
 The parent portal and the tutor back end for bftutoring.com. Built on the
 Stormwerx Client Dashboard architecture, adapted to a tutoring practice.
 
-Version 1.159.0 · text domain `bftd` · prefix `BFTD_` · meta prefix `_bftd_`
+Version 1.161.0 · text domain `bftd` · prefix `BFTD_` · meta prefix `_bftd_`
 
 Source of truth: <https://github.com/stormwerxdigital/bf-portal>, branch `main`.
 The plugin header carries `GitHub Plugin URI` and `Primary Branch`, so Git
@@ -592,7 +592,7 @@ Three layers, all run by that one script.
 |---|---|
 | `tests/*.php` | Plain PHP against `wp-stubs.php`. No WordPress, no dependencies. About sixty files. |
 | `tests/*.py` | Static checks. `methods-resolve.py`: every `BFTD_*::` call resolves, every hook callback exists, every class is required. `css-clash.py`: no class means two different things in one stylesheet. |
-| `tests/browser/*.mjs` | Playwright against Chromium. Each spec has a `build-*.php` that renders the real code into a fixture. Playwright is resolved through `npm root -g`; do not run `playwright install`. |
+| `tests/browser/*.mjs` | Playwright against Chromium. Each spec has a `build-*.php` that renders the real code into a fixture. Playwright is resolved through `npm root -g`, once, in `tests/browser/pw.mjs`; Chromium is the one at `/opt/pw-browsers/chromium` where that exists, otherwise Playwright's own download. |
 
 A few worth knowing by name:
 

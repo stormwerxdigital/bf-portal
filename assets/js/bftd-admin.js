@@ -11,6 +11,21 @@ function bftdTrim( v ) {
 	return ( null === v || undefined === v ) ? '' : String( v ).trim();
 }
 
+/**
+ * One work sample thumbnail in a gallery field, as BFTD_Fields::render_gallery
+ * draws it: a link to the full size picture, which bftd-report.js opens in
+ * the viewer, and the button that removes it. One copy for the two ways a
+ * picture arrives (the media library, a drop or paste).
+ */
+function bftdThumb( id, thumb, full ) {
+	var $ = jQuery;
+	var $s = $( '<span class="bftd-thumb"></span>' );
+	$( '<a class="shot-open" aria-label="Open this work sample at full size"></a>' ).attr( 'href', full || thumb )
+		.append( $( '<img alt="">' ).attr( 'src', thumb ) ).appendTo( $s );
+	$( '<button type="button" class="bftd-thumb-x" aria-label="Remove">&times;</button>' ).attr( 'data-id', id ).appendTo( $s );
+	return $s;
+}
+
 /* global jQuery, wp, BFTD */
 ( function ( $ ) {
 	'use strict';
@@ -128,8 +143,7 @@ function bftdTrim( v ) {
 				if ( ids.indexOf( String( it.id ) ) === -1 ) {
 					ids.push( String( it.id ) );
 					$box.find( '.bftd-gallery-prev' ).append(
-						'<span class="bftd-thumb"><img alt="" src="' + ( it.sizes && it.sizes.thumbnail ? it.sizes.thumbnail.url : it.url ) +
-						'"><button type="button" class="bftd-thumb-x" data-id="' + it.id + '" aria-label="Remove">&times;</button></span>'
+						bftdThumb( it.id, it.sizes && it.sizes.thumbnail ? it.sizes.thumbnail.url : it.url, it.url )
 					);
 				}
 			} );
@@ -1067,6 +1081,20 @@ function bftdTrim( v ) {
 			$( '.bftd-subtitle' ).toggleClass( 'is-empty', '' === bftdTrim( data.subtitle ) );
 		}
 		prefill( data.prefill );
+		cancelledBy( data.cancelled_by );
+	}
+
+	/* A session's "Cancelled by" lists the picked student's people. What was
+	   chosen stays chosen when that person is on the new list too. */
+	function cancelledBy( pairs ) {
+		var $sel = $( '#bftd_session_missed_by' );
+		if ( ! $sel.length || ! pairs || ! pairs.length ) return;
+		var was = $sel.val();
+		$sel.empty();
+		$.each( pairs, function ( i, p ) {
+			$( '<option></option>' ).val( p[0] ).text( p[1] ).appendTo( $sel );
+		} );
+		$sel.val( $sel.find( 'option' ).filter( function () { return this.value === was; } ).length ? was : '' ).trigger( 'change' );
 	}
 
 	/**
@@ -1551,10 +1579,7 @@ function bftdTrim( v ) {
 		var thumb = ( att.sizes && att.sizes.thumbnail ) ? att.sizes.thumbnail.url : att.url;
 		ids.push( String( att.id ) );
 		$input.val( ids.join( ',' ) );
-		$box.find( '.bftd-gallery-prev' ).append(
-			'<span class="bftd-thumb"><img alt="" src="' + thumb + '">' +
-			'<button type="button" class="bftd-thumb-x" data-id="' + att.id + '" aria-label="Remove">&times;</button></span>'
-		);
+		$box.find( '.bftd-gallery-prev' ).append( bftdThumb( att.id, thumb, att.url ) );
 	}
 
 	function galleryFiles( $box, files ) {
@@ -2755,10 +2780,13 @@ function bftdTrim( v ) {
 		made[ id ] = true;
 		// The full editor, the same as the session notes box: formatting,
 		// lists, alignment, links, colour, and Add Media for pictures.
+		// The rows come from BFTD_Fields::toolbars(), so these match the
+		// editors drawn with the page.
+		var bars = ( window.BFTD && BFTD.toolbars ) || {};
 		var mce = {
 			wpautop: true,
-			toolbar1: 'formatselect,bold,italic,underline,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,unlink,wp_adv',
-			toolbar2: 'strikethrough,hr,forecolor,pastetext,removeformat,charmap,outdent,indent,undo,redo'
+			toolbar1: bars.toolbar1,
+			toolbar2: bars.toolbar2
 		};
 		// Accessibility mode: the same large, clear text the editors drawn
 		// with the page are given by BFTD_Accessibility::editor(). Added to
