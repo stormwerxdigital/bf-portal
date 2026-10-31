@@ -222,5 +222,24 @@ check(false !== strpos($save, 'self::hold_pending( $post_id, $post )'), 'the sav
 check(false !== strpos(file_get_contents(BFTD_PATH . 'includes/class-bftd-sessions.php'), 'BFTD_MetaBoxes::hold_pending( $sid, $as_published )'),
   'and so does Publish on the sessions screen');
 
+/* ---- made up on a date, to be arranged, or by extended sessions (Laurel, 1.166) ---- */
+$f = MB::session_fields(40);
+check(array('', 'date', 'tba', 'extended') === array_keys($f['missed_madeup_how']['options']), 'Made up offers a date, to be arranged, and extended sessions');
+check('rows' === $f['missed_extended']['type'] && array('date', 'minutes') === array_keys($f['missed_extended']['columns']),
+  'extended sessions are rows of a date and the minutes added');
+$GLOBALS['SESSION_META'][40] = array('missed_madeup' => '2026-11-02');
+check('date' === MB::madeup_how(40), 'a session saved before 1.166 with a date was made up on that date');
+$GLOBALS['SESSION_META'][40] = array('missed_madeup_how' => 'tba');
+check('tba' === MB::madeup_how(40), 'and an answer given is the answer');
+$GLOBALS['SESSION_META'][40] = array();
+check('' === MB::madeup_how(40), 'nothing answered is nothing');
+
+$src = file_get_contents(BFTD_PATH . 'includes/class-bftd-metaboxes.php');
+check(false !== strpos($save, "save_rows_field( \$post_id, 'session', 'missed_extended'"), 'the extended sessions are saved');
+check(false !== strpos($save, "save_rows_field( \$post_id, 'session', 'matrices'"), 'and so are the matrices studied');
+check(1 === preg_match("#private static function status_row.*?'status'.*?'missed_madeup_how'.*?'missed_madeup'#s", $src),
+  'Made up sits beside What happened');
+check(false === strpos($src, "array( 'missed_by', 'missed_why', 'missed_madeup' )"), 'and is not asked again under the cancellation');
+
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

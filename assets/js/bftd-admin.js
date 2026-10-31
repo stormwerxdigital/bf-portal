@@ -19,7 +19,7 @@ function bftdTrim( v ) {
  */
 function bftdThumb( id, thumb, full ) {
 	var $ = jQuery;
-	var $s = $( '<span class="bftd-thumb"></span>' );
+	var $s = $( '<span class="bftd-thumb" title="Drag to move"></span>' ).attr( 'data-id', id );
 	$( '<a class="shot-open" aria-label="Open this work sample at full size"></a>' ).attr( 'href', full || thumb )
 		.append( $( '<img alt="">' ).attr( 'src', thumb ) ).appendTo( $s );
 	$( '<button type="button" class="bftd-thumb-x" aria-label="Remove">&times;</button>' ).attr( 'data-id', id ).appendTo( $s );
@@ -87,6 +87,25 @@ function bftdThumb( id, thumb, full ) {
 			$body.append( stamp( $wrap.find( '.bftd-row-tpl' ).html(), 0 ) );
 		}
 		reindex( $wrap );
+	} );
+
+	// Work samples are put in order by dragging them (Laurel, 1.166). The
+	// order saved is the order of the thumbnails, read back off the page.
+	$( function () {
+		$( '.bftd-gallery-prev' ).sortable( {
+			items: '.bftd-thumb',
+			tolerance: 'pointer',
+			update: function () {
+				var ids = $( this ).children( '.bftd-thumb' ).map( function () { return String( $( this ).data( 'id' ) ); } ).get();
+				$( this ).closest( '.bftd-gallery' ).find( 'input[type=hidden]' ).first().val( ids.join( ',' ) ).trigger( 'change' );
+			}
+		} ).each( function () {
+			// The thumbnails sit in a flex row, which makes each one display
+			// as a block, and jQuery UI reads a list of blocks as a column: a
+			// sideways drag then never moves anything. They run across.
+			var inst = $( this ).sortable( 'instance' );
+			if ( inst ) inst._isFloating = function () { return true; };
+		} );
 	} );
 
 	$( function () {
@@ -2917,7 +2936,11 @@ function bftdThumb( id, thumb, full ) {
 		// anything else on the page can set or clear, and what it controls is
 		// one div; PHP has already put it in the right state, so this only
 		// has to follow the dropdown.
-		$( '.bftd-onlymissed' ).toggleClass( 'is-on', on );
+		$( '.bftd-onlymissed' ).not( '.bftd-madeup-date, .bftd-madeup-ext' ).toggleClass( 'is-on', on );
+		// How it is made up decides which of the two follows (1.166).
+		var how = $( '#bftd_session_missed_madeup_how' ).val();
+		$( '.bftd-madeup-date' ).toggleClass( 'is-on', on && 'date' === how );
+		$( '.bftd-madeup-ext' ).toggleClass( 'is-on', on && 'extended' === how );
 		// The Why for a late start or a pending session, which is not the
 		// cancellation's Why and is not required.
 		var v = $sel.val();
@@ -2986,7 +3009,7 @@ function bftdThumb( id, thumb, full ) {
 		if ( ! blanks().length ) $( '.bftd-missed-warn' ).remove();
 	} );
 
-	$( document ).on( 'change', '#bftd_session_status', missed );
+	$( document ).on( 'change', '#bftd_session_status, #bftd_session_missed_madeup_how', missed );
 	$( missed );
 }( jQuery ) );
 
@@ -3615,5 +3638,54 @@ jQuery( function ( $ ) {
 		// Boxes open, close and grow (a picker fills, a note appears).
 		if ( window.ResizeObserver ) new ResizeObserver( place ).observe( $side[0] );
 		else $( document ).on( 'click', '#postbox-container-1 .handlediv, #postbox-container-1 .hndle', function () { setTimeout( place, 50 ); } );
+	} );
+}( jQuery ) );
+
+/* --------------------------------------------------------------------------
+   Two hyphens make a dash (Laurel, 1.166).
+
+   Typed into any note, rich or plain, the second hyphen turns the pair into
+   an em dash, the way a word processor does. Undo puts the hyphens back.
+   -------------------------------------------------------------------------- */
+( function ( $ ) {
+	'use strict';
+
+	var DASH = String.fromCharCode( 8212 );   // an em dash
+
+	function bindDash( ed ) {
+		if ( ! ed || ed.bftdDash ) return;
+		ed.bftdDash = true;
+		ed.on( 'keypress', function ( e ) {
+			if ( '-' !== e.key ) return;
+			var rng = ed.selection.getRng();
+			if ( ! rng || ! rng.collapsed ) return;
+			var node = rng.startContainer, at = rng.startOffset;
+			if ( 3 !== node.nodeType || at < 1 || '-' !== node.data.charAt( at - 1 ) ) return;
+			e.preventDefault();
+			ed.undoManager.transact( function () {
+				node.deleteData( at - 1, 1 );
+				rng.setStart( node, at - 1 );
+				rng.collapse( true );
+				ed.selection.setRng( rng );
+				ed.insertContent( DASH );
+			} );
+		} );
+	}
+
+	$( document ).on( 'tinymce-editor-init', function ( e, ed ) { bindDash( ed ); } );
+	$( function () {
+		if ( window.tinymce ) $.each( tinymce.editors || [], function ( i, ed ) { bindDash( ed ); } );
+	} );
+
+	// Plain boxes: the Why under a session, and the rest.
+	$( document ).on( 'input', 'textarea', function ( e ) {
+		var oe = e.originalEvent;
+		if ( oe && oe.data !== '-' ) return;
+		var el = this, at = el.selectionStart;
+		if ( at < 2 || el.selectionEnd !== at || '--' !== el.value.substr( at - 2, 2 ) ) return;
+		// Not the code view of a rich editor, where -- means what it says.
+		if ( $( el ).hasClass( 'wp-editor-area' ) ) return;
+		el.value = el.value.slice( 0, at - 2 ) + DASH + el.value.slice( at );
+		el.setSelectionRange( at - 1, at - 1 );
 	} );
 }( jQuery ) );

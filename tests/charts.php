@@ -31,9 +31,11 @@ class BFTD_Derived {
   public static function skills($rid){ return $GLOBALS['GRID']; }
   public static function missed($rid){ return $GLOBALS['MISSED'] ?? array(); }
   public static function attendance($rid){ return $GLOBALS['ATTEND'] ?? array(); }
+  public static function late($rid){ return $GLOBALS['LATE'] ?? array(); }
+  public static function matrices($rid){ return $GLOBALS['MATRICES'] ?? array(); }
   public static function texts($rid){ return $GLOBALS['TEXTS'] ?? array(); }
   public static function word($g,$k){
-    $w = array('status'=>array('missed'=>'Missed','rescheduled'=>'Rescheduled'),
+    $w = array('status'=>array('missed'=>'Missed','rescheduled'=>'Rescheduled','late'=>'Late start'),
                'who'=>array('family'=>'Family','tutor'=>'Brilliant Futures'),
                'counted'=>array('yes'=>'Yes','no'=>'No'));
     return $w[$g][$k] ?? '';
@@ -324,7 +326,7 @@ check(BFTD_Charts::attendance(1) === '', 'a report with nothing attended and not
 $GLOBALS['ATTEND'] = array('held'=>8,'rescheduled'=>1,'missed'=>2,'last_ts'=>0,'first_ts'=>0,
   'days_since'=>3,'weeks_missed'=>0);
 $att = BFTD_Charts::attendance(1);
-check(substr_count($att, 'class="attend-t') === 4, 'four figures');
+check(substr_count($att, 'class="attend-t') === 5, 'five figures, late starts among them (1.166)');
 check(strpos($att, '>8</span>') !== false && strpos($att, 'sessions attended') !== false, 'how many were attended');
 check(strpos($att, '>3</span>') !== false && strpos($att, 'days since the last session') !== false, 'and how long it has been');
 
@@ -454,7 +456,7 @@ check(strpos($t, 'Tutor unwell') !== false, 'for each of them');
    differently, which is exactly where a typed answer is worth nothing. */
 check(strpos($t, 'marked by Laurel Sanders') !== false, 'the row says who marked it');
 check(strpos($t, 'on 5 Aug 2026, 4:40 pm') !== false, 'and when they did, to the minute');
-check(strpos($t, 'made up on 8 Aug 2026') !== false, 'and when it was made up');
+check(strpos($t, 'Made up on 8 Aug 2026') !== false, 'and when it was made up, on a line of its own (1.166)');
 /* Whether it counts is the status, not a box somebody answered. There was a
    "counts against allowance" dropdown on every cancellation, and a practice
    cannot run a policy that is a different answer on each record. */
@@ -525,6 +527,40 @@ check('' === BFTD_Charts::icon('not a real icon'), 'an icon nobody drew is nothi
    names beside them do not. */
 $skl = BFTD_Charts::coverage(1);
 check(false === strpos($skl, 'class="bfic"'), 'the skills cards carry no icon');
+
+/* ---- Laurel, 1.166: late starts, how a session was made up, matrices ---- */
+$GLOBALS['ATTEND']['late'] = 2;
+$GLOBALS['MISSED'] = array(
+  array('id'=>810,'status'=>'rescheduled','date'=>'2026-08-06','ts'=>BFTD_Time::stamp('2026-08-06'),
+        'who'=>'31','who_name'=>'Laurel Sanders (Client)','reason'=>'Family away','counted'=>'no','made_up'=>'2026-08-08',
+        'by'=>5,'at'=>'2026-08-05 16:40:00','number'=>4),
+  array('id'=>811,'status'=>'missed','date'=>'2026-08-20','ts'=>BFTD_Time::stamp('2026-08-20'),
+        'who'=>'tutor','who_name'=>'Brilliant Futures','reason'=>'Tutor unwell','counted'=>'yes','made_up'=>'','by'=>0,'at'=>'','number'=>7),
+);
+$GLOBALS['LATE'] = array(
+  array('id'=>812,'status'=>'late','date'=>'2026-08-13','ts'=>BFTD_Time::stamp('2026-08-13'),'reason'=>'Started 15 minutes late, traffic','number'=>5),
+);
+$t = BFTD_Charts::attendance(1);
+check(1 === preg_match('#<span class="attend-n">2</span>\s*<span class="attend-l">late starts</span>#', $t), 'a tile counts the late starts');
+check(substr_count($t, 'class="miss-r"') === 3, 'and each one is a row beside the missed and moved ones');
+check(1 === preg_match('#Session 4.*Session 5.*Session 7#s', $t), 'in date order');
+check(1 === preg_match('#miss-tag late">\s*Late start#', $t) && false !== strpos($t, '<span class="miss-why">Started 15 minutes late, traffic</span>'),
+  'tagged Late start, with the reason the tutor gave');
+check(1 === preg_match('#Started 15 minutes late, traffic</span>\s*</span>#', $t), 'and no cancellation detail under it');
+
+check('Made up on: to be arranged' === BFTD_Charts::made_up_line(array('made_up_how'=>'tba')), 'a session to be made up later says so');
+check('Made up on 8 Aug 2026' === BFTD_Charts::made_up_line(array('made_up'=>'2026-08-08')), 'one saved before 1.166 with a date reads as made up on it');
+check('Made up by extending sessions: 2 Nov 2026, 15 minutes; 9 Nov 2026, 35 minutes'
+  === BFTD_Charts::made_up_line(array('made_up_how'=>'extended','extended'=>array(
+    array('date'=>'2026-11-02','minutes'=>'15'), array('date'=>'2026-11-09','minutes'=>'35'), 'junk'))),
+  'extended sessions are listed with their dates and minutes');
+check('' === BFTD_Charts::made_up_line(array('made_up_how'=>'', 'made_up'=>'')), 'and nothing answered says nothing');
+
+$GLOBALS['MATRICES'] = array(array('matrix'=>'<struct>','date'=>'2026-10-20','times'=>2));
+$mx = BFTD_Charts::matrices(1);
+check(false !== strpos($mx, '<span class="bk-t">&lt;struct&gt;</span>') && false !== strpos($mx, '20 Oct 2026'), 'matrices studied are listed like the books, escaped, with the date');
+$GLOBALS['MATRICES'] = array();
+check('' === BFTD_Charts::matrices(1), 'and none draws nothing');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

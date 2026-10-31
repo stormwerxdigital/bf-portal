@@ -236,7 +236,9 @@
   background:var(--bftd-line-soft);color:var(--bftd-body)}
 .bftd-gallery-note.is-good{background:var(--bftd-sage-pale);color:var(--bftd-sage-deep)}
 .bftd-gallery-note.is-bad{background:var(--bftd-clay-pale);color:var(--bftd-clay)}
-.bftd-thumb{position:relative;display:inline-block}
+.bftd-thumb{position:relative;display:inline-block;cursor:move}
+.bftd-thumb.ui-sortable-helper{box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.bftd-gallery-prev .ui-sortable-placeholder{visibility:visible !important;display:inline-block;border:2px dashed var(--bftd-line);border-radius:4px;vertical-align:top}
 .bftd-thumb-x{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:var(--bftd-clay);color:#fff;cursor:pointer;line-height:1}
 
 /* ---------- change bar ---------- */

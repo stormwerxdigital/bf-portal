@@ -14,9 +14,10 @@ function check($ok, $msg) { global $fail; if ($ok) echo "  ok  $msg\n"; else { e
 
 $sec = BFTD_Schema::sections()['sec-strengths-areas-for-growth'];
 $f = $sec['fields'];
-/* The title says what its two columns say (Laurel, 1.164). */
-check('Strengths and weaknesses' === $sec['label'], 'the section is called Strengths and weaknesses, got ' . $sec['label']);
-check(false === stripos(file_get_contents(BFTD_PATH . 'includes/class-bftd-report-view.php'), 'growth areas'),
+/* Strengths and areas for growth again (Laurel, 1.166: "weak" can sting). */
+check('Strengths and areas for growth' === $sec['label'], 'the section is called Strengths and areas for growth, got ' . $sec['label']);
+check(false !== strpos(file_get_contents(BFTD_PATH . 'includes/class-bftd-report-view.php'), "strengths and
+			areas for growth, the recommended"),
   'and the line introducing the full report calls it that too');
 check('rows' === $f['strengths']['type'] && 'rows' === $f['growth']['type'], 'both are lists of rows');
 check('Strengths' === $f['strengths']['label'] && 'Weaknesses' === $f['growth']['label'], 'called Strengths and Weaknesses');

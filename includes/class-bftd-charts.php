@@ -447,7 +447,11 @@ class BFTD_Charts {
 			'moved'  => '<path d="M3.5 9A8.5 8.5 0 0 1 18 5.5M20.5 15A8.5 8.5 0 0 1 6 18.5"/><path d="M18 2v4h-4M6 22v-4h4"/>',
 			'cross'  => '<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>',
 			'clock'  => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5.4l3.4 2"/>',
+			// A clock with its hand past the hour, for a late start.
+			'late'   => '<circle cx="12" cy="13" r="8"/><path d="M12 9v4.4l3 1.8M9.5 2.5h5M12 2.5V5"/>',
 			'book'   => '<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v18H5.5A1.5 1.5 0 0 1 4 19.5z"/><path d="M8 3v18"/>',
+			// A matrix: a base with parts branching off it.
+			'matrix' => '<rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 12H4M20 12h-5M12 9V4M12 20v-5"/>',
 		);
 		if ( ! isset( $paths[ $name ] ) ) return '';
 		// Not "ic": a resource link already owns that class and it is a
@@ -474,6 +478,31 @@ class BFTD_Charts {
 	 * week is a standing fact about how reading is learned rather than an
 	 * accusation. It is only raised to a warning when there is a real gap.
 	 */
+	/**
+	 * How a missed or moved session was made up, in words (Laurel, 1.166):
+	 * "Made up on 2 Nov 2026", "Made up on: to be arranged", or each
+	 * session extended to make it up, with its minutes.
+	 */
+	public static function made_up_line( $m ) {
+		$how = isset( $m['made_up_how'] ) ? (string) $m['made_up_how'] : ( ! empty( $m['made_up'] ) ? 'date' : '' );
+		if ( 'date' === $how && ! empty( $m['made_up'] ) ) {
+			return 'Made up on ' . BFTD_Time::day( $m['made_up'], 'j M Y' );
+		}
+		if ( 'tba' === $how ) return 'Made up on: to be arranged';
+		if ( 'extended' === $how ) {
+			$bits = array();
+			foreach ( (array) ( $m['extended'] ?? array() ) as $row ) {
+				$d   = trim( (string) ( $row['date'] ?? '' ) );
+				$min = (int) ( $row['minutes'] ?? 0 );
+				$bit = '' !== $d ? BFTD_Time::day( $d, 'j M Y' ) : '';
+				if ( $min ) $bit .= ( '' !== $bit ? ', ' : '' ) . $min . ' ' . ( 1 === $min ? 'minute' : 'minutes' );
+				if ( '' !== $bit ) $bits[] = $bit;
+			}
+			return $bits ? 'Made up by extending sessions: ' . implode( '; ', $bits ) : 'Made up by extending sessions';
+		}
+		return '';
+	}
+
 	public static function attendance( $report_id ) {
 		$a = BFTD_Derived::attendance( $report_id );
 		if ( ! $a ) return '';
@@ -491,6 +520,8 @@ class BFTD_Charts {
 
 		$tiles = array(
 			array( (string) (int) $a['held'], 1 === (int) $a['held'] ? 'session attended' : 'sessions attended', '', 'tick' ),
+			// Of those attended, how many started late (Laurel, 1.166).
+			array( (string) (int) ( $a['late'] ?? 0 ), 1 === (int) ( $a['late'] ?? 0 ) ? 'late start' : 'late starts', '', 'late' ),
 			array( (string) (int) $a['rescheduled'], 'rescheduled', $busy ? 'warn' : '', 'moved' ),
 			array( (string) (int) $a['missed'], 'missed', (int) $a['missed'] ? 'warn' : '', 'cross' ),
 			array( $since[0], $since[1], $weeks ? 'warn' : '', 'clock' ),
@@ -521,11 +552,20 @@ class BFTD_Charts {
 		 * to be squeezed into, and the audit detail sits under it quietly.
 		 */
 		$miss_rows = BFTD_Derived::missed( $report_id );
+		// Late starts in the same list, in date order, with their reason
+		// (Laurel, 1.166).
+		$late_rows = BFTD_Derived::late( $report_id );
+		if ( $late_rows ) {
+			$miss_rows = array_merge( $miss_rows, $late_rows );
+			usort( $miss_rows, function ( $x, $y ) { return (int) $x['ts'] - (int) $y['ts']; } );
+		}
 		?>
 		<?php if ( $miss_rows ) : ?>
 			<ul class="miss">
 				<?php foreach ( $miss_rows as $m ) :
 					$moved = ( 'rescheduled' === $m['status'] );
+					$late  = ( 'late' === $m['status'] );
+					$kind  = $late ? 'late' : ( $moved ? 'moved' : '' );
 					$who   = isset( $m['who_name'] ) ? (string) $m['who_name'] : '';
 					$stamp = '';
 					if ( ! empty( $m['at'] ) ) {
@@ -539,13 +579,13 @@ class BFTD_Charts {
 					}
 					?>
 					<li class="miss-r">
-						<span class="miss-ic<?php echo $moved ? ' moved' : ''; ?>" aria-hidden="true"><?php
-							echo self::icon( $moved ? 'moved' : 'cross' );
+						<span class="miss-ic<?php echo $kind ? ' ' . esc_attr( $kind ) : ''; ?>" aria-hidden="true"><?php
+							echo self::icon( $late ? 'late' : ( $moved ? 'moved' : 'cross' ) );
 						?></span>
 						<span class="miss-b">
 							<span class="miss-h">
 								<b><?php echo esc_html( $m['ts'] ? BFTD_Time::format( 'j M Y', $m['ts'] ) : '' ); ?></b>
-								<span class="miss-tag<?php echo $moved ? ' moved' : ''; ?>"><?php
+								<span class="miss-tag<?php echo $kind ? ' ' . esc_attr( $kind ) : ''; ?>"><?php
 									echo esc_html( BFTD_Derived::word( 'status', $m['status'] ) );
 								?></span>
 								<?php if ( $m['number'] ) : ?>
@@ -555,12 +595,16 @@ class BFTD_Charts {
 							<?php if ( '' !== trim( (string) $m['reason'] ) ) : ?>
 								<span class="miss-why"><?php echo esc_html( $m['reason'] ); ?></span>
 							<?php endif; ?>
+							<?php $made = self::made_up_line( $m ); if ( '' !== $made ) : ?>
+								<span class="miss-made"><?php echo esc_html( $made ); ?></span>
+							<?php endif; ?>
+							<?php if ( ! $late ) : ?>
 							<span class="miss-meta"><?php
 								$bits = array();
 								if ( '' !== $who ) $bits[] = 'Cancelled by ' . $who;
 								if ( '' !== $by )  $bits[] = 'marked by ' . $by;
 								if ( '' !== $stamp ) $bits[] = 'on ' . $stamp;
-								if ( ! empty( $m['made_up'] ) ) $bits[] = 'made up on ' . BFTD_Time::day( $m['made_up'], 'j M Y' );
+								// How it was made up has a line of its own above (1.166).
 								// From the status, not from a box. A cancellation
 								// spends the hour that was held; a reschedule is
 								// the same session on another day.
@@ -569,6 +613,7 @@ class BFTD_Charts {
 									: 'counts against the sessions remaining';
 								echo esc_html( implode( ' · ', $bits ) );
 							?></span>
+							<?php endif; ?>
 						</span>
 					</li>
 				<?php endforeach; ?>
@@ -661,6 +706,34 @@ class BFTD_Charts {
 								<span class="bk-d"><?php echo esc_html( BFTD_Time::format( 'j M Y', $ts ) ); ?></span>
 							<?php endif; ?>
 						</span>
+					</span>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+		<?php
+		return ob_get_clean();
+	}
+
+	/**
+	 * The morphology matrices studied, drawn as the reading log is: a card
+	 * each, with the date it was first studied (Laurel, 1.166).
+	 */
+	public static function matrices( $report_id ) {
+		$rows = BFTD_Derived::matrices( $report_id );
+		if ( ! $rows ) return '';
+		ob_start();
+		?>
+		<ul class="shelf">
+			<?php foreach ( $rows as $r ) :
+				$ts = $r['date'] ? BFTD_Time::stamp( $r['date'] ) : 0;
+				?>
+				<li class="bk">
+					<span class="bk-ic" aria-hidden="true"><?php echo self::icon( 'matrix' ); ?></span>
+					<span class="bk-b">
+						<span class="bk-t"><?php echo esc_html( $r['matrix'] ); ?></span>
+						<?php if ( $ts ) : ?>
+							<span class="bk-m"><span class="bk-d"><?php echo esc_html( BFTD_Time::format( 'j M Y', $ts ) ); ?></span></span>
+						<?php endif; ?>
 					</span>
 				</li>
 			<?php endforeach; ?>

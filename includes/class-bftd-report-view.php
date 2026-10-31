@@ -144,7 +144,7 @@ class BFTD_Report_View {
 		?>
 		<h2 style="margin:30px 0 12px" id="dxdoc">Assessment details</h2>
 		<p class="lede dim" style="max-width:64ch;margin-bottom:14px">Every area in full, then strengths and
-			weaknesses, the recommended approach, the instructional plan and the conclusion.</p>
+			areas for growth, the recommended approach, the instructional plan and the conclusion.</p>
 		<div id="dxplan">
 			<?php
 			foreach ( $sections as $id => $section ) {
@@ -242,6 +242,14 @@ class BFTD_Report_View {
 		echo '<div id="texts-block">';
 		self::chart_card( $report, 'sec-texts-read', $sections, 'What we have read so far', 'texts' );
 		echo '</div>';
+
+		// The matrices studied, in the same band, between what has been read
+		// and the sessions (Laurel, 1.166). Only once there is one.
+		$matrices = BFTD_Charts::matrices( $report );
+		if ( '' !== $matrices ) {
+			echo '<div class="card chart-card" style="margin-bottom:18px" id="matrices"><div class="chart-head"><h2>Morphology matrices studied</h2></div>'
+				. '<div class="chart-body">' . $matrices . '</div></div>';
+		}
 
 		$sessions = BFTD_CPT::sessions_for( $report );
 		if ( $sessions ) {
@@ -720,6 +728,7 @@ class BFTD_Report_View {
 						<span class="num<?php echo $word; ?>"><?php echo esc_html( $shown ); ?></span>
 						<?php if ( $of ) : ?><span class="of"><?php echo esc_html( $of ); ?></span><?php endif; ?>
 					</span>
+					<?php echo self::card_also( $section, $v ); ?>
 					<?php if ( $pct ) : ?>
 						<span class="track"><span class="fill <?php echo esc_attr( $tint ); ?>" style="width:<?php echo esc_attr( $pct ); ?>%"></span></span>
 					<?php endif; ?>
@@ -856,6 +865,7 @@ class BFTD_Report_View {
 		if ( isset( $sections['sec-progress-overview'] ) && BFTD_Fields::section_has_content( $report, 'sec-progress-overview' ) ) $links['overview'] = 'Reading level';
 		if ( isset( $sections['sec-activity-map'] ) && BFTD_Fields::section_has_content( $report, 'sec-activity-map' ) ) $links['cover'] = 'Skills we\'re building';
 		if ( isset( $sections['sec-texts-read'] ) && BFTD_Fields::section_has_content( $report, 'sec-texts-read' ) ) $links['texts'] = 'What we have read so far';
+		if ( BFTD_Derived::matrices( $report ) ) $links['matrices'] = 'Morphology matrices studied';
 		$links['docs'] = 'Report sections';
 		$sessions = BFTD_CPT::sessions_for( $report );
 		if ( $sessions ) $links['stream'] = 'All ' . count( $sessions ) . ' sessions';
@@ -971,6 +981,19 @@ class BFTD_Report_View {
 		}
 		if ( ! $items ) return '';
 		return '<ul class="plan-list"><li>' . implode( '</li><li>', $items ) . '</li></ul>';
+	}
+
+	/**
+	 * A second figure on a skill card, such as the spelling card's individual
+	 * spellings (1.166). Nothing until both halves have been entered.
+	 */
+	public static function card_also( $section, $v ) {
+		if ( empty( $section['card_also'] ) ) return '';
+		$a   = $section['card_also'];
+		$n   = trim( (string) ( $v[ $a['key'] ] ?? '' ) );
+		$of  = trim( (string) ( $v[ $a['of'] ] ?? '' ) );
+		if ( '' === $n || '' === $of ) return '';
+		return '<span class="skill-also"><b>' . esc_html( $n ) . '</b> / ' . esc_html( $of ) . ' ' . esc_html( $a['label'] ) . '</span>';
 	}
 
 	/** A section's fields, as the document body the design expects. */

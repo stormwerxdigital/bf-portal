@@ -534,5 +534,22 @@ check(1 === $m[0]['number'] && 2 === $m[1]['number'],
 check(0 === $none['held'] && null === $none['days_since'], 'and no last session to count from');
 check(0 === $none['weeks_missed'], 'so no week count either, rather than a count from nowhere');
 
+/* ---- Laurel, 1.166: late starts and matrices ---- */
+$GLOBALS['SESS'] = array(
+  901 => array('session_date' => $ago(20), 'status' => 'held', 'matrices' => array(array('matrix' => 'struct'), array('matrix' => ''))),
+  902 => array('session_date' => $ago(13), 'status' => 'late', 'status_why' => 'Traffic', 'matrices' => array(array('matrix' => 'Struct'), array('matrix' => 'port'))),
+  903 => array('session_date' => $ago(6),  'status' => 'rescheduled', 'missed_madeup_how' => 'extended',
+               'missed_extended' => array(array('date' => '2026-11-02', 'minutes' => '15'))),
+);
+$a = BFTD_Derived::attendance(1);
+check(2 === $a['held'] && 1 === $a['late'], 'a late start is attended, and counted as a late start too');
+$late = BFTD_Derived::late(1);
+check(1 === count($late) && 'Traffic' === $late[0]['reason'] && 2 === $late[0]['number'], 'late starts are listed with their reason and session number');
+$m = BFTD_Derived::missed(1);
+check(array(array('date' => '2026-11-02', 'minutes' => '15')) === $m[0]['extended'], 'a moved session carries the sessions extended to make it up');
+$mx = BFTD_Derived::matrices(1);
+check(2 === count($mx) && 'struct' === $mx[0]['matrix'] && 2 === $mx[0]['times'] && 'port' === $mx[1]['matrix'],
+  'matrices studied are one line each, first spelling and first date kept, blanks dropped');
+
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

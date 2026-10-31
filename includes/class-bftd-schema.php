@@ -199,6 +199,51 @@ class BFTD_Schema {
 	}
 
 	/**
+	 * The standing overview at the top of every diagnostic, as Laurel wrote
+	 * it (1.166).
+	 */
+	public static function overview_text() {
+		return '<p>Our Reading Diagnostic Assessment sets a baseline across six core literacy areas. It shows a student&#8217;s reading and writing strengths and weaknesses, and points to how our method of instruction helps develop the weak points. It is not a formal evaluation. Its purpose is to guide instructional planning should tutoring move forward.</p>'
+			. '<p>Reading is our primary focus, so this assessment focuses on reading. But we teach more than reading. In fact, adults and school-age children often come to us to develop specific skills in isolation, apart from reading:</p>'
+			. '<ul>'
+			. '<li><strong>Grammar:</strong> one-on-one instruction, to date with college students</li>'
+			. '<li><strong>Writing:</strong> taught with IEW (Institute for Excellence in Writing)</li>'
+			. '<li><strong>Comprehension:</strong> built with KAT (Knowledge Acquisition and Transformation), a recognized program</li>'
+			. '<li><strong>Spelling and morphology:</strong> for strong readers who are weak spellers, and for French immersion students</li>'
+			. '<li><strong>Boost oral reading fluency:</strong> Improve reading rate while ensuring reading is smooth and even, with natural pauses and expression.</li>'
+			. '</ul>'
+			. '<p>You don&#8217;t have to start with reading.</p>'
+			. '<p>For students who do start with reading, here&#8217;s how to read their results.</p>'
+			. '<p>The numbers describe where the student is starting from, not what they are capable of. Every one of these six areas responds to teaching, and several of them move quickly.</p>'
+			. '<h3>Set realistic expectations</h3>'
+			. '<p>How fast your child&#8217;s decoding improves depends partly on their oral vocabulary. If your child knows fewer spoken words, decoding gains will usually be slower than expected.</p>'
+			. '<h3>Why?</h3>'
+			. '<p>English spellings are flexible. The letters &lt;ea&gt; can say &#8216;ee&#8217; in team, &#8216;e&#8217; in bread, or &#8216;ay&#8217; in great. The letter &lt;a&gt; can say at least seven different sounds.</p>'
+			. '<p>When your child meets an unfamiliar word, they pick the most likely sound for each spelling. Then they listen: does that sound like a real word? If not, they try another sound until it does.</p>'
+			. '<p>Here&#8217;s where vocabulary matters. If your child already knows the word, they&#8217;ll recognize it when they hear themselves say it. If they don&#8217;t know it, they may land on a near-miss and never realize it&#8217;s wrong.</p>'
+			. '<h3>What this means</h3>'
+			. '<p>Vocabulary often sets the pace for decoding growth. The good news? Even with unfamiliar words, children usually get close, often just one or two sounds off.</p>'
+			. '<p><strong>Audio Books + Eyes on Print: A Powerful Combination:</strong> the easiest way to build vocabulary and strengthen reading at the same time.</p>';
+	}
+
+	/**
+	 * The standing recommended approach on every diagnostic, as Laurel wrote
+	 * it (1.166), with "lesson" read as "session".
+	 */
+	public static function approach_text() {
+		return '<p>There is a clear starting place for literacy skills: instruction built on sound.</p>'
+			. '<p>EBLI teaches your child one flexible skill and applies it to everything they read and write. Hear the sounds in a whole word. Match those sounds to the letters that spell them. Then use that same thinking to both read and spell.</p>'
+			. '<p>Starting with sounds in whole words, rather than letters or letter names in isolation, is what makes reading come faster. This research-aligned approach is called speech-to-print, linguistic phonics, or linguistic literacy.</p>'
+			. '<p>Here are other speech-to-print basics that speed learning:</p>'
+			. '<ul>'
+			. '<li><strong>Many skills in every session.</strong> Each session folds in 3-9 of the following literacy skills: phonemic awareness, phonics, spelling, vocabulary, reading, writing, comprehension, morphology, and handwriting.</li>'
+			. '<li><strong>No rules to memorize.</strong> Your child matches sounds to the letters that represent them and studies patterns. Patterns show that one sound can be spelled several ways, and the same letters can make different sounds. That matches how the brain naturally organizes information, which is why patterns stick. The aim is exposure and practice, not perfection.</li>'
+			. '<li><strong>A spiral, not a staircase.</strong> New patterns and concepts return again and again, with review spaced throughout. Your child never has to master one step before moving to the next.</li>'
+			. '<li><strong>A lighter mental load.</strong> Your child holds less in mind at once, so progress comes faster. Many students grow one to three grade levels, sometimes more, in a single year.</li>'
+			. '</ul>';
+	}
+
+	/**
 	 * The standing explanation of the handwriting task.
 	 *
 	 * Kept as a method rather than inline so the one place it is written is
@@ -1107,7 +1152,16 @@ class BFTD_Schema {
 				// A "Headline finding" sentence used to sit here; Karl removed it
 				// from the diagnostic. Anything already typed into it stays in
 				// the database and is no longer shown or edited.
-				'overview'      => array( 'type' => 'rich',   'label' => 'Overview', 'help' => 'Written for the parent, not for a file. Two or three short paragraphs.' ),
+				// The practice's standing wording on every new diagnostic, which
+				// only a senior manager or an administrator may change (Laurel,
+				// 1.166). A report that already has its own overview keeps it.
+				'overview'      => array(
+					'type'      => 'rich',
+					'edit_rank' => 3,
+					'label'     => 'Overview',
+					'help'      => 'The same on every diagnostic. Changed for every report under Settings, Report wording.',
+					'shipped'   => self::overview_text(),
+				),
 			),
 		);
 
@@ -1316,6 +1370,9 @@ class BFTD_Schema {
 		$s['dxsec-5']['unit']            = 'words correct';
 		$s['dxsec-5']['own_order']       = true;
 		$s['dxsec-5']['benchmark_field'] = 'score_of';
+		// The card also gives the individual spellings, out of however many
+		// this word list has (Laurel, 1.166).
+		$s['dxsec-5']['card_also']       = array( 'key' => 'spellings', 'of' => 'spellings_of', 'label' => 'individual spellings correct' );
 		$s['dxsec-5']['fields']          = array(
 			'word_list' => array(
 				'type'    => 'select',
@@ -1648,7 +1705,7 @@ class BFTD_Schema {
 		$s['dxsec-3']['unit']       = '';
 		$s['dxsec-3']['own_order']  = true;
 		$s['dxsec-3']['score_rank'] = 'reading_level';   // how the bar reads the score
-		$s['dxsec-3']['meter_note'] = 'Preprimer to Grade 8';
+		$s['dxsec-3']['meter_note'] = 'Preprimer to Grade 11';   // the levels run to Grade 11 (Laurel, 1.166)
 		$s['dxsec-3']['fields']     = array(
 			'score' => array(
 				'type'    => 'select',
@@ -1936,9 +1993,10 @@ class BFTD_Schema {
 
 		$s['sec-strengths-areas-for-growth'] = array(
 			'screen'  => self::SCREEN_REPORT,
-			// Matches its own columns since 1.155 (Laurel, 1.164). The key
-			// keeps its old name, because saved reports are stored under it.
-			'label'   => 'Strengths and weaknesses',
+			// "Strengths and weaknesses" in 1.164; back to areas for growth at
+			// Laurel's request in 1.166, because "weak" can sting a parent.
+			// The second column is still called Weaknesses (Karl, 1.155).
+			'label'   => 'Strengths and areas for growth',
 			'eyebrow' => 'Profile',
 			'thread'  => true,
 			// One row per point, in two lists, drawn on the report as one table:
@@ -1962,7 +2020,14 @@ class BFTD_Schema {
 			'eyebrow' => 'The plan',
 			'thread'  => true,
 			'fields'  => array(
-				'body' => array( 'type' => 'rich', 'label' => 'Recommended approach' ),
+				// Standing wording, as the overview is (Laurel, 1.166).
+				'body' => array(
+					'type'      => 'rich',
+					'edit_rank' => 3,
+					'label'     => 'Recommended approach',
+					'help'      => 'The same on every diagnostic. Changed for every report under Settings, Report wording.',
+					'shipped'   => self::approach_text(),
+				),
 			),
 		);
 

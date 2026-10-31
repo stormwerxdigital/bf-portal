@@ -162,6 +162,10 @@ class BFTD_Derived {
 				// and a second field could only disagree with it.
 				'counted' => ( 'missed' === $status ) ? 'yes' : 'no',
 				'made_up' => (string) BFTD_Fields::get( $sid, 'session', 'missed_madeup' ),
+				// How it is made up, and the sessions made longer to do it
+				// (Laurel, 1.166).
+				'made_up_how' => class_exists( 'BFTD_MetaBoxes' ) ? BFTD_MetaBoxes::madeup_how( $sid ) : '',
+				'extended'    => array_values( array_filter( (array) BFTD_Fields::get( $sid, 'session', 'missed_extended' ), 'is_array' ) ),
 
 				// Who marked it, and when they did. Stamped on save rather
 				// than typed, so it is a record of what happened rather than
@@ -271,6 +275,7 @@ class BFTD_Derived {
 		$held = 0;
 		$resc = 0;
 		$miss = 0;
+		$late = 0;
 		$last = 0;
 		$first = 0;
 
@@ -299,6 +304,8 @@ class BFTD_Derived {
 			}
 			if ( 'missed' === $status )      { $miss++; continue; }
 
+			// A late start went ahead: attended, and counted on its own too.
+			if ( 'late' === $status ) $late++;
 			$held++;
 			if ( $ts ) {
 				if ( ! $first || $ts < $first ) $first = $ts;
@@ -314,6 +321,7 @@ class BFTD_Derived {
 			'held'        => $held,
 			'rescheduled' => $resc,
 			'missed'      => $miss,
+			'late'        => $late,
 			'last_ts'     => $last,
 			'first_ts'    => $first,
 			'days_since'  => $last ? $days : null,
@@ -355,10 +363,37 @@ class BFTD_Derived {
 		return $out;
 	}
 
+	/**
+	 * Every session that started late, with the tutor's reason (Laurel,
+	 * 1.166). Late starts went ahead and are counted as attended; these are
+	 * listed beside the missed and moved ones so a family can see why.
+	 */
+	public static function late( $report_id ) {
+		$pre = self::fixture( 'late' );
+		if ( null !== $pre ) return (array) $pre;
+
+		$out = array();
+		$n   = 0;
+		foreach ( (array) BFTD_CPT::sessions_in_order( $report_id ) as $sid ) {
+			$n++;
+			if ( 'late' !== (string) BFTD_Fields::get( $sid, 'session', 'status' ) ) continue;
+			$date  = (string) BFTD_Fields::get( $sid, 'session', 'session_date' );
+			$out[] = array(
+				'id'     => (int) $sid,
+				'status' => 'late',
+				'date'   => $date,
+				'ts'     => $date ? BFTD_Time::stamp( $date ) : 0,
+				'reason' => (string) BFTD_Fields::get( $sid, 'session', 'status_why' ),
+				'number' => $n,
+			);
+		}
+		return $out;
+	}
+
 	/** The words a family reads for a stored answer. One list, three readers. */
 	public static function words() {
 		return array(
-			'status'  => array( 'missed' => 'Missed', 'rescheduled' => 'Rescheduled' ),
+			'status'  => array( 'missed' => 'Missed', 'rescheduled' => 'Rescheduled', 'late' => 'Late start' ),
 			// 'who' is a person now, so the words for it live with the
 			// people: see BFTD_CPT::cancelled_by_label(), which still answers
 			// for the two options this used to offer.
@@ -417,6 +452,30 @@ class BFTD_Derived {
 					'date'  => $date,
 					'times' => 1,
 				);
+			}
+		}
+		return array_values( $out );
+	}
+
+	/**
+	 * Every morphology matrix studied, from the sessions it was studied in
+	 * (Laurel, 1.166). One line per matrix, with the first date, the way the
+	 * reading log has one line per book.
+	 */
+	public static function matrices( $report_id ) {
+		$pre = self::fixture( 'matrices' );
+		if ( null !== $pre ) return (array) $pre;
+
+		$out = array();
+		foreach ( (array) BFTD_CPT::sessions_in_order( $report_id ) as $sid ) {
+			$date = (string) BFTD_Fields::get( $sid, 'session', 'session_date' );
+			foreach ( (array) BFTD_Fields::get( $sid, 'session', 'matrices' ) as $row ) {
+				if ( ! is_array( $row ) ) continue;
+				$name = trim( (string) ( $row['matrix'] ?? '' ) );
+				if ( '' === $name ) continue;
+				$key = strtolower( $name );
+				if ( isset( $out[ $key ] ) ) { $out[ $key ]['times']++; continue; }
+				$out[ $key ] = array( 'matrix' => $name, 'date' => $date, 'times' => 1 );
 			}
 		}
 		return array_values( $out );

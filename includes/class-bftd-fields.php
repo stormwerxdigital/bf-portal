@@ -540,7 +540,9 @@ class BFTD_Fields {
 	 */
 	public static function toolbars() {
 		return array(
-			'toolbar1' => 'formatselect,bold,italic,underline,forecolor,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,unlink,wp_adv',
+			// fullscreen: any note opens to the whole window and back
+			// (Laurel, 1.166).
+			'toolbar1' => 'formatselect,bold,italic,underline,forecolor,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,unlink,wp_adv,fullscreen',
 			'toolbar2' => 'strikethrough,hr,pastetext,removeformat,charmap,outdent,indent,undo,redo',
 		);
 	}
@@ -1210,7 +1212,7 @@ class BFTD_Fields {
 			// Opens at full size in the same viewer the family has
 			// (bftd-report.js), so handwriting can be read off it.
 			$full = wp_get_attachment_image_url( $aid, 'full' );
-			echo '<span class="bftd-thumb"><a class="shot-open" href="' . esc_url( $full ? $full : $src ) . '" aria-label="Open this work sample at full size">'
+			echo '<span class="bftd-thumb" data-id="' . (int) $aid . '" title="Drag to move"><a class="shot-open" href="' . esc_url( $full ? $full : $src ) . '" aria-label="Open this work sample at full size">'
 				. '<img alt="" src="' . esc_url( $src ) . '"></a>'
 				. '<button type="button" class="bftd-thumb-x" data-id="' . (int) $aid . '" aria-label="Remove">&times;</button></span>';
 		}
@@ -1777,6 +1779,12 @@ class BFTD_Fields {
 				return $out;
 			case 'media':
 				return (int) $raw;
+			case 'literal':
+				// Text kept exactly as typed, angle brackets and all: a
+				// morphology base is written <struct>, which the usual text
+				// cleaning reads as a tag and throws away (1.166). It is only
+				// ever printed escaped.
+				return trim( preg_replace( '/[\x00-\x1F\x7F]+/', ' ', (string) $raw ) );
 			case 'gallery':
 				$ids = is_array( $raw ) ? $raw : explode( ',', (string) $raw );
 				return array_values( array_filter( array_map( 'absint', $ids ) ) );
@@ -1801,7 +1809,13 @@ class BFTD_Fields {
 				if ( in_array( $col['type'], array( 'activity', 'skill' ), true ) && '' === $clean[ $ck ] ) $orphan = true;
 			}
 			if ( $orphan ) continue;
-			if ( ! self::has_value( $clean ) ) continue;
+			// has_value() reads what a person would see once tags are gone,
+			// and <struct> is all tag to it. A literal column is read as typed.
+			$literal = false;
+			foreach ( $columns as $ck => $col ) {
+				if ( 'literal' === $col['type'] && '' !== $clean[ $ck ] ) $literal = true;
+			}
+			if ( ! $literal && ! self::has_value( $clean ) ) continue;
 			$out[] = $clean;
 		}
 		return $out;

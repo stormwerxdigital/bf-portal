@@ -1194,6 +1194,13 @@ class BFTD_MetaBoxes {
 	/* ------------------------------------------------------------------ */
 
 	/** What is recorded about one text a child read. */
+	/** The columns of a morphology matrix row (Laurel, 1.166). */
+	public static function matrix_columns() {
+		return array(
+			'matrix' => array( 'type' => 'literal', 'label' => 'Matrix', 'help' => 'The base or word sum the matrix was built on, for example <struct>.' ),
+		);
+	}
+
 	public static function text_columns() {
 		return array(
 			'title' => array( 'type' => 'text', 'label' => 'Title' ),
@@ -1229,7 +1236,8 @@ class BFTD_MetaBoxes {
 			'status_why'     => array(
 				'type'  => 'textarea',
 				'label' => 'Why',
-				'help'  => 'Why it started late, or what it is waiting on. Kept for the practice; not shown to the family.',
+				// Shown to the family under a late start since 1.166 (Laurel).
+				'help'  => 'Why it started late, or what it is waiting on. A late start\'s reason is shown to the family on their progress report, in these words.',
 			),
 			// Whose hour this was, and so whose time card it lands on.
 			// Whoever creates the session, unless somebody changes it in the
@@ -1260,8 +1268,44 @@ class BFTD_MetaBoxes {
 				'label' => 'Why',
 				'help'  => 'Required. Shown to the family under this session on their progress report, in these words.',
 			),
+			// How the session is made up (Laurel, 1.166): on a date, to be
+			// arranged, or by making later sessions longer. Beside What
+			// happened, because it is part of the same answer.
+			'missed_madeup_how' => array( 'type' => 'select', 'label' => 'Made up', 'options' => array(
+				''         => 'Choose how',
+				'date'     => 'On a date',
+				'tba'      => 'To be arranged',
+				'extended' => 'Extended sessions',
+			) ),
 			'missed_madeup'  => array( 'type' => 'date', 'label' => 'Made up on' ),
+			// One row per session made longer, with how many minutes.
+			'missed_extended' => array(
+				'type'      => 'rows',
+				'label'     => 'Session extended',
+				'add_label' => 'Add an extended session',
+				'columns'   => self::extended_columns(),
+				'help'      => 'Each session that ran longer to make this one up, and by how many minutes.',
+			),
 		);
+	}
+
+	/** The columns of an extended session row. */
+	public static function extended_columns() {
+		return array(
+			'date'    => array( 'type' => 'date',   'label' => 'Date' ),
+			'minutes' => array( 'type' => 'number', 'label' => 'Minutes added' ),
+		);
+	}
+
+	/**
+	 * How a missed session is being made up, read the same way everywhere.
+	 * A session saved before 1.166 with a date and no answer was made up on
+	 * that date.
+	 */
+	public static function madeup_how( $session_id ) {
+		$how = (string) BFTD_Fields::get( $session_id, 'session', 'missed_madeup_how' );
+		if ( '' === $how && '' !== (string) BFTD_Fields::get( $session_id, 'session', 'missed_madeup' ) ) $how = 'date';
+		return $how;
 	}
 
 	/**
@@ -1352,7 +1396,8 @@ class BFTD_MetaBoxes {
 			echo '</div>';
 		};
 
-		$draw( array( 'session_date', 'session_time', 'status' ) );
+		$draw( array( 'session_date', 'session_time' ) );
+		self::status_row( $post, $fields );
 		self::why_block( $post, $fields );
 		self::missed_block( $post, $fields );
 		self::lesson_number_line( $post );
@@ -1383,6 +1428,18 @@ class BFTD_MetaBoxes {
 		 * done it, on the date of their lesson, whether or not they had read it.
 		 * A text belongs to the lesson it was read in.
 		 */
+		// Morphology matrices, beside the texts, for the family's list of
+		// matrices studied (Laurel, 1.166).
+		echo '<div class="bftd-box"><h4>Morphology matrices studied today</h4>';
+		echo '<p class="description">Any matrix worked on in this session. These build the list of morphology matrices studied on the family\'s progress report, under what has been read.</p>';
+		BFTD_Fields::render_field( $post->ID, 'session', 'matrices', array(
+			'type'      => 'rows',
+			'label'     => 'Matrices',
+			'add_label' => 'Add matrix',
+			'columns'   => self::matrix_columns(),
+		) );
+		echo '</div>';
+
 		echo '<div class="bftd-box"><h4>Texts read today</h4>';
 		echo '<p class="description">Anything read in this session. These build the reading log on the family\'s progress report; the date comes from the session, so it is not asked for again.</p>';
 		BFTD_Fields::render_field( $post->ID, 'session', 'texts', array(
@@ -1431,7 +1488,8 @@ class BFTD_MetaBoxes {
 		echo '<div class="bftd-box bftd-onlymissed' . ( $on ? ' is-on' : '' ) . '"><h4>Why it was missed</h4>';
 		echo '<p class="description">Required before this session can be published. These build the missed sessions table on the family\'s progress report. Nothing here is asked twice: the date comes from the session itself.</p>';
 		echo '<div class="bftd-grid">';
-		foreach ( array( 'missed_by', 'missed_why', 'missed_madeup' ) as $key ) {
+		// "Made up on" moved up beside What happened in 1.166.
+		foreach ( array( 'missed_by', 'missed_why' ) as $key ) {
 			BFTD_Fields::render_field( $post->ID, 'session', $key, $fields[ $key ] );
 		}
 		echo '</div>';
@@ -1447,6 +1505,33 @@ class BFTD_MetaBoxes {
 	 * not. Shown and hidden the way the cancellation box is, from what is
 	 * stored, with the script following the dropdown.
 	 */
+	/**
+	 * What happened, and beside it how a missed or moved session is made up
+	 * (Laurel, 1.166). The making up is shown only when it applies, the way
+	 * the cancellation questions are, and the date or the extended sessions
+	 * only for the answer that needs them.
+	 */
+	private static function status_row( $post, $fields ) {
+		$status = (string) BFTD_Fields::get( $post->ID, 'session', 'status' );
+		$missed = ( 'missed' === $status || 'rescheduled' === $status );
+		$how    = self::madeup_how( $post->ID );
+		$on     = function ( $yes ) { return $yes ? ' is-on' : ''; };
+
+		echo '<div class="bftd-box bftd-grid bftd-status-row">';
+		BFTD_Fields::render_field( $post->ID, 'session', 'status', $fields['status'] );
+		$f = $fields['missed_madeup_how'];
+		$f['class'] = 'bftd-onlymissed' . $on( $missed );
+		BFTD_Fields::render_field( $post->ID, 'session', 'missed_madeup_how', $f, $how );
+		$f = $fields['missed_madeup'];
+		$f['class'] = 'bftd-onlymissed bftd-madeup-date' . $on( $missed && 'date' === $how );
+		BFTD_Fields::render_field( $post->ID, 'session', 'missed_madeup', $f );
+		echo '</div>';
+
+		echo '<div class="bftd-box bftd-onlymissed bftd-madeup-ext' . $on( $missed && 'extended' === $how ) . '">';
+		BFTD_Fields::render_field( $post->ID, 'session', 'missed_extended', $fields['missed_extended'] );
+		echo '</div>';
+	}
+
 	private static function why_block( $post, $fields ) {
 		$status = (string) BFTD_Fields::get( $post->ID, 'session', 'status' );
 		$on     = in_array( $status, array( 'late', 'pending' ), true );
@@ -1614,6 +1699,8 @@ class BFTD_MetaBoxes {
 			$changed += self::save_flat( $post_id, 'session', self::session_fields( $post_id ) );
 			$changed += self::save_rows_field( $post_id, 'session', 'activities', self::activity_columns(), 'Activities covered' );
 			$changed += self::save_rows_field( $post_id, 'session', 'texts', self::text_columns(), 'Texts read' );
+			$changed += self::save_rows_field( $post_id, 'session', 'missed_extended', self::extended_columns(), 'Session extended' );
+			$changed += self::save_rows_field( $post_id, 'session', 'matrices', self::matrix_columns(), 'Morphology matrices studied' );
 			self::stamp_missed( $post_id );
 			self::claim_session( $post_id );
 			self::hold_duplicate_draft( $post_id, $post );
