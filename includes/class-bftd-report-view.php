@@ -645,9 +645,10 @@ class BFTD_Report_View {
 	}
 
 	/**
-	 * The reading level beside the name: the level in words, and a scale
-	 * showing where that sits, with the student's own grade marked on it.
-	 * Nothing until a level has been entered.
+	 * The reading level beside the name: a ring that fills to the level, the
+	 * level in the middle, and the student's own grade as a hollow mark on the
+	 * ring. A ring rather than a line at Karl's direction (1.171). Nothing
+	 * until a level has been entered.
 	 */
 	public static function reading_highlight_html( $h ) {
 		if ( ! $h ) return '';
@@ -655,19 +656,31 @@ class BFTD_Report_View {
 		$said = 'Reading at ' . $h['level'] . ', on a scale from ' . $h['from'] . ' to ' . $h['to'] . '.';
 		if ( '' !== $h['own'] ) $said .= ' In ' . $h['own'] . ' at school.';
 
+		$long = strlen( $h['level'] ) > 8 ? ' is-long' : '';
+
 		$out  = '<aside class="hero-level">';
-		$out .= '<p class="hero-level-k">Independent reading level</p>';
-		$out .= '<p class="hero-level-v">Reading at <b>' . esc_html( $h['level'] ) . '</b></p>';
-		$out .= '<div class="hero-scale" role="img" aria-label="' . esc_attr( $said ) . '">';
-		$out .= '<span class="hero-scale-fill" style="width:' . (int) $h['pct'] . '%"></span>';
-		if ( '' !== $h['own'] ) $out .= '<i class="hero-mark is-own" style="left:' . (int) $h['own_pct'] . '%"></i>';
-		$out .= '<i class="hero-mark is-now" style="left:' . (int) $h['pct'] . '%"></i>';
+		$out .= '<div class="hero-ring" role="img" aria-label="' . esc_attr( $said ) . '">';
+		$out .= '<svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">';
+		$out .= '<circle class="hero-ring-track" cx="60" cy="60" r="50"/>';
+		// pathLength lets the fill be written as the percentage itself.
+		$out .= '<circle class="hero-ring-fill" cx="60" cy="60" r="50" pathLength="100" stroke-dasharray="'
+			. (int) $h['pct'] . ' 100" transform="rotate(-90 60 60)"/>';
+		if ( '' !== $h['own'] ) {
+			// From twelve o'clock, clockwise, the way the fill runs.
+			$turn = deg2rad( (int) $h['own_pct'] * 3.6 - 90 );
+			$out .= '<circle class="hero-ring-own" cx="' . round( 60 + 50 * cos( $turn ), 2 )
+				. '" cy="' . round( 60 + 50 * sin( $turn ), 2 ) . '" r="6.5"/>';
+		}
+		$out .= '</svg>';
+		$out .= '<span class="hero-ring-level' . $long . '">' . esc_html( $h['level'] ) . '</span>';
 		$out .= '</div>';
-		$out .= '<p class="hero-scale-ends"><span>' . esc_html( $h['from'] ) . '</span><span>' . esc_html( $h['to'] ) . '</span></p>';
+		$out .= '<div class="hero-level-text">';
+		$out .= '<p class="hero-level-k">Independent reading level</p>';
+		$out .= '<p class="hero-level-range">' . esc_html( $h['from'] ) . ' to ' . esc_html( $h['to'] ) . '</p>';
 		if ( '' !== $h['own'] ) {
 			$out .= '<p class="hero-level-own"><i class="hero-key"></i>In ' . esc_html( $h['own'] ) . ' at school</p>';
 		}
-		return $out . '</aside>';
+		return $out . '</div></aside>';
 	}
 
 	/** The six summary cards. Returns markup so the caller can skip the heading. */

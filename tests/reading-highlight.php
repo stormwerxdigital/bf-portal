@@ -2,8 +2,8 @@
 /*
  * The reading level beside the student's name on a diagnostic (Karl, 1.170).
  *
- * One real result, in words, with a scale behind it and the student's own
- * grade marked on the same scale. It is read through the same rule as the
+ * One real result, in words, in a ring that fills to it, with the student's
+ * own grade marked on the same ring. It is read through the same rule as the
  * card, so the two cannot disagree, and it is not drawn until there is a
  * level to draw.
  */
@@ -43,13 +43,16 @@ check(null === BFTD_Schema::reading_highlight(array('score' => 'not a level'), '
 
 /* What is drawn. */
 $html = BFTD_Report_View::reading_highlight_html($h);
-check(false !== strpos($html, 'Reading at <b>Grade 1</b>'), 'the headline names the level');
-check(false !== strpos($html, 'Independent reading level'), 'and says which level it is');
+check(false !== strpos($html, '<span class="hero-ring-level">Grade 1</span>'), 'the level sits in the middle of the ring');
+check(false !== strpos($html, 'Independent reading level') && false !== strpos($html, 'Preprimer to Grade 11'), 'which says which level it is, and on what scale');
 check(false !== strpos($html, 'aria-label="Reading at Grade 1, on a scale from Preprimer to Grade 11. In Grade 3 at school."'), 'with the whole picture in words for a screen reader');
-check(false !== strpos($html, 'hero-mark is-now" style="left:23%') && false !== strpos($html, 'hero-mark is-own" style="left:38%'), 'both marks are placed');
-check(false !== strpos($html, 'In Grade 3 at school</p>'), 'and the second one is labelled');
+check(false !== strpos($html, 'pathLength="100" stroke-dasharray="23 100"'), 'the ring fills to the level');
+check(false !== strpos($html, 'transform="rotate(-90 60 60)"'), 'starting at twelve o\'clock');
+check(false !== strpos($html, 'hero-ring-own" cx="94.23" cy="96.45"'), 'the hollow mark sits 38% of the way round, clockwise from the top');
+check(false !== strpos($html, 'In Grade 3 at school</p>'), 'and is labelled');
+check(false !== strpos(BFTD_Report_View::reading_highlight_html(BFTD_Schema::reading_highlight(array('score' => 'preprimer'))), 'hero-ring-level is-long'), 'a long level is set smaller, so it fits the ring');
 $adult = BFTD_Report_View::reading_highlight_html(BFTD_Schema::reading_highlight(array('score' => 'grade-1'), 'adult'));
-check(false === strpos($adult, 'is-own') && false === strpos($adult, 'at school'), 'no second mark means no label for one');
+check(false === strpos($adult, 'hero-ring-own') && false === strpos($adult, 'at school'), 'no second mark means no label for one');
 check('' === BFTD_Report_View::reading_highlight_html(null), 'and no highlight means nothing at all');
 
 $view = file_get_contents(BFTD_PATH . 'includes/class-bftd-report-view.php');
