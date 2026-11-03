@@ -51,17 +51,17 @@ foreach ($levels as $key => $label) {
 }
 
 /* ---- the bar reads position, not value ---- */
-check(10 === (int) $s['benchmark'], 'the bar still fills at Grade 8, the tenth level, so no existing card changed when levels were added');
+check(13 === (int) $s['benchmark'], 'the bar fills at Grade 11, the thirteenth level, the end of the range the card names');
 check('reading_level' === $s['score_rank'],
   'and the section says its score is a level, rather than leaving the card to guess');
 
-foreach (array('preprimer' => 1, 'primer' => 2, 'grade-1' => 3, 'grade-8' => 10) as $v => $rank) {
-  check($rank === BFTD_Schema::reading_level_rank($v), "$v is number $rank of ten");
+foreach (array('preprimer' => 1, 'primer' => 2, 'grade-1' => 3, 'grade-8' => 10, 'grade-11' => 13) as $v => $rank) {
+  check($rank === BFTD_Schema::reading_level_rank($v), "$v is number $rank of thirteen");
 }
-check(10 === (int) round(BFTD_Schema::reading_level_rank('preprimer') / $s['benchmark'] * 100),
-  'so preprimer fills a tenth of the bar');
-check(100 === (int) round(BFTD_Schema::reading_level_rank('grade-8') / $s['benchmark'] * 100),
-  'and grade 8 fills all of it');
+check(8 === (int) round(BFTD_Schema::reading_level_rank('preprimer') / $s['benchmark'] * 100),
+  'so preprimer fills a thirteenth of the bar');
+check(100 === (int) round(BFTD_Schema::reading_level_rank('grade-11') / $s['benchmark'] * 100),
+  'and grade 11 fills all of it');
 check(0 === BFTD_Schema::reading_level_rank('something else'),
   'while a value that is not a level has no position at all');
 
@@ -73,7 +73,7 @@ $m = BFTD_Schema::measure('dxsec-3', array('score' => 'preprimer'));
 check('Preprimer' === $m['shown'], 'the card resolves what to show');
 check('preprimer' === $m['raw'], 'from the list the choice came from');
 check(1.0 === $m['value'], 'and the bar is worked out from its position');
-check(10.0 === $m['bench'], 'against Grade 8, where the bar fills');
+check(13.0 === $m['bench'], 'against Grade 11, where the bar fills');
 
 $view = file_get_contents(BFTD_PATH . 'includes/class-bftd-report-view.php');
 check(1 === preg_match('/<span class="num[^"]*"><\?php echo esc_html\( \$shown \)/', $view),

@@ -85,9 +85,15 @@ class BFTD_Report_View {
 		$v        = BFTD_Fields::get_section( $report, 'sec-assessment-overview' );
 		$tutor    = self::tutor_name( $report, $student_id, $v );
 
+		// The one result worth seeing first, beside the name (Karl, 1.170).
+		$reading = BFTD_Schema::reading_highlight(
+			BFTD_Fields::get_section( $report, 'dxsec-3' ),
+			BFTD_Fields::get( $student_id, 'student', 'grade' )
+		);
+
 		/* ---- hero ---- */
 		?>
-		<div class="hero-report">
+		<div class="hero-report<?php echo $reading ? ' has-level' : ''; ?>">
 			<?php // A heading, not a small label, at Karl's direction (1.146). ?>
 			<p class="hero-title">Reading diagnostic assessment<?php
 				// Which of the four it is. Calling a mid-programme reassessment
@@ -104,6 +110,7 @@ class BFTD_Report_View {
 			?></p>
 			<h1><?php echo esc_html( $name ); ?></h1>
 			<div class="sub"><?php echo esc_html( self::hero_line( $report, $student_id, $v ) ); ?></div>
+			<?php echo self::reading_highlight_html( $reading ); ?>
 			<div class="hero-actions">
 				<button type="button" class="btn btn-primary" onclick="window.print()">Print or save as PDF</button>
 				<?php $call = BFTD_Settings::help_bar_link(); ?>
@@ -635,6 +642,32 @@ class BFTD_Report_View {
 			</div>
 		</div>
 		<?php
+	}
+
+	/**
+	 * The reading level beside the name: the level in words, and a scale
+	 * showing where that sits, with the student's own grade marked on it.
+	 * Nothing until a level has been entered.
+	 */
+	public static function reading_highlight_html( $h ) {
+		if ( ! $h ) return '';
+
+		$said = 'Reading at ' . $h['level'] . ', on a scale from ' . $h['from'] . ' to ' . $h['to'] . '.';
+		if ( '' !== $h['own'] ) $said .= ' In ' . $h['own'] . ' at school.';
+
+		$out  = '<aside class="hero-level">';
+		$out .= '<p class="hero-level-k">Independent reading level</p>';
+		$out .= '<p class="hero-level-v">Reading at <b>' . esc_html( $h['level'] ) . '</b></p>';
+		$out .= '<div class="hero-scale" role="img" aria-label="' . esc_attr( $said ) . '">';
+		$out .= '<span class="hero-scale-fill" style="width:' . (int) $h['pct'] . '%"></span>';
+		if ( '' !== $h['own'] ) $out .= '<i class="hero-mark is-own" style="left:' . (int) $h['own_pct'] . '%"></i>';
+		$out .= '<i class="hero-mark is-now" style="left:' . (int) $h['pct'] . '%"></i>';
+		$out .= '</div>';
+		$out .= '<p class="hero-scale-ends"><span>' . esc_html( $h['from'] ) . '</span><span>' . esc_html( $h['to'] ) . '</span></p>';
+		if ( '' !== $h['own'] ) {
+			$out .= '<p class="hero-level-own"><i class="hero-key"></i>In ' . esc_html( $h['own'] ) . ' at school</p>';
+		}
+		return $out . '</aside>';
 	}
 
 	/** The six summary cards. Returns markup so the caller can skip the heading. */

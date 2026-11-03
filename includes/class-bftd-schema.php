@@ -317,6 +317,47 @@ class BFTD_Schema {
 		return $levels;
 	}
 
+	/** Where the reading level scale ends: the card's bar and the highlight. */
+	const READING_TOP = 'grade-11';
+
+	/**
+	 * The reading level, for the highlight at the top of a diagnostic.
+	 *
+	 * Read through measure(), the same rule as the card, so the two cannot
+	 * disagree. The student's own grade is a second mark on the same scale.
+	 * Null until a level has been entered. An adult learner, or a student
+	 * with no grade set, gets no second mark: there is no grade to compare.
+	 */
+	public static function reading_highlight( $v, $grade = '' ) {
+		$m = self::measure( 'dxsec-3', $v );
+		if ( null === $m || $m['value'] <= 0 || $m['bench'] <= 0 ) return null;
+
+		$levels = self::reading_levels();
+		$top    = $m['bench'];
+		$at     = function ( $rank ) use ( $top ) {
+			return (int) min( 100, round( $rank / $top * 100 ) );
+		};
+
+		$out = array(
+			'level'   => $m['shown'],
+			'pct'     => $at( $m['value'] ),
+			'from'    => reset( $levels ),
+			'to'      => $levels[ self::READING_TOP ],
+			'own'     => '',
+			'own_pct' => 0,
+		);
+
+		$grade = trim( (string) $grade );
+		if ( '0' === $grade ) {
+			$out['own']     = 'Kindergarten';
+			$out['own_pct'] = $at( self::reading_level_rank( 'primer' ) );
+		} elseif ( ctype_digit( $grade ) && isset( $levels[ 'grade-' . $grade ] ) ) {
+			$out['own']     = $levels[ 'grade-' . $grade ];
+			$out['own_pct'] = $at( self::reading_level_rank( 'grade-' . $grade ) );
+		}
+		return $out;
+	}
+
 	/** Where a level sits in that list, counting from one. */
 	public static function reading_level_rank( $value ) {
 		$i = 1;
@@ -412,7 +453,7 @@ class BFTD_Schema {
 		}
 
 		// A named level has no arithmetic, so what stands in for it is its
-		// place in the list: the first of ten fills a tenth.
+		// place in the list: the first of thirteen fills a thirteenth.
 		$value = (float) $raw;
 		if ( ! empty( $section['score_rank'] ) && 'reading_level' === $section['score_rank'] ) {
 			$value = (float) self::reading_level_rank( $raw );
@@ -1694,14 +1735,14 @@ class BFTD_Schema {
 		 * typed: a free text box here produced "Preprimer", "pre-primer" and
 		 * "PP" for the same finding. There is no denominator, because a level
 		 * is not a fraction, and the bar is the level's position in the list
-		 * against Grade 8, the tenth: Preprimer shows a tenth filled, and
-		 * Grade 8 and above (Grades 9 to 12 and College, 1.151) show full.
+		 * against Grade 11, the thirteenth: Preprimer shows a thirteenth
+		 * filled, and Grade 11 and above show full.
 		 */
-		// The bar still fills at Grade 8, as it did before Grades 9 to 12 and
-		// College were added (1.151): measured against Grade 8's place in the
-		// list, so no existing report's card changed, and anything above it
-		// shows full.
-		$s['dxsec-3']['benchmark']  = self::reading_level_rank( 'grade-8' );
+		// The bar fills at Grade 11 (1.170), the end of the range the card
+		// names and the scale at the top of the report draws. It filled at
+		// Grade 8 until then, so a Grade 9 reader showed a full bar under
+		// "Preprimer to Grade 11".
+		$s['dxsec-3']['benchmark']  = self::reading_level_rank( self::READING_TOP );
 		$s['dxsec-3']['unit']       = '';
 		$s['dxsec-3']['own_order']  = true;
 		$s['dxsec-3']['score_rank'] = 'reading_level';   // how the bar reads the score
