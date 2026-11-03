@@ -63,6 +63,11 @@ check(false !== strpos($row, '<strong>Rowan Ellery, reading diagnostic</strong>'
 check(false !== strpos($row, 'Demo student') && false !== strpos($row, 'Not a real student'), 'marked as the demo, not a real student');
 check(false !== strpos($row, 'bftd_preview=sample-diagnostic'), 'opening the sample');
 check(false !== strpos($row, 'getElementById( "the-list" )') && false !== strpos($row, 'insertBefore'), 'at the top of the list');
+/* 1.167 spanned 99 columns. List tables have fixed widths, so that made 99
+   columns and squeezed every real report to a sliver: they looked gone. */
+check(false === strpos($row, 'colspan="99"') && 0 === preg_match('/colspan="\d+"/', $row), 'the row does not guess how many columns the table has');
+check(false !== strpos($row, 'r.firstElementChild.colSpan = Math.max( 1, n );') && false !== strpos($row, 'classList.contains( "hidden" )'),
+  'it spans exactly the columns on show, counted from the table head');
 check(false !== strpos(BFTD_Preview::sample_row_html('progress'), '<strong>Rowan Ellery, progress report</strong>'), 'and the progress list gets his progress report');
 check('' === BFTD_Preview::sample_row_html('nothing'), 'and nothing for a sample that does not exist');
 

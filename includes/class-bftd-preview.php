@@ -65,16 +65,23 @@ class BFTD_Preview {
 		if ( ! $sample ) return '';
 		$kind = ( 'progress' === $which ) ? 'progress report' : 'reading diagnostic';
 
-		$row = '<tr class="bftd-sample-row"><td colspan="99">'
+		$row = '<tr class="bftd-sample-row"><td>'
 			. '<strong>' . esc_html( $sample['student'] . ', ' . $kind ) . '</strong> '
 			. '<span class="bftd-pill bftd-pill-purple">Demo student</span> '
 			. '<a href="' . esc_url( self::sample_url( $which ) ) . '" target="_blank" rel="noopener">View report</a>'
 			. '<span class="description bftd-sample-note">Made up for training, demonstrations and ads. Not a real student, and nothing in it can be edited.</span>'
 			. '</td></tr>';
 
+		// The cell spans exactly the columns the table is showing. List
+		// tables are laid out with fixed widths, so a span wider than the
+		// table (it was 99 in 1.167) adds columns of its own and squeezes
+		// the real ones to nothing (1.168).
 		return '<template id="bftd-sample-row">' . $row . '</template>'
-			. '<script>( function () { var t = document.getElementById( "bftd-sample-row" ), l = document.getElementById( "the-list" );'
-			. ' if ( t && l ) l.insertBefore( t.content.firstElementChild.cloneNode( true ), l.firstChild ); }() );</script>';
+			. '<script>( function () { var t = document.getElementById( "bftd-sample-row" ), l = document.getElementById( "the-list" ),'
+			. ' h = document.querySelector( ".wp-list-table thead tr" ); if ( ! t || ! l || ! h ) return;'
+			. ' var n = 0; for ( var i = 0; i < h.children.length; i++ ) { if ( ! h.children[ i ].classList.contains( "hidden" ) ) n++; }'
+			. ' var r = t.content.firstElementChild.cloneNode( true ); r.firstElementChild.colSpan = Math.max( 1, n );'
+			. ' l.insertBefore( r, l.firstChild ); }() );</script>';
 	}
 
 	/**
