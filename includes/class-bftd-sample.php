@@ -8,10 +8,12 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  * section reads once it is filled, or what the family actually receives. A
  * finished one answers all three in about thirty seconds.
  *
- * The content is real work, lightly trimmed: Kaine's reading diagnostic and
- * Jot's progress report. Names are kept because these were written as
- * examples to hand around, and a sample full of "Student A" reads like a
- * form rather than like a report.
+ * One made-up student, Rowan Ellery (Karl, 1.167): his baseline reading
+ * diagnostic and the progress report that follows it, so the two agree with
+ * each other and either can be shown to staff, families or in an ad. The
+ * writing is real work, lightly trimmed, with the child's name changed and
+ * the diagnostic's figures set to the baseline the progress report starts
+ * from. A sample full of "Student A" reads like a form rather than a report.
  *
  * These are plain arrays in the same shape the field store returns, handed
  * to BFTD_Fields::use_fixture, so the sample renders through the ordinary
@@ -36,7 +38,7 @@ class BFTD_Sample {
 		return array(
 			'diagnostic' => array(
 				'title'   => 'Reading diagnostic, sample',
-				'student' => 'Kaine Miller',
+				'student' => 'Rowan Ellery',
 				'screen'  => BFTD_Schema::SCREEN_REPORT,
 				'note'    => 'This is a sample report, filled in with real assessment content so you can see how a finished one reads. Nothing here belongs to a student in this dashboard.',
 				'fields'  => self::diagnostic(),
@@ -45,14 +47,14 @@ class BFTD_Sample {
 					BFTD_Items::PRIORITY => array(
 						array(
 							'text'    => 'Print the handwriting practice sheet and try five minutes a day',
-							'detail'  => 'The "Print Rhythm Leader" sheet is in Resources. Have Kaine say each prompt aloud as he writes the letter. Five minutes is plenty.',
+							'detail'  => 'The "Print Rhythm Leader" sheet is in Resources. Have Rowan say each prompt aloud as he writes the letter. Five minutes is plenty.',
 							'section' => '',
 						),
 					),
 					BFTD_Items::REVIEW => array(
 						array(
 							'text'    => 'Read the baseline report before your review call',
-							'detail'  => 'You do not need to understand every number. Read the Assessment overview at the top and the letter to Kaine at the end, and bring any questions to the call.',
+							'detail'  => 'You do not need to understand every number. Read the Assessment overview at the top and the letter to Rowan at the end, and bring any questions to the call.',
 							'section' => '',
 						),
 					),
@@ -60,12 +62,12 @@ class BFTD_Sample {
 			),
 			'progress' => array(
 				'title'   => 'Progress report, sample',
-				'student' => 'Jot Singh',
+				'student' => 'Rowan Ellery',
 				'screen'  => BFTD_Schema::SCREEN_PROGRESS,
 				'note'    => 'This is a sample progress report, filled in with real content so you can see how a finished one reads. Nothing here belongs to a student in this dashboard.',
 				'fields'  => self::progress(),
 				'threads' => self::threads( 'progress' ),
-				'eyebrow' => 'Jot Singh · Grade 3 · started 5 July 2026 · tutor Laurel Sanders',
+				'eyebrow' => 'Rowan Ellery · Grade 3 · started 5 July 2026 · tutor Laurel Sanders',
 				// Skills have a length and activities do not: a child is
 				// somewhere along the list of things this practice teaches,
 				// while the activity library is the ways of teaching them and
@@ -94,7 +96,7 @@ class BFTD_Sample {
 					BFTD_Items::PRIORITY => array(
 						array(
 							'text'    => 'Listen to an audiobook together, twenty minutes, eyes on the text',
-							'detail'  => 'Any book Jot enjoys, read above his own reading level. The point is his eyes following the printed words while he hears them.',
+							'detail'  => 'Any book Rowan enjoys, read above his own reading level. The point is his eyes following the printed words while he hears them.',
 							'section' => '',
 							'checked' => 1,
 						),
@@ -124,7 +126,7 @@ class BFTD_Sample {
 	}
 
 	/* ------------------------------------------------------------------ */
-	/* Kaine Miller, reading diagnostic                                    */
+	/* Rowan Ellery, reading diagnostic                                    */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -140,37 +142,37 @@ class BFTD_Sample {
 			return array(
 				'dxsec-1' => array(
 					array(
-						'name' => 'Dana Miller', 'mine' => true, 'when' => '3 days ago',
-						'title' => 'Tuesday, 11 August 2026 at 7:42 PM',
-						'body'  => 'Is 25 out of 40 as far behind as it sounds? He has always been slow at writing and I assumed that was just him.',
+						'name' => 'Dana Ellery', 'mine' => true, 'when' => '3 days ago',
+						'title' => 'Sunday, 5 July 2026 at 7:42 PM',
+						'body'  => 'Is 14 out of 40 as far behind as it sounds? He has always been slow at writing and I assumed that was just him.',
 					),
 					array(
 						'name' => 'Candice Paluck', 'when' => '3 days ago',
-						'title' => 'Tuesday, 11 August 2026 at 9:15 PM',
+						'title' => 'Sunday, 5 July 2026 at 9:15 PM',
 						'body'  => 'It is behind, but it is the most fixable thing on this report. Handwriting speed responds to a few minutes of the right practice per session, and it is not a measure of how bright he is. What it does do is slow everything else down, which is why we start here.',
 					),
 				),
 				'dxsec-2' => array(
 					array(
-						'name' => 'Dana Miller', 'mine' => true, 'when' => '2 days ago',
-						'title' => 'Wednesday, 12 August 2026 at 8:02 PM',
+						'name' => 'Dana Ellery', 'mine' => true, 'when' => '2 days ago',
+						'title' => 'Monday, 6 July 2026 at 8:02 PM',
 						'body'  => 'What does /k/ /a/ /t/ mean when it is written with the slashes?',
 					),
 					array(
 						'name' => 'Candice Paluck', 'when' => '2 days ago',
-						'title' => 'Wednesday, 12 August 2026 at 8:40 PM',
+						'title' => 'Monday, 6 July 2026 at 8:40 PM',
 						'body'  => 'Slashes mean the <b>sound</b> rather than the letter. So /k/ is the sound at the start of cat and also at the start of kite, even though they are spelled differently. There is a full list of these marks in the legend at the end of the report.',
 					),
 				),
 				'dxsec-5' => array(
 					array(
-						'name' => 'Dana Miller', 'mine' => true, 'when' => '2 days ago',
-						'title' => 'Wednesday, 12 August 2026 at 8:11 PM',
+						'name' => 'Dana Ellery', 'mine' => true, 'when' => '2 days ago',
+						'title' => 'Monday, 6 July 2026 at 8:11 PM',
 						'body'  => 'Three out of twenty five was hard to read. Should we be doing spelling lists at home?',
 					),
 					array(
 						'name' => 'Candice Paluck', 'when' => '2 days ago',
-						'title' => 'Wednesday, 12 August 2026 at 8:52 PM',
+						'title' => 'Monday, 6 July 2026 at 8:52 PM',
 						'body'  => 'Please do not. Lists ask him to memorise words he cannot yet hear the sounds in, so they tend to confirm to a child that spelling is something they are bad at. The score is low on purpose here, because the errors are what tell me which patterns to teach first.',
 					),
 				),
@@ -180,19 +182,19 @@ class BFTD_Sample {
 		return array(
 			'sec-progress-overview' => array(
 				array(
-					'name' => 'Priya Singh', 'mine' => true, 'when' => '5 days ago',
+					'name' => 'Dana Ellery', 'mine' => true, 'when' => '5 days ago',
 					'title' => 'Monday, 1 September 2026 at 8:02 PM',
 					'body'  => 'Reading speed went from 40 to 64. Is that on track, or should it be faster by now?',
 				),
 				array(
 					'name' => 'Laurel Sanders', 'when' => '5 days ago',
 					'title' => 'Tuesday, 2 September 2026 at 8:40 AM',
-					'body'  => 'That is 24 words per minute in two months, which is ahead of where I expected him. The Grade 3 benchmark is 83, so he is not there yet, but the shape of the line matters more than the number and this line is steep.',
+					'body'  => 'That is 24 words per minute in two months, which is ahead of where I expected him. The Grade 3 benchmark is 112, so he is not there yet, but the shape of the line matters more than the number and this line is steep.',
 				),
 			),
 			'sec-activity-map' => array(
 				array(
-					'name' => 'Priya Singh', 'mine' => true, 'when' => '8 days ago',
+					'name' => 'Dana Ellery', 'mine' => true, 'when' => '8 days ago',
 					'title' => 'Saturday, 30 August 2026 at 6:48 PM',
 					'body'  => 'Why do some skills keep coming back after they were taught? I thought once he had it we would move on.',
 				),
@@ -217,7 +219,7 @@ class BFTD_Sample {
 	private static function dx_bodies() {
 		return array(
 			'dxsec-1' => array( 'body_after' => <<<'HTML'
-<p>Kaine willingly completed this part of the assessment. He found the activity challenging, which tells us he would benefit from additional alphabet handwriting practice. As observed during both this activity and his spelling assessment, Kaine lacks lowercase letter formation skills, lacks discernment between capital and lowercase letters, and lacks automaticity, which is the ability to write smoothly, evenly and without conscious effort.</p>
+<p>Rowan willingly completed this part of the assessment. He found the activity challenging, which tells us he would benefit from additional alphabet handwriting practice. As observed during both this activity and his spelling assessment, Rowan lacks lowercase letter formation skills, lacks discernment between capital and lowercase letters, and lacks automaticity, which is the ability to write smoothly, evenly and without conscious effort.</p>
 <p>These weaknesses negatively affect reading and writing. Each session will therefore include five minutes of explicit handwriting instruction. Practising printing at home between sessions will also help.</p>
 HTML,
 			),
@@ -226,14 +228,14 @@ HTML,
 			// the schema, so the sample cannot drift from what a real report
 			// says: they are the same wording, resolved the same way.
 			'dxsec-2' => array( 'body_after' => <<<'HTML'
-<p>Identifying individual sounds within words was challenging for Kaine, which is very common for developing readers. The good news is that sound by sound awareness is a skill that can be explicitly taught and strengthened. This is one of the key areas where Evidence-Based Literacy Instruction is especially effective.</p>
+<p>Identifying individual sounds within words was challenging for Rowan, which is very common for developing readers. The good news is that sound by sound awareness is a skill that can be explicitly taught and strengthened. This is one of the key areas where Evidence-Based Literacy Instruction is especially effective.</p>
 HTML,
 			),
 
 			// Only what is about this child. The introduction, both tables and
 			// the standing answer all come from the schema.
 			'dxsec-3' => array( 'body_after' => <<<'HTML'
-<p>Kaine&#8217;s independent reading level is currently Preprimer and his instructional level is Primer. To support his progress we will bring the Switch It activity into sessions. It pairs especially well with this method for older students who are still developing strong word identification, because it combines phonemic awareness, phonics, spelling and reading into one integrated activity.</p>
+<p>Rowan&#8217;s independent reading level is currently Grade 1 and his instructional level is Grade 2. To support his progress we will bring the Switch It activity into sessions. It pairs especially well with this method for students who are still developing strong word identification, because it combines phonemic awareness, phonics, spelling and reading into one integrated activity.</p>
 <p>At this stage the most supportive home practice is <strong>listening to an audiobook while the eyes follow the matching text</strong>. Audiobooks give exposure to rich vocabulary, background knowledge and strong language models, and having the eyes track printed words while listening strengthens word recognition, sound to spelling connections and visual attention to print.</p>
 <p>All direct reading, spelling and handwriting instruction is provided during sessions. <strong>There is no expectation of drilling, memorisation or extra teaching at home.</strong></p>
 HTML,
@@ -242,26 +244,26 @@ HTML,
 			// Only what is about this child. The introduction, both tables and
 			// the two standing explanations all come from the schema.
 			'dxsec-4' => array( 'body_after' => <<<'HTML'
-<p>Kaine currently reads a small number of Kindergarten level words accurately within a one minute timing, which tells us his word reading fluency is still developing. We will apply the strategies set out in the word reading section to build it systematically.</p>
+<p>Rowan read 40 words correctly in one minute on a Grade 3 passage, well short of the Grade 3 benchmark, which tells us his reading fluency is still developing. We will apply the strategies set out in the word reading section to build it systematically.</p>
 HTML,
 			),
 
 			// Only what is about this child. The introduction, the results and
 			// the standing answer all come from the schema.
 			'dxsec-5' => array( 'body_after' => <<<'HTML'
-<p>Kaine has difficulty applying multi-letter spellings, where two, three or four letters work together to represent a single sound. This is a very teachable skill, and it is one this method introduces in a way that accelerates learning, using clear sound to symbol strategies. Spelling, reading and writing are integrated throughout instruction, so the skills build together rather than in isolation.</p>
-<p>Kaine is sometimes unsure when to use uppercase and lowercase letters. He also tends to omit, insert or place spellings in the wrong order. That reflects phonemic awareness, the ability to identify individual sounds in words, which is critical to reading and spelling because that is how the brain stores language. The brain maps sounds to print.</p>
+<p>Rowan has difficulty applying multi-letter spellings, where two, three or four letters work together to represent a single sound. This is a very teachable skill, and it is one this method introduces in a way that accelerates learning, using clear sound to symbol strategies. Spelling, reading and writing are integrated throughout instruction, so the skills build together rather than in isolation.</p>
+<p>Rowan is sometimes unsure when to use uppercase and lowercase letters. He also tends to omit, insert or place spellings in the wrong order. That reflects phonemic awareness, the ability to identify individual sounds in words, which is critical to reading and spelling because that is how the brain stores language. The brain maps sounds to print.</p>
 HTML,
 			),
 
 			'dxsec-6' => array( 'body' => <<<'HTML'
-<p>Kaine was encouraged to write a sentence or a short paragraph, depending on his comfort and ability. We chose the topic together, something that interested him and felt manageable. If a student&#8217;s anxiety rises or the task becomes overwhelming we pause for a brain break or move on. The goal is to build confidence, not pressure.</p>
+<p>Rowan was encouraged to write a sentence or a short paragraph, depending on his comfort and ability. We chose the topic together, something that interested him and felt manageable. If a student&#8217;s anxiety rises or the task becomes overwhelming we pause for a brain break or move on. The goal is to build confidence, not pressure.</p>
 <p><strong>This is the only time a student is asked to write without being helped to correct their writing.</strong></p>
 HTML,
 				'body_after' => <<<'HTML'
 <p><strong>Transcribed for clarity:</strong> I like to travel the world.</p>
 <h3>Notes</h3>
-<p>Kaine willingly provided an independent writing sample. Writing conventions, end punctuation, capitalisation and complete sentence structure will be taught as part of integrated literacy instruction rather than as a separate subject.</p>
+<p>Rowan willingly provided an independent writing sample. Writing conventions, end punctuation, capitalisation and complete sentence structure will be taught as part of integrated literacy instruction rather than as a separate subject.</p>
 <h3>How our method helps</h3>
 <p>Writing is not saved for the end. It is part of every activity from the first session, because writing a word is what proves a student can hear its sounds and choose spellings for them. Conventions are taught inside real sentences the student has written, rather than as a worksheet about commas.</p>
 HTML,
@@ -274,33 +276,32 @@ HTML,
 
 			// The student's own record, which the heading line draws on.
 			'student' => array(
-				'birth_date' => '2013-07-06',
-				'school'     => 'Chewelah School District',
-				'grade'      => '8',
+				'birth_date' => '2018-03-14',
+				'school'     => 'Cedar Hollow Elementary',
+				'grade'      => '3',
 			),
 
 			'sec-assessment-overview' => array(
 				// A programme always begins with the initial assessment, and
 				// this sample is the baseline its hero line says it is.
 				'kind'        => 'initial',
-				'assessed_on' => '2026-08-11',
+				'assessed_on' => '2026-07-05',
 				'assessed_by' => '',
-				'overview'    => '<p>This diagnostic establishes a baseline of Kaine&#8217;s reading and writing strengths and challenges across six core literacy areas. It is not a formal evaluation. It is designed to guide instructional planning should tutoring move forward.</p>'
-					. '<p>Kaine took part in a comprehensive assessment covering six skill areas. The results give a baseline profile of his current literacy and inform an individual plan using Evidence-Based Literacy Instruction.</p>'
-					. '<p>He told me he learned more in fifty minutes online during the assessment than he had in the past seven years, and he left excited to begin.</p>',
+				'overview'    => '<p>This diagnostic establishes a baseline of Rowan&#8217;s reading and writing strengths and challenges across six core literacy areas. It is not a formal evaluation. It is designed to guide instructional planning should tutoring move forward.</p>'
+					. '<p>Rowan took part in a comprehensive assessment covering six skill areas. The results give a baseline profile of his current literacy and inform an individual plan using Evidence-Based Literacy Instruction.</p>'
+					. '<p>He told me he learned more in fifty minutes online during the assessment than he had all last school year, and he left excited to begin.</p>',
 			),
 
-			// Twenty-five of the twenty-six letters he wrote were correct. The
-			// bar is that against the goal of 40, which the page works out.
-			// Twenty-five of the twenty-six letters he wrote were correct. The
-			// bar is that against the goal of 40, which the page works out,
-			// and the two tables under the prose are drawn rather than typed.
+			// Fourteen of the sixteen letters he wrote were correct, the
+			// baseline the progress report's handwriting figure starts from.
+			// The bar is that against the goal of 40, which the page works
+			// out, and the two tables under the prose are drawn, not typed.
 			'dxsec-1' => array(
-				'score'     => '25',
-				'written'   => '26',
+				'score'     => '14',
+				'written'   => '16',
 				'marking'   => array(
-					'lowercase' => 'He wrote a to z with the order reversed for m and n. The letter e was illegible and counted as an error.',
-					'bottom_up' => 'Kaine wrote his letters top to bottom.',
+					'lowercase' => 'He reached p, with the order reversed for m and n. The letter e was illegible and counted as an error.',
+					'bottom_up' => 'Rowan wrote his letters top to bottom.',
 					'capitals'  => 'Some confusion between upper and lowercase.',
 					// Reversals is left blank on purpose, so the sample shows
 					// what a rule with nothing to report looks like.
@@ -308,37 +309,38 @@ HTML,
 				'images'    => array( BFTD_URL . 'assets/img/work-sample.svg' ),
 			),
 
-			// Sixteen of the thirty-six sounds. The bar is that against the
+			// Twenty of the thirty-six sounds, past halfway, so the strip of
+			// cards shows more than one colour. The bar is that against the
 			// fixed target of 36, which the page works out, and the results
 			// table under the prose is drawn rather than typed.
 			'dxsec-2' => array(
-				'score'     => '16',
+				'score'     => '20',
 				'score_of'  => '36',
 				'images'    => array( BFTD_URL . 'assets/img/work-sample.svg' ),
 			),
 
-			// The first of the ten reading levels, so the bar shows a tenth
-			// filled. The levels table under the prose is the tutor's own
-			// reading of the three bands; the table above it explaining what
-			// those bands mean is fixed and drawn by the schema.
+			// Grade 1, where the progress report's reading level chart starts.
+			// The levels table under the prose is the tutor's own reading of
+			// the three bands; the table above it explaining what those bands
+			// mean is fixed and drawn by the schema.
 			'dxsec-3' => array(
-				'score'         => 'preprimer',
-				'instructional' => 'primer',
-				'frustration'   => 'grade-1',
+				'score'         => 'grade-1',
+				'instructional' => 'grade-2',
+				'frustration'   => 'grade-3',
 				// No work sample here on purpose. Reading a word list aloud
 				// leaves nothing behind to photograph, and the field is still
 				// offered in case a tutor has the scoring sheet.
 			),
 
-			// Kaine reads at Preprimer, so he did the Kindergarten word list
-			// rather than a passage: twelve words in the minute, against the
-			// Kindergarten minimum of 30 and his enrolled grade's (Grade 8,
-			// 130). The bar is that against 130, worked out from the grade
+			// A Grade 3 passage: 46 words with 6 errors, 40 correct a minute,
+			// the first point on the progress report's fluency chart. The bar
+			// is that against the Grade 3 norm, worked out from the grade
 			// chosen rather than from a percentage anybody typed.
 			'dxsec-4' => array(
-				'form'         => 'kinder',
-				'kinder_score' => '12',
-				'min_grade'    => 'grade-8',
+				'form'         => 'passage',
+				'words'        => '46',
+				'errors'       => '6',
+				'norm'         => 'grade-3',
 				'images'       => array( BFTD_URL . 'assets/img/work-sample.svg' ),
 			),
 
@@ -397,10 +399,10 @@ HTML,
 					array( 'item' => 'No letter reversals of b, d, p or q, and left-to-right directionality is intact' ),
 				),
 				'growth' => array(
-					array( 'item' => 'Phonemic awareness, hearing individual sounds in sequence, currently 16 of 36' ),
+					array( 'item' => 'Phonemic awareness, hearing individual sounds in sequence, currently 20 of 36' ),
 					array( 'item' => 'Applying multi-letter spelling patterns, where two to four letters spell one sound' ),
 					array( 'item' => 'Handwriting automaticity, consistent lowercase formation, and telling upper from lowercase' ),
-					array( 'item' => 'Word and oral reading fluency, independent level Preprimer at 12 correct words per minute' ),
+					array( 'item' => 'Oral reading fluency, independent level Grade 1 at 40 correct words per minute' ),
 					array( 'item' => 'Writing conventions: end punctuation, capitalisation and complete sentences' ),
 				),
 			),
@@ -430,11 +432,11 @@ HTML,
 			),
 
 			'sec-conclusion' => array(
-				'body' => '<p>Kaine is a delight to work with. His enthusiasm and willingness to tackle new challenges are qualities that will support his growth as a reader and writer.</p>'
-					. '<p>His standout strength is not a test score, it is self-awareness. Kaine could name exactly where reading trips him up: he has never been sure when letters work on their own and when they team up to spell a single sound. I explained that two, three or four letters can represent one sound, and reassured him that we will focus on teaching those patterns. He was excited that we had identified one of his main areas of difficulty.</p>'
+				'body' => '<p>Rowan is a delight to work with. His enthusiasm and willingness to tackle new challenges are qualities that will support his growth as a reader and writer.</p>'
+					. '<p>His standout strength is not a test score, it is self-awareness. Rowan could name exactly where reading trips him up: he has never been sure when letters work on their own and when they team up to spell a single sound. I explained that two, three or four letters can represent one sound, and reassured him that we will focus on teaching those patterns. He was excited that we had identified one of his main areas of difficulty.</p>'
 					. '<p>A student who can locate his own confusion is ready to learn. His growth areas are all highly teachable and quick to respond to instruction. Paired with his motivation and clean letter directionality, that is a strong foundation to build on.</p>'
-					. '<p><strong>To Kaine.</strong> Here is what we want you to know: the way you have been taught to read is not the way the brain learns to process language, and that is not your fault. We have seen students just like you make remarkable progress once they are taught an approach that finally makes sense. You have not failed at reading. You have simply not yet had the right tools.</p>'
-					. '<p>Please do not hesitate to reach out with any questions. We would count it a privilege to support Kaine on his reading and writing journey.</p>'
+					. '<p><strong>To Rowan.</strong> Here is what we want you to know: the way you have been taught to read is not the way the brain learns to process language, and that is not your fault. We have seen students just like you make remarkable progress once they are taught an approach that finally makes sense. You have not failed at reading. You have simply not yet had the right tools.</p>'
+					. '<p>Please do not hesitate to reach out with any questions. We would count it a privilege to support Rowan on his reading and writing journey.</p>'
 					. '<p>Warmly,<br>Candice Paluck<br>Brilliant Futures Tutoring</p>',
 			),
 		);
@@ -449,7 +451,7 @@ HTML,
 	}
 
 	/**
-	 * The sixteen lessons behind Jot's progress report.
+	 * The sixteen lessons behind Rowan's progress report.
 	 *
 	 * Real enough to demonstrate the parts of the report that are built from
 	 * lesson records rather than typed: the coverage map, the counts across
@@ -538,7 +540,7 @@ HTML,
 	 *
 	 * The ones the sample's activities build, and then the ones still ahead of
 	 * this child. Without the second group the library was exactly the list
-	 * Jot had already reached, and the stat tile read "14 of 14" — a child
+	 * Rowan had already reached, and the stat tile read "14 of 14" — a child
 	 * eight weeks into a year being shown a finished programme, which is the
 	 * one thing a sample must not say.
 	 */
@@ -686,10 +688,10 @@ HTML,
 		);
 
 		$notes = array(
-			1 => 'We began with the alphabet timing, then moved straight into sound lines using words from Jot\'s own speech. He was cautious at first and much more willing by the end of the fifty minutes.',
-			5 => 'Read, Read Back, Read Again on The Yucky Feeling. First pass was effortful, third pass was smooth and expressive. Jot noticed the difference himself, which matters more than the timing.',
-			9 => 'Multisyllable sound lines on four and five syllable words. Jot\'s instinct is still to guess from the first letter, and he is catching himself doing it, which is the step before stopping.',
-			13 => 'Key word, Action, Thing applied to Rook of the Pines. Jot summarised page two back to me with no prompting.',
+			1 => 'We began with the alphabet timing, then moved straight into sound lines using words from Rowan\'s own speech. He was cautious at first and much more willing by the end of the fifty minutes.',
+			5 => 'Read, Read Back, Read Again on The Yucky Feeling. First pass was effortful, third pass was smooth and expressive. Rowan noticed the difference himself, which matters more than the timing.',
+			9 => 'Multisyllable sound lines on four and five syllable words. Rowan\'s instinct is still to guess from the first letter, and he is catching himself doing it, which is the step before stopping.',
+			13 => 'Key word, Action, Thing applied to Rook of the Pines. Rowan summarised page two back to me with no prompting.',
 			16 => 'Multisyllable spelling introduced, then straight into a Grade 4 text. He read it.',
 		);
 		// What used to be "what to do at home" is the homework, since the
@@ -756,7 +758,7 @@ HTML,
 	}
 
 	/* ------------------------------------------------------------------ */
-	/* Jot Singh, the tables a progress report builds                      */
+	/* Rowan Ellery, the tables a progress report builds                      */
 	/* ------------------------------------------------------------------ */
 
 	/**
@@ -771,7 +773,7 @@ HTML,
 			'sec-assessment-overview' => array(
 				'kind'        => 'interim',
 				'assessed_on' => '2026-09-01',
-				'overview'    => '<p>Jot was reassessed on 1 September, eight weeks after his baseline. Every one of the six areas has moved, and two of them have moved a long way: handwriting automaticity from 14 letters a minute to 29, and passage reading from 40 words a minute to 64.</p>'
+				'overview'    => '<p>Rowan was reassessed on 1 September, eight weeks after his baseline. Every one of the six areas has moved, and two of them have moved a long way: handwriting automaticity from 14 letters a minute to 29, and passage reading from 40 words a minute to 64.</p>'
 					. '<p>His independent reading level is now Grade 2. That is the number families ask about most, and it is the slowest one to move, so a full level in eight weeks is ahead of what I expected when we started.</p>',
 			),
 			'dxsec-1' => array( 'score' => '29', 'written' => '32' ),
@@ -807,7 +809,7 @@ HTML,
 	/**
 	 * The four derived tables, for a report with no records behind it.
 	 *
-	 * These are what BFTD_Derived would read off Jot's lessons, activities and
+	 * These are what BFTD_Derived would read off Rowan's lessons, activities and
 	 * diagnostics if he had any. Written out here so the sample shows the real
 	 * shape of each one — including the parts that only appear once there is
 	 * something to say, like a text read in more than one lesson.
@@ -835,7 +837,7 @@ HTML,
 	 *
 	 * The figures are the sample diagnostic's own: forty words a minute at the
 	 * baseline, sixty four at the reassessment, which is what the overview on
-	 * that card says in words. Jot is in Grade 3, so the benchmark he is
+	 * that card says in words. Rowan is in Grade 3, so the benchmark he is
 	 * heading for is the Grade 3 one.
 	 */
 	private static function sample_fluency() {
@@ -859,7 +861,7 @@ HTML,
 	/**
 	 * Where a programme is up to, and the three cards that say so.
 	 *
-	 * Jot is eight weeks in: the initial assessment is behind him, the middle
+	 * Rowan is eight weeks in: the initial assessment is behind him, the middle
 	 * and the final are not. That is the useful shape to show in a sample,
 	 * because a family reading their own report will usually be somewhere in
 	 * the middle of it too.
@@ -876,7 +878,7 @@ HTML,
 	}
 
 	/**
-	 * Reading grade level, from where Jot started to the grade he is in.
+	 * Reading grade level, from where Rowan started to the grade he is in.
 	 *
 	 * An interim reading between the initial and today, because that is the
 	 * case worth showing: it is a real measurement and it is not one of the
@@ -896,13 +898,13 @@ HTML,
 					'on' => '2026-09-01', 'ts' => BFTD_Time::stamp( '2026-09-01' ),
 					'rank' => 4, 'level' => 'Grade 2' ),
 			),
-			// Jot is in Grade 3, so Grade 3 is what he is aiming at.
+			// Rowan is in Grade 3, so Grade 3 is what he is aiming at.
 			'target' => array( 'rank' => 5, 'level' => 'Grade 3' ),
 		);
 	}
 
 	/* ------------------------------------------------------------------ */
-	/* Jot Singh, progress report                                          */
+	/* Rowan Ellery, progress report                                          */
 	/* ------------------------------------------------------------------ */
 
 	private static function progress() {
@@ -917,7 +919,7 @@ HTML,
 			),
 
 			'sec-progress-overview' => array(
-				'intro' => 'Where Jot started, where he is now, and the reading level of his own grade, which is what we are working towards.',
+				'intro' => 'Where Rowan started, where he is now, and the reading level of his own grade, which is what we are working towards.',
 			),
 
 			'sec-activity-map' => array(
@@ -929,11 +931,11 @@ HTML,
 			),
 
 			'sec-attendance' => array(
-				'intro' => 'How often Jot is here, counted from the session records themselves.',
+				'intro' => 'How often Rowan is here, counted from the session records themselves.',
 			),
 
 			'sec-fluency' => array(
-				'intro' => 'How many words Jot reads correctly in a minute, against the benchmark for his own grade.',
+				'intro' => 'How many words Rowan reads correctly in a minute, against the benchmark for his own grade.',
 			),
 
 

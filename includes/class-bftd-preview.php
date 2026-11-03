@@ -35,6 +35,46 @@ class BFTD_Preview {
 		// And one click from a list, which is where somebody asking "what
 		// does the family actually see on this one" is standing.
 		add_filter( 'post_row_actions', array( __CLASS__, 'row_action' ), 10, 2 );
+
+		// The demo student's reports, pinned to the top of the two report
+		// lists, so the sample is found where reports are (Karl, 1.167).
+		add_action( 'admin_footer-edit.php', array( __CLASS__, 'sample_row' ) );
+	}
+
+	/**
+	 * The sample report as the first row of its list.
+	 *
+	 * It is not a post, so it is not in the table WordPress draws. A row is
+	 * added above the real ones, named the way a real report is named and
+	 * marked as the demo, opening the sample in a new tab. Not on the trash
+	 * view, where a report that cannot be deleted has no business being.
+	 */
+	public static function sample_row() {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen ) return;
+		$which = array( BFTD_CPT::ASSESSMENT => 'diagnostic', BFTD_CPT::PROGRESS => 'progress' );
+		if ( ! isset( $which[ $screen->post_type ] ) ) return;
+		if ( isset( $_GET['post_status'] ) && 'trash' === $_GET['post_status'] ) return;
+
+		echo self::sample_row_html( $which[ $screen->post_type ] );
+	}
+
+	/** The row itself, and the few lines that put it at the top of the table. */
+	public static function sample_row_html( $which ) {
+		$sample = class_exists( 'BFTD_Sample' ) ? BFTD_Sample::get( $which ) : null;
+		if ( ! $sample ) return '';
+		$kind = ( 'progress' === $which ) ? 'progress report' : 'reading diagnostic';
+
+		$row = '<tr class="bftd-sample-row"><td colspan="99">'
+			. '<strong>' . esc_html( $sample['student'] . ', ' . $kind ) . '</strong> '
+			. '<span class="bftd-pill bftd-pill-purple">Demo student</span> '
+			. '<a href="' . esc_url( self::sample_url( $which ) ) . '" target="_blank" rel="noopener">View report</a>'
+			. '<span class="description bftd-sample-note">Made up for training, demonstrations and ads. Not a real student, and nothing in it can be edited.</span>'
+			. '</td></tr>';
+
+		return '<template id="bftd-sample-row">' . $row . '</template>'
+			. '<script>( function () { var t = document.getElementById( "bftd-sample-row" ), l = document.getElementById( "the-list" );'
+			. ' if ( t && l ) l.insertBefore( t.content.firstElementChild.cloneNode( true ), l.firstChild ); }() );</script>';
 	}
 
 	/**

@@ -558,12 +558,12 @@ class BFTD_Pay {
 		$day = function ( $n ) use ( $start ) { return BFTD_Time::add_days( $start, (int) $n ); };
 
 		$rows = array(
-			array( 'kind' => self::TAUGHT,      'on' => $day( 0 ),  'at' => '16:00', 'who' => 'Jot Singh',    'amount' => 4500, 'state' => self::PAID ),
-			array( 'kind' => self::TAUGHT,      'on' => $day( 2 ),  'at' => '09:00', 'who' => 'Kaine M',      'amount' => 4500, 'state' => self::APPROVED ),
+			array( 'kind' => self::TAUGHT,      'on' => $day( 0 ),  'at' => '16:00', 'who' => 'Rowan Ellery', 'amount' => 4500, 'state' => self::PAID ),
+			array( 'kind' => self::TAUGHT,      'on' => $day( 2 ),  'at' => '09:00', 'who' => 'Mae Okafor',   'amount' => 4500, 'state' => self::APPROVED ),
 			array( 'kind' => self::DIAGNOSTIC,  'on' => $day( 3 ),  'at' => '',      'who' => 'Bea Fournier', 'amount' => 15000, 'state' => self::APPROVED ),
-			array( 'kind' => self::RESCHEDULED, 'on' => $day( 7 ),  'at' => '16:00', 'who' => 'Jot Singh',    'amount' => 4500, 'state' => self::PENDING ),
+			array( 'kind' => self::RESCHEDULED, 'on' => $day( 7 ),  'at' => '16:00', 'who' => 'Rowan Ellery', 'amount' => 4500, 'state' => self::PENDING ),
 			array( 'kind' => self::CANCELLED,   'on' => $day( 9 ),  'at' => '17:30', 'who' => 'Bea Fournier', 'amount' => 4500, 'state' => self::PENDING ),
-			array( 'kind' => self::TAUGHT,      'on' => $day( 10 ), 'at' => '15:00', 'who' => 'Kaine M',      'amount' => 4500, 'state' => self::DECLINED ),
+			array( 'kind' => self::TAUGHT,      'on' => $day( 10 ), 'at' => '15:00', 'who' => 'Mae Okafor',   'amount' => 4500, 'state' => self::DECLINED ),
 		);
 
 		$out = array();

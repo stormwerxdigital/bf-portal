@@ -1435,3 +1435,8 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
 .bftd-section-body .bftd-field .bftd-field{margin-top:12px}
 .bftd-section-body .bftd-field .bftd-field .bftd-label,
 .bftd-section-body .bftd-rows .bftd-label, .bftd-section-body table .bftd-label{font-size:13px;font-weight:700;padding:0;border:0;margin-bottom:5px}
+
+/* The demo student's sample report, pinned to the top of its list (1.167). */
+.bftd-sample-row td{background:var(--bftd-purple-wash);padding:12px 10px}
+.bftd-sample-row .bftd-pill{margin:0 6px}
+.bftd-sample-note{display:block;margin-top:4px}

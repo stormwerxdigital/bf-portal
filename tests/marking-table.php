@@ -244,7 +244,7 @@ $boot = file_get_contents(BFTD_PATH . 'bf-tutoring-dashboard.php');
 check(false !== strpos($boot, 'fonts_url()'), 'and wp-admin loads that same list too');
 check(!isset($v['body']), 'its introduction is the schema\'s standing wording, not the sample\'s');
 check(false === strpos($v['body_after'], '<table'), 'the notes carry no table by hand');
-check(false !== strpos($v['body_after'], 'Kaine willingly completed'),
+check(false !== strpos($v['body_after'], 'Rowan willingly completed'),
   'and are what the tutor actually wrote about this child');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";

@@ -138,6 +138,11 @@ require BFTD_PATH.'includes/class-bftd-report-view.php';
 $sample = BFTD_Sample::get('diagnostic');
 $which  = $argv[1] ?? 'kinder';
 $fields = $sample['fields'];
+if ('kinder' === $which) {
+  // A student who did the Kindergarten word list: twelve words, against the
+  // Grade 8 minimum. The sample itself did a passage since 1.167.
+  $fields['dxsec-4'] = array('form' => 'kinder', 'kinder_score' => '12', 'min_grade' => 'grade-8');
+}
 if ('passage' === $which) {
   // The training document's own example: 49 read, 9 errors, Grade 4.
   $fields['dxsec-4'] = array('form' => 'passage', 'words' => '49', 'errors' => '9', 'norm' => 'grade-4');

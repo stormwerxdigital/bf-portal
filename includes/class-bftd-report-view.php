@@ -1203,7 +1203,7 @@ class BFTD_Report_View {
 		return '';
 	}
 
-	/** "11 August 2026 · born 6 July 2013 · age 13 · Grade 8 · Chewelah School District · assessed by Candice Paluck" */
+	/** "5 July 2026 · born 14 March 2018 · age 8 · Grade 3 · Cedar Hollow Elementary · assessed by Candice Paluck" */
 	private static function hero_line( $report, $student_id, $v ) {
 		$bits = array();
 		if ( ! empty( $v['assessed_on'] ) ) $bits[] = BFTD_Time::day( $v['assessed_on'], get_option( 'date_format' ) ? get_option( 'date_format' ) : 'j F Y' );
@@ -1236,7 +1236,7 @@ class BFTD_Report_View {
 		return implode( ' · ', $bits );
 	}
 
-	/** "Jot Singh · Grade 3 · started 5 July 2026 · tutor Laurel Sanders" */
+	/** "Rowan Ellery · Grade 3 · started 5 July 2026 · tutor Laurel Sanders" */
 	private static function progress_line( $report, $student_id, $name ) {
 		if ( ! empty( self::$extra['eyebrow'] ) ) return self::$extra['eyebrow'];
 

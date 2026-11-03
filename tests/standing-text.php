@@ -273,7 +273,7 @@ foreach (array(
 
 /* What the tutor wrote is still the tutor's, not overwritten by the wording. */
 $notes = BFTD_Fields::get(0, 'dxsec-1', 'body_after', BFTD_Schema::section('dxsec-1')['fields']['body_after']);
-check(false !== strpos($notes, 'Kaine'), 'while the notes in the sample are still about the child');
+check(false !== strpos($notes, 'Rowan'), 'while the notes in the sample are still about the child');
 BFTD_Fields::clear_fixture();
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
