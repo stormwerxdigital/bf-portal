@@ -76,5 +76,16 @@ check(false !== strpos($pv, "add_action( 'admin_footer-edit.php', array( __CLASS
 check(1 === preg_match("#function sample_row\(\).*?BFTD_CPT::ASSESSMENT => 'diagnostic', BFTD_CPT::PROGRESS => 'progress'.*?'trash' === \\\$_GET\['post_status'\]#s", $pv),
   'only on the two report lists, and not on their trash');
 
+/* ---- anyone can open them (1.169) ---- */
+$a = strpos($pv, "\tprivate static function render_sample(");
+$b = strpos($pv, "\tprivate static function hidden_sections(");
+$sample_src = substr($pv, $a, $b - $a);
+check(false === strpos($sample_src, 'is_user_logged_in'), 'a sample opens without signing in, for families and ads');
+check(false !== strpos($pv, "if ( ! current_user_can( 'edit_post', \$report_id ) && ! BFTD_Access::can_staff_view( \$report_id ) ) {"),
+  'while a real report still needs someone allowed to open it');
+check(false !== strpos($pv, "wp_verify_nonce( sanitize_key( \$_GET['_wpnonce'] ), 'bftd_preview_' . \$report_id )"), 'and a signed link');
+check(false !== strpos($pv, '<meta name="robots" content="noindex, nofollow">'), 'and the page is kept out of search results');
+check(1 === preg_match('/\.bftd-sample-row a\{text-decoration:underline/', file_get_contents(BFTD_PATH . 'assets/css/bftd-admin.css')), 'View report is underlined, so it reads as a link');
+
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

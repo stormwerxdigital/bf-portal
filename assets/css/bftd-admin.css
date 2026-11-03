@@ -1439,4 +1439,6 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
 /* The demo student's sample report, pinned to the top of its list (1.167). */
 .bftd-sample-row td{background:var(--bftd-purple-wash);padding:12px 10px}
 .bftd-sample-row .bftd-pill{margin:0 6px}
+/* Underlined, so it reads as a link beside the pill (Karl, 1.169). */
+.bftd-sample-row a{text-decoration:underline;text-underline-offset:2px}
 .bftd-sample-note{display:block;margin-top:4px}

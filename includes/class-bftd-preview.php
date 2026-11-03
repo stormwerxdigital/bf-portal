@@ -229,7 +229,11 @@ class BFTD_Preview {
 	}
 
 	private static function render_sample( $which ) {
-		if ( ! is_user_logged_in() ) self::deny( 'Please sign in to see the sample report.' );
+		// Open to anyone, signed in or not (Karl, 1.169): the samples are a
+		// made-up student, shown to families and in ads. Everything on the
+		// page comes from BFTD_Sample's fixtures, never from a real record,
+		// and the page still asks search engines not to index it. A real
+		// report's preview below keeps its nonce and permission checks.
 
 		$sample = BFTD_Sample::get( $which );
 		if ( ! $sample ) self::deny( 'There is no sample of that kind.' );
