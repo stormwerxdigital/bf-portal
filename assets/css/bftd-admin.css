@@ -1442,3 +1442,26 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
 /* Underlined, so it reads as a link beside the pill (Karl, 1.169). */
 .bftd-sample-row a{text-decoration:underline;text-underline-offset:2px}
 .bftd-sample-note{display:block;margin-top:4px}
+
+/* An activity's description under it on a session (1.172). Easy to read:
+   body size text on a pale panel, the first lines shown and the rest on
+   Show all. */
+/* The activity's column is kept to 420px for the search box; with a
+   description showing, it takes the row, and the text stops at a width that
+   is comfortable to read. */
+.bftd-stackrow-lead:has(.bftd-actabout:not([hidden])){flex:1 1 auto;max-width:none}
+.bftd-actabout{max-width:760px;margin:8px 0 6px 0;background:var(--bftd-purple-wash);border-left:3px solid var(--bftd-purple-mid, #9C86AB);border-radius:0 4px 4px 0;padding:10px 14px}
+.bftd-actabout-k{display:block;font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--bftd-purple-deep);margin-bottom:4px}
+.bftd-actabout-body{font-size:14px;line-height:1.55;max-height:9.3em;overflow:hidden}
+.bftd-actabout.is-open .bftd-actabout-body{max-height:none}
+.bftd-actabout-body p{margin:0 0 .6em}
+.bftd-actabout-body p:last-child{margin-bottom:0}
+.bftd-actabout-body ul,.bftd-actabout-body ol{margin:0 0 .6em 1.3em}
+.bftd-actabout-none{color:var(--bftd-stone-deep);font-style:italic}
+.bftd-actabout-more{margin-top:6px}
+
+/* A note opened full screen covers the whole window. The admin menu and bar
+   sat on top of it and hid the start of every line (Laurel, 1.172). */
+html.mce-fullscreen #adminmenumain,
+html.mce-fullscreen #wpadminbar{display:none}
+html.mce-fullscreen div.mce-fullscreen{left:0 !important;top:0 !important;right:0 !important;width:auto !important;z-index:100050}

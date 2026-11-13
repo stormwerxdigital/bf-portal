@@ -1276,6 +1276,7 @@ class BFTD_Fields {
 
 		if ( 'activity' === $col['type'] ) {
 			echo BFTD_Activities::picker( $name, (int) $val );   // escaped where it is built
+			echo BFTD_Activities::about_box( (int) $val );       // and its description under it (1.172)
 		} elseif ( 'skill' === $col['type'] ) {
 			echo BFTD_Skills::picker( $name, (int) $val );       // the same
 		} elseif ( 'select' === $col['type'] ) {

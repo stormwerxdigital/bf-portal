@@ -5,7 +5,7 @@
  * Primary Branch: main
  * Plugin URI:  https://bftutoring.com
  * Description: The parent portal and the tutor back end for Brilliant Futures Tutoring. Reading diagnostics, living progress reports, lesson records, per-section conversations, a full activity log, and customisable email with send rules.
- * Version:     1.171.0
+ * Version:     1.172.0
  * Author:      Stormwerx Digital
  * Author URI:  https://stormwerxdigital.com
  * Text Domain: bftd
@@ -13,7 +13,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'BFTD_VERSION', '1.171.0' );
+define( 'BFTD_VERSION', '1.172.0' );
 define( 'BFTD_PATH', plugin_dir_path( __FILE__ ) );
 define( 'BFTD_URL', plugin_dir_url( __FILE__ ) );
 
@@ -152,6 +152,12 @@ final class BFTD_Plugin {
 		// here: it looks for a report on the page and finds none.
 		if ( $ours ) wp_enqueue_script( 'bftd-report', BFTD_URL . 'assets/js/bftd-report.js', array(), BFTD_VERSION, true );
 		$draft = ( $ours && class_exists( 'BFTD_Autosave' ) ) ? BFTD_Autosave::is_draft( $post ) : false;
+
+		// On a session, every activity's description, so the box under an
+		// activity fills the moment one is chosen (1.172).
+		if ( $post && BFTD_CPT::SESSION === $post->post_type && class_exists( 'BFTD_Activities' ) ) {
+			wp_add_inline_script( 'bftd-admin', 'window.BFTD_ACT_ABOUT = ' . wp_json_encode( BFTD_Activities::about_map() ) . ';', 'before' );
+		}
 
 		wp_localize_script( 'bftd-admin', 'BFTD', array(
 			'ajax_url' => admin_url( 'admin-ajax.php' ),

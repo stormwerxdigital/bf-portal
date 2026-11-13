@@ -718,6 +718,14 @@ HTML,
 			16 => array( array( 'title' => 'This is North America', 'level' => 'Grade 4' ) ),
 		);
 
+		// Morphology matrices studied, so the sample shows the band they build
+		// on the family's report (1.172).
+		$matrices = array(
+			12 => array( array( 'matrix' => '<sign>' ) ),
+			14 => array( array( 'matrix' => '<struct>' ) ),
+			16 => array( array( 'matrix' => '<port>' ), array( 'matrix' => '<sign>' ) ),
+		);
+
 		$out = array();
 		foreach ( $plan as $n => $row ) {
 			list( $date, $acts ) = $row;
@@ -741,6 +749,7 @@ HTML,
 				// sample's lessons carry them too rather than the reading log
 				// appearing from nowhere.
 				'texts'        => isset( $read[ $n ] ) ? $read[ $n ] : array(),
+				'matrices'     => isset( $matrices[ $n ] ) ? $matrices[ $n ] : array(),
 			) );
 		}
 

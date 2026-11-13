@@ -16,6 +16,7 @@
  * a change of model quietly blanks a year of reports.
  */
 require __DIR__ . '/wp-stubs.php';
+if (!function_exists('wpautop')) { function wpautop($s) { return '<p>' . trim($s) . '</p>'; } }
 define('BFTD_PATH', dirname(__DIR__) . '/');
 if (!defined('BFTD_URL')) define('BFTD_URL', '');
 

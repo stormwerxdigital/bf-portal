@@ -2036,7 +2036,7 @@ class BFTD_Schema {
 			'screen'  => self::SCREEN_REPORT,
 			// "Strengths and weaknesses" in 1.164; back to areas for growth at
 			// Laurel's request in 1.166, because "weak" can sting a parent.
-			// The second column is still called Weaknesses (Karl, 1.155).
+			// The second column is "Areas for growth" too since 1.172.
 			'label'   => 'Strengths and areas for growth',
 			'eyebrow' => 'Profile',
 			'thread'  => true,
@@ -2049,9 +2049,11 @@ class BFTD_Schema {
 				'strengths' => array( 'type' => 'rows', 'label' => 'Strengths', 'add_label' => 'Add a strength', 'from_list' => 'item',
 					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Strength' ) ),
 					'help' => 'One strength per row. Shown in the first column of the table on the report.' ),
-				'growth'    => array( 'type' => 'rows', 'label' => 'Weaknesses', 'add_label' => 'Add a weakness', 'from_list' => 'item',
-					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Weakness' ) ),
-					'help' => 'One weakness per row. Shown in the second column, beside the strengths.' ),
+				// "Areas for growth" again, at Laurel's request (1.172). The key
+				// stays 'growth', so nothing saved moves.
+				'growth'    => array( 'type' => 'rows', 'label' => 'Areas for growth', 'add_label' => 'Add an area for growth', 'from_list' => 'item',
+					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Area for growth' ) ),
+					'help' => 'One area for growth per row. Shown in the second column, beside the strengths.' ),
 			),
 		);
 

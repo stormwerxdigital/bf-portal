@@ -3689,3 +3689,41 @@ jQuery( function ( $ ) {
 		el.setSelectionRange( at - 1, at - 1 );
 	} );
 }( jQuery ) );
+
+/* --------------------------------------------------------------------------
+   An activity's description under it on a session (Laurel, 1.172).
+
+   Filled from the library when an activity is chosen or changed. A long one
+   is shown in part, with Show all, so a session with five activities is not
+   five pages long.
+   -------------------------------------------------------------------------- */
+( function ( $ ) {
+	'use strict';
+
+	function fit( $box ) {
+		var body = $box.find( '.bftd-actabout-body' )[ 0 ];
+		if ( ! body ) return;
+		var long = body.scrollHeight > body.clientHeight + 4 || $box.hasClass( 'is-open' );
+		$box.find( '.bftd-actabout-more' ).prop( 'hidden', ! long );
+	}
+
+	$( document ).on( 'change', '.bftd-actpick-s', function () {
+		var $box = $( this ).closest( '.bftd-actpick' ).nextAll( '.bftd-actabout' ).first();
+		if ( ! $box.length ) return;
+		var id   = $( this ).val() || '';
+		var map  = window.BFTD_ACT_ABOUT || {};
+		var html = map[ id ] || '<p class="bftd-actabout-none">No description in the activity library yet.</p>';
+		$box.removeClass( 'is-open' ).find( '.bftd-actabout-more' ).text( 'Show all' );
+		$box.find( '.bftd-actabout-body' ).html( html );
+		$box.prop( 'hidden', '' === id );
+		fit( $box );
+	} );
+
+	$( document ).on( 'click', '.bftd-actabout-more', function ( e ) {
+		e.preventDefault();
+		var $box = $( this ).closest( '.bftd-actabout' ).toggleClass( 'is-open' );
+		$( this ).text( $box.hasClass( 'is-open' ) ? 'Show less' : 'Show all' );
+	} );
+
+	$( function () { $( '.bftd-actabout:not([hidden])' ).each( function () { fit( $( this ) ); } ); } );
+}( jQuery ) );

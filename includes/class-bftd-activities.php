@@ -314,6 +314,40 @@ class BFTD_Activities {
 		return (string) $post->post_content;
 	}
 
+	/**
+	 * What the library says about an activity, ready to show: the same words
+	 * a family reads as "About this activity" (Laurel, 1.172).
+	 */
+	public static function about_html( $id ) {
+		$about = trim( self::description( (int) $id ) );
+		return '' === wp_strip_all_tags( $about ) ? '' : wp_kses_post( wpautop( $about ) );
+	}
+
+	/** Every activity's description by id, for the session screen's script. */
+	public static function about_map() {
+		$out = array();
+		foreach ( array_keys( self::all() ) as $id ) $out[ (int) $id ] = self::about_html( $id );
+		return $out;
+	}
+
+	/**
+	 * The box under a chosen activity on a session, holding its description.
+	 *
+	 * So a tutor sees what the activity is, and what it builds, without
+	 * leaving the session to look it up (Laurel, 1.172). Read only: the words
+	 * belong to the library and are changed there. Drawn for every row and
+	 * hidden while nothing is chosen, so choosing one only has to fill it.
+	 */
+	public static function about_box( $id ) {
+		$id   = (int) $id;
+		$html = $id ? self::about_html( $id ) : '';
+		$out  = '<div class="bftd-actabout"' . ( $id ? '' : ' hidden' ) . '>';
+		$out .= '<span class="bftd-actabout-k">About this activity</span>';
+		$out .= '<div class="bftd-actabout-body">' . ( '' !== $html ? $html : '<p class="bftd-actabout-none">No description in the activity library yet.</p>' ) . '</div>';
+		$out .= '<button type="button" class="button-link bftd-actabout-more" hidden>Show all</button>';
+		return $out . '</div>';
+	}
+
 	/** How many activities the programme has, for the "N of M" on a report. */
 	public static function total() {
 		return count( self::all() );

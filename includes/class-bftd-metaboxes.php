@@ -660,9 +660,11 @@ class BFTD_MetaBoxes {
 				// Ordered as the story runs: bought, then scheduled, then
 				// taught, and finally what is left. Remaining lands last
 				// because it is the answer the other three add up to.
+				// "Booked ahead" was a tile here. Removed in 1.172: with the
+				// schedule stopping where the paid sessions run out, it always
+				// showed the same figure as Remaining.
 				$tiles = array(
 					array( 'purchased', 'Purchased',    'Set under Student details.' ),
-					array( 'booked',    'Booked ahead', 'Scheduled and paid for.' ),
 					array( 'used',      'Used',         'Counted from the sessions actually recorded.' ),
 					array( 'remaining', 'Remaining',    'Purchased minus used.' ),
 				);

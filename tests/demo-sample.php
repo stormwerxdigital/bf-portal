@@ -87,5 +87,10 @@ check(false !== strpos($pv, "wp_verify_nonce( sanitize_key( \$_GET['_wpnonce'] )
 check(false !== strpos($pv, '<meta name="robots" content="noindex, nofollow">'), 'and the page is kept out of search results');
 check(1 === preg_match('/\.bftd-sample-row a\{text-decoration:underline/', file_get_contents(BFTD_PATH . 'assets/css/bftd-admin.css')), 'View report is underlined, so it reads as a link');
 
+/* ---- the demo shows the matrices band too (1.172) ---- */
+$mx = array();
+foreach ($pr['sessions'] as $sid => $rec) foreach ((array) ($rec['session']['matrices'] ?? array()) as $row) $mx[] = $row['matrix'];
+check(array('<sign>', '<struct>', '<port>', '<sign>') === $mx, 'Rowan\'s sessions record morphology matrices, got ' . json_encode($mx));
+
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

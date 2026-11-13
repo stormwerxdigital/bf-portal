@@ -20,9 +20,10 @@ check(false !== strpos(file_get_contents(BFTD_PATH . 'includes/class-bftd-report
 			areas for growth, the recommended"),
   'and the line introducing the full report calls it that too');
 check('rows' === $f['strengths']['type'] && 'rows' === $f['growth']['type'], 'both are lists of rows');
-check('Strengths' === $f['strengths']['label'] && 'Weaknesses' === $f['growth']['label'], 'called Strengths and Weaknesses');
+check('Strengths' === $f['strengths']['label'] && 'Areas for growth' === $f['growth']['label'], 'called Strengths and Areas for growth (Laurel, 1.172)');
 check(array('strengths', 'growth') === $sec['pair_table'], 'Strengths first, Weaknesses second');
-check('Add a strength' === $f['strengths']['add_label'] && 'Add a weakness' === $f['growth']['add_label'], 'each with its own add button');
+check('Add a strength' === $f['strengths']['add_label'] && 'Add an area for growth' === $f['growth']['add_label'], 'each with its own add button');
+check('Area for growth' === $f['growth']['columns']['item']['label'] && false === stripos($f['growth']['help'], 'weak'), 'and nothing in the editor still says weakness');
 
 /* old bulleted lists read as rows */
 $rows = BFTD_Fields::list_to_rows('<ul><li>handwriting automaticity:&nbsp; 52 letters</li><li> Reads at <strong>Grade 9</strong> </li><li></li></ul>', 'item');
@@ -40,12 +41,12 @@ $html = BFTD_Report_View::pair_table($sec, array(
   'strengths' => array(array('item' => 'Reads at Grade 9'), array('item' => 'Clear writing'), array('item' => '')),
   'growth'    => array(array('item' => 'Spelling <b>longer</b> words'), array('item' => 'Rate'), array('item' => 'Contractions')),
 ), $sec['pair_table']);
-check(1 === preg_match('#<colgroup><col style="width:50%"><col style="width:50%"></colgroup><thead><tr><th>Strengths</th><th>Weaknesses</th></tr></thead>#', $html), 'two equal columns, headed Strengths then Weaknesses');
+check(1 === preg_match('#<colgroup><col style="width:50%"><col style="width:50%"></colgroup><thead><tr><th>Strengths</th><th>Areas for growth</th></tr></thead>#', $html), 'two equal columns, headed Strengths then Areas for growth');
 check(3 === substr_count($html, '<tr>') - 1, 'as many rows as the longer list');
 check(false !== strpos($html, '<tr><td>Reads at Grade 9</td><td>Spelling &lt;b&gt;longer&lt;/b&gt; words</td></tr>'), 'paired row by row, escaped');
 check(false !== strpos($html, '<tr><td></td><td>Contractions</td></tr>'), 'the shorter list leaves its cell blank');
 $only = BFTD_Report_View::pair_table($sec, array('strengths' => array(), 'growth' => array(array('item' => 'Rate'))), $sec['pair_table']);
-check(false === strpos($only, 'Strengths') && false !== strpos($only, 'Weaknesses'), 'an empty column is left out');
+check(false === strpos($only, 'Strengths') && false !== strpos($only, 'Areas for growth'), 'an empty column is left out');
 check('' === BFTD_Report_View::pair_table($sec, array(), $sec['pair_table']), 'and nothing at all is no table');
 $rv = file_get_contents(BFTD_PATH . 'includes/class-bftd-report-view.php');
 check(false !== strpos($rv, 'if ( in_array( $key, $paired, true ) ) continue;'), 'and the two lists are not drawn again under it');
