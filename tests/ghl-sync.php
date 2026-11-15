@@ -7,7 +7,7 @@
  * is checked here is what Phase 3 adds around it: GoHighLevel's fields reach
  * the merge under the right names; only linked students are synced; a record
  * GoHighLevel no longer has is reported, not guessed at; drafts are made only
- * when asked; the nightly run is there only while GoHighLevel is connected.
+ * when asked; the hourly run is there only while GoHighLevel is connected.
  */
 require __DIR__ . '/wp-stubs.php';
 define('BFTD_PATH', dirname(__DIR__) . '/');
@@ -22,6 +22,10 @@ function get_transient($k) { return $GLOBALS['T'][$k] ?? false; }
 function get_the_title($id) { return 'Student ' . $id; }
 function update_option($k, $v, $a = null) { $GLOBALS['OPT'][$k] = $v; return true; }
 function get_posts($a) { return array_keys($GLOBALS['LINKS']); }
+function update_post_meta($id, $k, $v) { $GLOBALS['META'][$id][$k] = $v; return true; }
+function get_post_meta($id, $k = '', $single = false) { $v = $GLOBALS['META'][$id][$k] ?? ($single ? '' : array()); return $v; }
+function get_user_by($f, $v) { return false; }
+class BFTD_Roles { public static function is_staff($u) { return false; } public static function can_manage() { return true; } }
 $GLOBALS['RECORDS'] = array();
 function wp_remote_request($url, $args) {
   $recs = array();
@@ -31,7 +35,8 @@ function wp_remote_request($url, $args) {
 function wp_remote_retrieve_response_code($r) { return $r['code']; }
 function wp_remote_retrieve_body($r) { return $r['body']; }
 class BFTD_Audit { public static function log($e, $a = array()) {} }
-class BFTD_CPT { const STUDENT = 'bftd_student'; }
+class BFTD_CPT { const STUDENT = 'bftd_student';
+  public static function client_ids($s) { return array(); } public static function staff_ids($s) { return array(); } public static function primary_client_id($s) { return 0; } }
 class BFTD_CRM {
   const LINK_KEY = '_bftd_crm_id';
   public static function linked($sid) { return $GLOBALS['LINKS'][$sid] ?? ''; }
@@ -44,7 +49,7 @@ class BFTD_CRM {
 }
 $GLOBALS['SCHED'] = array();
 function wp_next_scheduled($h) { return $GLOBALS['SCHED'][$h] ?? false; }
-function wp_schedule_event($t, $r, $h) { $GLOBALS['SCHED'][$h] = $t; }
+function wp_schedule_event($t, $r, $h) { $GLOBALS['SCHED'][$h] = $t; $GLOBALS['RECUR'][$h] = $r; }
 function wp_unschedule_event($t, $h) { unset($GLOBALS['SCHED'][$h]); }
 require BFTD_PATH . 'includes/class-bftd-ghl.php';
 
@@ -74,6 +79,7 @@ check($log['ok'] && 2 === count($log['rows']), 'every linked student is synced')
 check(1 === count($GLOBALS['UPSERTS']) && 'R1' === $GLOBALS['UPSERTS'][0]['crm_id'], 'through the merge, only for the ones GoHighLevel has');
 check(array('phone') === $log['rows'][0]['written'] && array('email') === $log['rows'][0]['held'], 'what was filled and what was left as typed are recorded');
 check(true === $log['rows'][1]['missing'], 'a link to a record GoHighLevel no longer has is reported, not guessed at');
+check(is_array($GLOBALS['META'][11][BFTD_GHL::PEOPLE_KEY] ?? null) && !isset($GLOBALS['META'][12]), 'each synced student keeps who GoHighLevel links it to');
 check('Karl' === $log['by'] && $GLOBALS['OPT'][BFTD_GHL::SYNC_LOG] === $log, 'the sync is logged, with who ran it');
 check(!isset($GLOBALS['LINKS'][901]), 'and no new student is made by a sync');
 
@@ -94,9 +100,12 @@ $GLOBALS['UPSERTS'] = array();
 BFTD_GHL::import_missing();
 check(array() === $GLOBALS['UPSERTS'], 'asking twice makes nothing twice');
 
-/* ---- the nightly run ---- */
+/* ---- the hourly run ---- */
+$GLOBALS['SCHED'] = array(BFTD_GHL::OLD_CRON => 123);
 BFTD_GHL::schedule();
-check(isset($GLOBALS['SCHED'][BFTD_GHL::CRON]), 'a nightly sync is scheduled while GoHighLevel is connected');
+check(isset($GLOBALS['SCHED'][BFTD_GHL::CRON]), 'a sync is scheduled while GoHighLevel is connected');
+check('hourly' === $GLOBALS['RECUR'][BFTD_GHL::CRON], 'and it runs every hour');
+check(!isset($GLOBALS['SCHED'][BFTD_GHL::OLD_CRON]), 'the nightly run it replaces is cleared');
 
 /* ---- where it is asked for ---- */
 $set = file_get_contents(BFTD_PATH . 'includes/class-bftd-settings.php');

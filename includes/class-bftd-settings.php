@@ -51,6 +51,7 @@ class BFTD_Settings {
 			'pay'     => 'Pay rates',
 			'crm'     => 'CRM connection',
 			'link'    => 'Link students',
+			'family'  => 'Caregivers and tutors',
 			'people'  => 'People and access',
 			'perms'   => 'Roles and permissions',
 		);
@@ -233,6 +234,7 @@ class BFTD_Settings {
 			case 'brand':  self::save_brand();  break;
 			case 'crm': self::save_crm(); break;
 			case 'link': if ( ! self::save_links() ) return; break;
+			case 'family': if ( ! self::save_family() ) return; break;
 			case 'portal': self::save_portal(); break;
 			case 'login':  self::save_login();  break;
 			case 'banner': self::save_banner(); break;
@@ -577,6 +579,7 @@ class BFTD_Settings {
 				switch ( $tab ) {
 					case 'crm': self::tab_crm(); break;
 					case 'link': self::tab_link(); break;
+					case 'family': self::tab_family(); break;
 					case 'portal': self::tab_portal(); break;
 					case 'login':  self::tab_login();  break;
 					case 'banner': self::tab_banner(); break;
@@ -683,7 +686,7 @@ class BFTD_Settings {
 			BFTD_GHL::students( true );
 			return true;
 		}
-		// Keep linked students in step now, rather than at tonight's sync (1.175).
+		// Keep linked students in step now, rather than at the next hourly sync (1.175).
 		if ( ! empty( $_POST['bftd_ghl_sync'] ) ) {
 			$log = BFTD_GHL::sync();
 			add_settings_error( 'bftd_settings', 'sync', $log['ok']
@@ -815,7 +818,7 @@ class BFTD_Settings {
 		<h3 style="margin-top:28px">Keeping linked students in step</h3>
 		<p>Linked students take their details from GoHighLevel: anything blank here is filled, anything the sync filled before
 			follows GoHighLevel, and anything typed here is left alone. Status and dates are only set when GoHighLevel creates a
-			student; after that they are this dashboard's. This runs every night by itself.</p>
+			student; after that they are this dashboard's. This runs every hour by itself.</p>
 		<?php if ( BFTD_Roles::can_manage() ) : ?>
 			<p><button class="button" name="bftd_ghl_sync" value="1">Sync linked students now</button></p>
 		<?php endif; ?>
@@ -830,6 +833,140 @@ class BFTD_Settings {
 				Yes, make <?php echo esc_html( $unmatched ); ?> draft students from GoHighLevel</label>
 				<button class="button" name="bftd_ghl_import" value="1">Bring them in</button></p>
 		<?php endif; ?>
+		<?php
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Caregivers and tutors from GoHighLevel (integration phase 4, 1.176) */
+	/* ------------------------------------------------------------------ */
+
+	/**
+	 * Offers ticked on the Caregivers and tutors tab. The same bar as linking
+	 * students, because adding a caregiver gives someone a child's reports.
+	 * Each tick is checked against what is on offer now, in BFTD_GHL::accept.
+	 */
+	private static function save_family() {
+		if ( ! self::may_edit_text() ) {
+			add_settings_error( 'bftd_settings', 'family', 'Only a Senior Manager or an Administrator can add caregivers and tutors from GoHighLevel.', 'error' );
+			return false;
+		}
+		if ( ! empty( $_POST['bftd_ghl_sync'] ) ) {
+			$log = BFTD_GHL::sync();
+			add_settings_error( 'bftd_settings', 'sync', $log['ok'] ? 'Read GoHighLevel again.' : 'GoHighLevel did not answer: ' . $log['error'], $log['ok'] ? 'updated' : 'error' );
+			return false;
+		}
+		$add  = isset( $_POST['bftd_offer'] ) ? (array) wp_unslash( $_POST['bftd_offer'] ) : array();
+		$hide = isset( $_POST['bftd_offer_no'] ) ? (array) wp_unslash( $_POST['bftd_offer_no'] ) : array();
+		$back = isset( $_POST['bftd_offer_back'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['bftd_offer_back'] ) ) : array();
+		$linked = BFTD_GHL::linked_students();
+
+		$done = array(); $failed = array(); $hidden = 0;
+		foreach ( $back as $sid ) {
+			if ( isset( $linked[ $sid ] ) ) delete_post_meta( $sid, BFTD_GHL::DISMISSED_KEY );
+		}
+		foreach ( $hide as $sid => $keys ) {
+			$sid = absint( $sid );
+			if ( ! isset( $linked[ $sid ] ) ) continue;
+			$keys = array_map( 'sanitize_text_field', (array) $keys );
+			BFTD_GHL::dismiss( $sid, $keys );
+			$hidden += count( $keys );
+		}
+		foreach ( $add as $sid => $keys ) {
+			$sid = absint( $sid );
+			if ( ! isset( $linked[ $sid ] ) ) continue;
+			$keys = array_diff( array_map( 'sanitize_text_field', (array) $keys ), array_map( 'sanitize_text_field', (array) ( $hide[ $sid ] ?? array() ) ) );
+			$r = BFTD_GHL::accept( $sid, $keys );
+			foreach ( $r['done'] as $d ) $done[] = $d . ' for ' . get_the_title( $sid );
+			foreach ( $r['failed'] as $f ) $failed[] = $f . ' for ' . get_the_title( $sid );
+		}
+		if ( $done )   add_settings_error( 'bftd_settings', 'family_done', 'Added ' . implode( '; ', $done ) . '. No email was sent.', 'updated' );
+		if ( $failed ) add_settings_error( 'bftd_settings', 'family_failed', 'Not added: ' . implode( '; ', $failed ) . '.', 'error' );
+		if ( $hidden ) add_settings_error( 'bftd_settings', 'family_hidden', $hidden . ' ' . ( 1 === $hidden ? 'offer' : 'offers' ) . ' hidden.', 'updated' );
+		if ( ! $done && ! $failed && ! $hidden && ! $back ) add_settings_error( 'bftd_settings', 'family_none', 'Nothing was ticked, so nothing changed.', 'updated' );
+		return false;
+	}
+
+	/**
+	 * For every linked student: the caregivers, teachers and staff GoHighLevel
+	 * has that the portal does not, each to tick. As of the last sync.
+	 */
+	private static function tab_family() {
+		if ( ! class_exists( 'BFTD_GHL' ) || ! BFTD_GHL::configured() ) {
+			echo '<p><strong>Not set up yet.</strong> GoHighLevel has to be connected first, under CRM connection.</p>';
+			return;
+		}
+		$may    = self::may_edit_text();
+		$linked = BFTD_GHL::linked_students();
+		$rows   = array(); $staff_error = ''; $synced = 0; $waiting = 0;
+		foreach ( $linked as $sid => $rid ) {
+			$people = BFTD_GHL::people( $sid );
+			if ( ! $people ) continue;
+			$synced++;
+			if ( '' !== $people['staff_error'] ) $staff_error = $people['staff_error'];
+			$r = BFTD_GHL::offers_for( $sid, true );
+			$r['hidden'] = count( BFTD_GHL::dismissed( $sid ) );
+			$waiting += count( $r['offers'] );
+			if ( $r['offers'] || $r['notes'] || $r['hidden'] ) $rows[ $sid ] = $r;
+		}
+		uksort( $rows, function ( $a, $b ) { return strcasecmp( get_the_title( $a ), get_the_title( $b ) ); } );
+		$kinds = array(
+			'link'   => 'Add their portal account as a caregiver',
+			'create' => 'Make a portal account and add them as a caregiver',
+			'assign' => 'Assign as a tutor',
+		);
+		?>
+		<p class="bftd-lede">The people GoHighLevel links to each linked student, offered here so the portal can catch up. Parents, caregivers
+			and teachers are GoHighLevel's contacts on the student; tutors are the GoHighLevel users who own or follow the student record,
+			matched to a staff account here by email. Nothing is added until you tick it and save. Nothing is emailed, and nothing
+			changes in GoHighLevel.</p>
+		<p><?php echo esc_html( count( $linked ) ); ?> linked students, <?php echo esc_html( $waiting ); ?> <?php echo 1 === $waiting ? 'person' : 'people'; ?> to add.
+			Read from GoHighLevel every hour.
+			<?php if ( $may ) : ?><button class="button-link" name="bftd_ghl_sync" value="1">Read GoHighLevel again</button><?php endif; ?></p>
+
+		<?php if ( '' !== $staff_error ) : ?>
+			<div class="notice notice-warning inline"><p><strong>Tutors cannot be offered yet.</strong> <?php echo esc_html( $staff_error ); ?></p></div>
+		<?php endif; ?>
+		<?php if ( ! $may ) : ?>
+			<div class="notice notice-info inline"><p>Only a Senior Manager or an Administrator can add people from here. This is what is waiting.</p></div>
+		<?php endif; ?>
+		<?php if ( ! $linked ) : ?>
+			<p>No students are linked to GoHighLevel yet. Link them on the Link students tab first.</p>
+		<?php elseif ( ! $synced ) : ?>
+			<p>Linked students have not been read since this was added. The next hourly sync will fill this in<?php echo $may ? ', or read GoHighLevel again now' : ''; ?>.</p>
+		<?php elseif ( ! $rows ) : ?>
+			<p>Everyone GoHighLevel links to these students is already here.</p>
+		<?php endif; ?>
+
+		<?php foreach ( $rows as $sid => $r ) : ?>
+			<h3 style="margin:24px 0 8px"><a href="<?php echo esc_url( get_edit_post_link( $sid ) ); ?>"><?php echo esc_html( get_the_title( $sid ) ); ?></a></h3>
+			<?php if ( $r['offers'] ) : ?>
+				<table class="widefat striped bftd-offer-table" style="max-width:960px">
+					<thead><tr><th>Person</th><th>Email</th><th>What happens</th><th><?php echo $may ? 'Add' : ''; ?></th><th><?php echo $may ? 'Not this one' : ''; ?></th></tr></thead>
+					<tbody>
+					<?php foreach ( $r['offers'] as $o ) :
+						$what = $kinds[ $o['kind'] ];
+						if ( 'assign' === $o['kind'] ) $what .= ' (' . $o['role'] . ' of the student in GoHighLevel)';
+						elseif ( $o['primary'] ) $what .= ', and make them the client (tagged primary parent)';
+						?>
+						<tr>
+							<td><?php echo esc_html( $o['name'] ); ?></td>
+							<td><?php echo esc_html( $o['email'] ); ?></td>
+							<td><?php echo esc_html( $what ); ?></td>
+							<td><?php if ( $may ) : ?><label><input type="checkbox" name="bftd_offer[<?php echo (int) $sid; ?>][]" value="<?php echo esc_attr( $o['key'] ); ?>"><span class="screen-reader-text"><?php echo esc_html( 'Add ' . $o['name'] ); ?></span></label><?php endif; ?></td>
+							<td><?php if ( $may ) : ?><label><input type="checkbox" name="bftd_offer_no[<?php echo (int) $sid; ?>][]" value="<?php echo esc_attr( $o['key'] ); ?>"><span class="screen-reader-text"><?php echo esc_html( 'Do not offer ' . $o['name'] . ' again' ); ?></span></label><?php endif; ?></td>
+						</tr>
+					<?php endforeach; ?>
+					</tbody>
+				</table>
+			<?php endif; ?>
+			<?php foreach ( $r['notes'] as $n ) : ?>
+				<p class="description" style="margin:6px 0"><?php echo esc_html( $n ); ?></p>
+			<?php endforeach; ?>
+			<?php if ( $r['hidden'] && $may ) : ?>
+				<p class="description" style="margin:6px 0"><label><input type="checkbox" name="bftd_offer_back[]" value="<?php echo (int) $sid; ?>">
+					Offer the <?php echo esc_html( $r['hidden'] ); ?> hidden <?php echo 1 === $r['hidden'] ? 'person' : 'people'; ?> again</label></p>
+			<?php endif; ?>
+		<?php endforeach; ?>
 		<?php
 	}
 
@@ -849,12 +986,13 @@ class BFTD_Settings {
 			echo $log['ok'] ? '' : esc_html( ' GoHighLevel did not answer: ' . $log['error'] ); ?></p>
 		<?php if ( $log['rows'] ) : ?>
 			<table class="widefat striped" style="max-width:860px">
-				<thead><tr><th>Student</th><th>Filled in</th><th>Left as typed here</th></tr></thead>
+				<thead><tr><th>Student</th><th>Filled in</th><th>Left as typed here</th><th>Caregivers and tutors to add</th></tr></thead>
 				<tbody>
 				<?php foreach ( $log['rows'] as $r ) : ?>
 					<tr><td><?php echo esc_html( $r['name'] ); ?></td>
 						<td><?php echo $r['missing'] ? 'GoHighLevel no longer has this student' : esc_html( $r['written'] ? $say( $r['written'] ) : 'Nothing new' ); ?></td>
-						<td><?php echo esc_html( $say( $r['held'] ) ); ?></td></tr>
+						<td><?php echo esc_html( $say( $r['held'] ) ); ?></td>
+						<td><?php echo ! empty( $r['offers'] ) ? esc_html( $r['offers'] ) : ''; ?></td></tr>
 				<?php endforeach; ?>
 				</tbody>
 			</table>

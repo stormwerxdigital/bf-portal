@@ -18,6 +18,10 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  * contacts can be reached. It reports which fields hold something, never
  * what they hold, so a child's details do not pass through a settings page.
  * Mapping and syncing come after, against what this found.
+ *
+ * Phase 4 (1.176) reads each linked student's contacts and staff and offers
+ * them as caregivers and tutors here. Still read only: an offer accepted
+ * here changes the portal, never GoHighLevel (Karl's choice).
  */
 class BFTD_GHL {
 
@@ -35,30 +39,38 @@ class BFTD_GHL {
 	/** The last sync: when, who, and what it did to each student. */
 	const SYNC_LOG = 'bftd_ghl_sync_log';
 
-	/** The nightly sync's hook. */
-	const CRON = 'bftd_ghl_nightly';
+	/** The sync's hook. Hourly since 1.176, at Karl's request. */
+	const CRON = 'bftd_ghl_hourly';
+
+	/** The nightly hook 1.175 scheduled, cleared on the way to hourly. */
+	const OLD_CRON = 'bftd_ghl_nightly';
 
 	public static function init() {
-		add_action( self::CRON, array( __CLASS__, 'nightly' ) );
+		add_action( self::CRON, array( __CLASS__, 'hourly' ) );
 		add_action( 'init', array( __CLASS__, 'schedule' ) );
 		add_action( 'admin_post_bftd_ghl_sync_one', array( __CLASS__, 'sync_one_request' ) );
 	}
 
 	/**
-	 * Once a night while GoHighLevel is connected, and not at all when it is
-	 * not: a sync with no token would only fail every night.
+	 * Every hour while GoHighLevel is connected, and not at all when it is
+	 * not: a sync with no token would only fail every hour. A full run is
+	 * about one call for the students and one for each linked contact and
+	 * staff member, well inside GoHighLevel's limits.
 	 */
 	public static function schedule() {
+		$old = wp_next_scheduled( self::OLD_CRON );
+		if ( $old ) wp_unschedule_event( $old, self::OLD_CRON );
+
 		$next = wp_next_scheduled( self::CRON );
 		if ( self::configured() && ! $next ) {
-			wp_schedule_event( strtotime( 'tomorrow 02:30:00' ), 'daily', self::CRON );
+			wp_schedule_event( time() + 5 * MINUTE_IN_SECONDS, 'hourly', self::CRON );
 		} elseif ( ! self::configured() && $next ) {
 			wp_unschedule_event( $next, self::CRON );
 		}
 	}
 
-	public static function nightly() {
-		self::sync( 0, 'nightly' );
+	public static function hourly() {
+		self::sync( 0, 'the hourly sync' );
 	}
 
 	public static function token() {
@@ -314,6 +326,10 @@ class BFTD_GHL {
 					'birth' => self::birth( $p['birth_date'] ?? '' ),
 					// Everything the record holds, for the sync (1.175).
 					'props' => $p,
+					// Who it is linked to (1.176): its contacts, and the
+					// GoHighLevel users who own or follow it.
+					'contacts' => self::contact_ids( $rec['relations'] ?? array() ),
+					'staff'    => self::staff_ids( $rec ),
 				);
 			}
 			$page++;
@@ -467,10 +483,11 @@ class BFTD_GHL {
 		$all = self::students( true );
 		if ( ! $all['ok'] ) {
 			$log['error'] = $all['error'];
-			update_option( self::SYNC_LOG, $log, false );
+			if ( ! $only ) update_option( self::SYNC_LOG, $log, false );
 			return $log;
 		}
 
+		$lookup = array( 'contacts' => array(), 'users' => array() );   // each person read once a run
 		foreach ( self::linked_students() as $sid => $rid ) {
 			if ( $only && (int) $only !== $sid ) continue;
 			$row = array( 'student' => $sid, 'name' => get_the_title( $sid ), 'written' => array(), 'held' => array(), 'missing' => false );
@@ -484,6 +501,10 @@ class BFTD_GHL {
 					$row['written'] = $res['merge']['written'];
 					$row['held']    = $res['merge']['held'];
 				}
+				// Its caregivers, teachers and staff in GoHighLevel (1.176).
+				$people = self::gather( $all['records'][ $rid ], $lookup );
+				update_post_meta( $sid, self::PEOPLE_KEY, $people );
+				$row['offers'] = count( self::offers_for( $sid ) );
 			}
 			$log['rows'][] = $row;
 		}
@@ -550,6 +571,287 @@ class BFTD_GHL {
 		set_transient( 'bftd_ghl_flash_' . get_current_user_id(), $msg, 60 );
 		wp_safe_redirect( (string) get_edit_post_link( $sid, 'raw' ) );
 		exit;
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Phase 4: caregivers, teachers and tutors (1.176)                    */
+	/* ------------------------------------------------------------------ */
+
+	/**
+	 * What GoHighLevel says about a linked student's people, as of the last
+	 * sync: array( when, contacts, staff, staff_error ).
+	 */
+	const PEOPLE_KEY = '_bftd_ghl_people';
+
+	/** Offers somebody said no to, on the student: "c:<contact>" or "u:<user>". */
+	const DISMISSED_KEY = '_bftd_ghl_dismissed';
+
+	/** The tag that marks a caregiver as the family's main contact. */
+	const PRIMARY_TAG = 'primary parent';
+
+	/** The contact ids a record is linked to, from the relations its search returns. */
+	public static function contact_ids( $relations ) {
+		$out = array();
+		foreach ( (array) $relations as $r ) {
+			if ( ! is_array( $r ) ) continue;
+			if ( 'contact' === (string) ( $r['objectKey'] ?? '' ) && '' !== (string) ( $r['recordId'] ?? '' ) ) {
+				$out[] = (string) $r['recordId'];
+			}
+		}
+		return array_values( array_unique( $out ) );
+	}
+
+	/** The GoHighLevel users on a record: user id => "owner" or "follower". */
+	public static function staff_ids( $rec ) {
+		$out = array();
+		foreach ( (array) ( $rec['followers'] ?? array() ) as $u ) if ( '' !== (string) $u ) $out[ (string) $u ] = 'follower';
+		foreach ( (array) ( $rec['owners'] ?? $rec['owner'] ?? array() ) as $u ) if ( '' !== (string) $u ) $out[ (string) $u ] = 'owner';
+		return $out;
+	}
+
+	/** One contact as the portal keeps it: who they are and how to reach them. */
+	public static function shape_contact( $id, $c ) {
+		$c    = (array) $c;
+		$name = trim( trim( (string) ( $c['firstName'] ?? '' ) ) . ' ' . trim( (string) ( $c['lastName'] ?? '' ) ) );
+		if ( '' === $name ) $name = trim( (string) ( $c['contactName'] ?? $c['name'] ?? '' ) );
+		$tags = array_map( function ( $t ) { return strtolower( trim( (string) $t ) ); }, (array) ( $c['tags'] ?? array() ) );
+		return array(
+			'id'      => (string) $id,
+			'first'   => trim( (string) ( $c['firstName'] ?? '' ) ),
+			'last'    => trim( (string) ( $c['lastName'] ?? '' ) ),
+			'name'    => $name,
+			'email'   => strtolower( trim( (string) ( $c['email'] ?? '' ) ) ),
+			'phone'   => trim( (string) ( $c['phone'] ?? '' ) ),
+			'primary' => in_array( self::PRIMARY_TAG, $tags, true ),
+		);
+	}
+
+	/** One GoHighLevel user as the portal keeps it. */
+	public static function shape_user( $id, $u, $role ) {
+		$u    = (array) $u;
+		$name = trim( (string) ( $u['name'] ?? '' ) );
+		if ( '' === $name ) $name = trim( trim( (string) ( $u['firstName'] ?? '' ) ) . ' ' . trim( (string) ( $u['lastName'] ?? '' ) ) );
+		return array(
+			'id'    => (string) $id,
+			'name'  => $name,
+			'email' => strtolower( trim( (string) ( $u['email'] ?? '' ) ) ),
+			'role'  => $role,
+		);
+	}
+
+	/**
+	 * Read a record's contacts and staff from GoHighLevel. Each person is read
+	 * once a run however many children they are linked to ($lookup carries
+	 * them between students). Read only.
+	 */
+	public static function gather( $record, &$lookup ) {
+		$out = array( 'when' => time(), 'contacts' => array(), 'staff' => array(), 'staff_error' => '', 'error' => '' );
+		foreach ( (array) ( $record['contacts'] ?? array() ) as $cid ) {
+			if ( ! array_key_exists( $cid, $lookup['contacts'] ) ) {
+				list( $code, $data, $err ) = self::request( 'GET', '/contacts/' . rawurlencode( $cid ), array(), null, '2021-07-28' );
+				$lookup['contacts'][ $cid ] = '' === $err && isset( $data['contact'] ) ? self::shape_contact( $cid, $data['contact'] ) : null;
+				if ( '' !== $err ) $out['error'] = $err;
+			}
+			if ( $lookup['contacts'][ $cid ] ) $out['contacts'][] = $lookup['contacts'][ $cid ];
+		}
+		foreach ( (array) ( $record['staff'] ?? array() ) as $uid => $role ) {
+			$uid = (string) $uid;
+			if ( ! array_key_exists( $uid, $lookup['users'] ) ) {
+				list( $code, $data, $err ) = self::request( 'GET', '/users/' . rawurlencode( $uid ), array(), null, '2021-07-28' );
+				if ( '' !== $err ) {
+					$lookup['users'][ $uid ] = array( 'error' => ( 401 === $code || 403 === $code )
+						? 'GoHighLevel will not share its staff accounts with the portal yet. Add the View Users permission (users.readonly) to the portal\'s token.'
+						: $err );
+				} else {
+					$lookup['users'][ $uid ] = self::shape_user( $uid, isset( $data['user'] ) ? $data['user'] : $data, $role );
+				}
+			}
+			$u = $lookup['users'][ $uid ];
+			if ( isset( $u['error'] ) ) { $out['staff_error'] = $u['error']; continue; }
+			$u['role']      = $role;
+			$out['staff'][] = $u;
+		}
+		// The main contact first, then by name.
+		usort( $out['contacts'], function ( $a, $b ) {
+			if ( $a['primary'] !== $b['primary'] ) return $a['primary'] ? -1 : 1;
+			return strcasecmp( $a['name'], $b['name'] );
+		} );
+		return $out;
+	}
+
+	/** What the last sync found for a student, or null before the first one. */
+	public static function people( $sid ) {
+		$p = get_post_meta( $sid, self::PEOPLE_KEY, true );
+		return is_array( $p ) ? $p : null;
+	}
+
+	public static function dismissed( $sid ) {
+		$d = get_post_meta( $sid, self::DISMISSED_KEY, true );
+		return is_array( $d ) ? $d : array();
+	}
+
+	/** Portal accounts by email, lower case: email => user id. */
+	public static function accounts_by_email( $emails ) {
+		$out = array();
+		foreach ( array_unique( array_filter( (array) $emails ) ) as $e ) {
+			$u = get_user_by( 'email', $e );
+			if ( $u ) $out[ strtolower( $e ) ] = (int) $u->ID;
+		}
+		return $out;
+	}
+
+	/**
+	 * What to offer for one student, worked out from what GoHighLevel has and
+	 * what the portal already has. Pure: everything it needs is passed in.
+	 *
+	 * Each offer is one of:
+	 *   link    a caregiver with a portal account who is not on this student
+	 *   create  a caregiver with no portal account yet (needs an email)
+	 *   assign  a GoHighLevel staff member whose portal account is staff,
+	 *           not yet a tutor on this student
+	 * and "notes" says what could not be offered, and why.
+	 *
+	 * @param array $people   as gather() returns
+	 * @param array $have     array( clients => ids, staff => ids, primary => id )
+	 * @param array $accounts email => array( id, staff ) for portal accounts
+	 * @param array $no       dismissed keys
+	 */
+	public static function offers( $people, $have, $accounts, $no = array() ) {
+		$offers = array(); $notes = array();
+		$no      = array_fill_keys( (array) $no, true );
+		$clients = array_map( 'intval', (array) ( $have['clients'] ?? array() ) );
+		$staff   = array_map( 'intval', (array) ( $have['staff'] ?? array() ) );
+		$primary = (int) ( $have['primary'] ?? 0 );
+		$seen    = array();
+
+		foreach ( (array) ( $people['contacts'] ?? array() ) as $c ) {
+			$key = 'c:' . $c['id'];
+			if ( isset( $no[ $key ] ) ) continue;
+			$label = '' !== $c['name'] ? $c['name'] : 'A contact with no name';
+			if ( '' === $c['email'] ) { $notes[] = $label . ' has no email in GoHighLevel, so cannot be given a portal account.'; continue; }
+			if ( isset( $seen[ $c['email'] ] ) ) continue;               // two contacts, one email
+			$seen[ $c['email'] ] = true;
+			$acct = $accounts[ $c['email'] ] ?? null;
+			$make_primary = $c['primary'] && ! $primary;
+			if ( $acct ) {
+				if ( in_array( (int) $acct['id'], $clients, true ) ) continue;   // already a caregiver here
+				if ( ! empty( $acct['staff'] ) ) { $notes[] = $label . ' has a staff account, so is not offered as a caregiver.'; continue; }
+				$offers[] = array( 'key' => $key, 'kind' => 'link', 'name' => $label, 'email' => $c['email'], 'user' => (int) $acct['id'], 'primary' => $make_primary, 'contact' => $c );
+			} else {
+				$offers[] = array( 'key' => $key, 'kind' => 'create', 'name' => $label, 'email' => $c['email'], 'user' => 0, 'primary' => $make_primary, 'contact' => $c );
+			}
+		}
+		foreach ( (array) ( $people['staff'] ?? array() ) as $u ) {
+			$key = 'u:' . $u['id'];
+			if ( isset( $no[ $key ] ) ) continue;
+			$label = '' !== $u['name'] ? $u['name'] : 'A GoHighLevel user';
+			$acct  = '' !== $u['email'] ? ( $accounts[ $u['email'] ] ?? null ) : null;
+			if ( ! $acct ) { $notes[] = $label . ' (' . $u['role'] . ' in GoHighLevel) has no staff account here with the same email.'; continue; }
+			if ( empty( $acct['staff'] ) ) { $notes[] = $label . '\'s account here is not a staff account, so cannot be a tutor.'; continue; }
+			if ( in_array( (int) $acct['id'], $staff, true ) ) continue;    // already their tutor
+			$offers[] = array( 'key' => $key, 'kind' => 'assign', 'name' => $label, 'email' => $u['email'], 'user' => (int) $acct['id'], 'primary' => false, 'role' => $u['role'] );
+		}
+		return array( 'offers' => $offers, 'notes' => array_values( array_unique( $notes ) ) );
+	}
+
+	/** The offers for one portal student, from what the last sync stored. */
+	public static function offers_for( $sid, $with_notes = false ) {
+		$people = self::people( $sid );
+		if ( ! $people ) return $with_notes ? array( 'offers' => array(), 'notes' => array() ) : array();
+		$emails = array();
+		foreach ( (array) $people['contacts'] as $c ) $emails[] = $c['email'];
+		foreach ( (array) $people['staff'] as $u ) $emails[] = $u['email'];
+		$accounts = array();
+		foreach ( self::accounts_by_email( $emails ) as $e => $uid ) {
+			$accounts[ $e ] = array( 'id' => $uid, 'staff' => BFTD_Roles::is_staff( $uid ) );
+		}
+		$r = self::offers( $people, array(
+			'clients' => BFTD_CPT::client_ids( $sid ),
+			'staff'   => BFTD_CPT::staff_ids( $sid ),
+			'primary' => BFTD_CPT::primary_client_id( $sid ),
+		), $accounts, self::dismissed( $sid ) );
+		return $with_notes ? $r : $r['offers'];
+	}
+
+	/**
+	 * A portal account for a GoHighLevel contact, made quietly: a family
+	 * account with a random password and no email. Somebody here sends the
+	 * welcome when the family is ready for it (Karl, 1.176).
+	 *
+	 * @return int|WP_Error the new user id
+	 */
+	public static function create_client( $contact ) {
+		$email = sanitize_email( (string) $contact['email'] );
+		if ( ! is_email( $email ) ) return new WP_Error( 'bftd_email', 'not a usable email' );
+		if ( email_exists( $email ) ) return new WP_Error( 'bftd_taken', 'that email already has an account' );
+		$login = sanitize_user( strtok( $email, '@' ), true );
+		if ( '' === $login ) $login = 'family';
+		$base = $login; $n = 2;
+		while ( username_exists( $login ) ) $login = $base . $n++;
+		$name = '' !== trim( (string) $contact['name'] ) ? (string) $contact['name'] : $email;
+		return wp_insert_user( array(
+			'user_login'   => $login,
+			'user_email'   => $email,
+			'user_pass'    => wp_generate_password( 24, true, true ),
+			'first_name'   => (string) ( $contact['first'] ?? '' ),
+			'last_name'    => (string) ( $contact['last'] ?? '' ),
+			'display_name' => $name,
+			'role'         => BFTD_Roles::CLIENT_ROLE,
+		) );
+	}
+
+	/**
+	 * Carry out the offers somebody ticked for one student. Each key is
+	 * checked against the offers worked out now, so only something actually
+	 * on offer is done. Nothing is emailed: a caregiver's welcome is sent
+	 * from here by a person, when the family is ready.
+	 *
+	 * @return array( done => labels, failed => labels )
+	 */
+	public static function accept( $sid, $keys ) {
+		$done = array(); $failed = array();
+		$by   = array();
+		foreach ( self::offers_for( $sid ) as $o ) $by[ $o['key'] ] = $o;
+		$student = get_the_title( $sid );
+		foreach ( (array) $keys as $key ) {
+			if ( ! isset( $by[ $key ] ) ) continue;
+			$o   = $by[ $key ];
+			$uid = (int) $o['user'];
+			if ( 'create' === $o['kind'] ) {
+				$uid = self::create_client( $o['contact'] );
+				if ( is_wp_error( $uid ) ) { $failed[] = $o['name'] . ' (' . $uid->get_error_message() . ')'; continue; }
+				BFTD_Audit::log( 'client_created', array( 'post_id' => $sid, 'student_id' => $sid,
+					'summary' => 'A portal account was made for ' . $o['name'] . ' from GoHighLevel. No email was sent.' ) );
+			}
+			if ( 'assign' === $o['kind'] ) {
+				add_post_meta( $sid, BFTD_CPT::STAFF_KEY, $uid );
+				BFTD_Audit::log( 'staff_assigned', array( 'post_id' => $sid, 'student_id' => $sid,
+					'summary' => 'Tutor ' . $o['name'] . ' was given access to ' . $student . ', from GoHighLevel.' ) );
+				if ( class_exists( 'BFTD_Notices' ) ) BFTD_Notices::add( $uid, 'system', $sid, $sid, '', 'You have been assigned ' . $student, '' );
+				$done[] = $o['name'] . ' as a tutor';
+				continue;
+			}
+			add_post_meta( $sid, BFTD_CPT::CLIENT_KEY, $uid );
+			BFTD_Audit::log( 'client_linked', array( 'post_id' => $sid, 'student_id' => $sid,
+				'summary' => 'Caregiver ' . $o['name'] . ' was given access to ' . $student . ', from GoHighLevel.' ) );
+			if ( $o['primary'] && ! BFTD_CPT::primary_client_id( $sid ) ) {
+				update_post_meta( $sid, BFTD_CPT::PRIMARY_KEY, $uid );
+				BFTD_Audit::log( 'client_linked', array( 'post_id' => $sid, 'student_id' => $sid,
+					'summary' => $o['name'] . ' is now the client for ' . $student . '.' ) );
+			}
+			$done[] = $o['name'] . ( 'create' === $o['kind'] ? ' (new account)' : '' ) . ( $o['primary'] ? ' as the client' : ' as a caregiver' );
+		}
+		return array( 'done' => $done, 'failed' => $failed );
+	}
+
+	/** "Not this one": the offer stays out of the list until somebody brings it back. */
+	public static function dismiss( $sid, $keys ) {
+		$have = self::dismissed( $sid );
+		foreach ( (array) $keys as $k ) {
+			$k = (string) $k;
+			if ( preg_match( '/^[cu]:[A-Za-z0-9_-]+$/', $k ) && ! in_array( $k, $have, true ) ) $have[] = $k;
+		}
+		update_post_meta( $sid, self::DISMISSED_KEY, $have );
 	}
 
 	/** The last report, kept for the person who ran it, for a day. */
