@@ -245,6 +245,123 @@ class BFTD_GHL {
 		return $r;
 	}
 
+	/* ------------------------------------------------------------------ */
+	/* Phase 2: linking the portal's students to GoHighLevel's (1.174)     */
+	/* ------------------------------------------------------------------ */
+
+	/** The Students object, as Phase 1 found it on Karl's account. */
+	const STUDENTS = 'custom_objects.students';
+
+	const CACHE = 'bftd_ghl_students';
+
+	/**
+	 * Every GoHighLevel student: record id => name and birth date. Read a
+	 * hundred at a time, and kept ten minutes so the linking screen does not
+	 * ask again on every load. Read only.
+	 *
+	 * @return array { ok, error, records }
+	 */
+	public static function students( $fresh = false ) {
+		if ( ! $fresh ) {
+			$c = get_transient( self::CACHE );
+			if ( is_array( $c ) ) return $c;
+		}
+		$out = array( 'ok' => false, 'error' => '', 'records' => array() );
+		if ( ! self::configured() ) { $out['error'] = 'The GoHighLevel token is not set up.'; return $out; }
+
+		$page  = 1;
+		$total = null;
+		do {
+			$body = array( 'locationId' => self::location(), 'page' => $page, 'pageLimit' => 100 );
+			list( $code, $data, $err ) = self::request( 'POST', '/objects/' . rawurlencode( self::STUDENTS ) . '/records/search', array(), $body );
+			if ( '' !== $err ) { $out['error'] = $err; return $out; }
+			$rows  = (array) ( $data['records'] ?? array() );
+			$total = isset( $data['total'] ) ? (int) $data['total'] : count( $rows );
+			foreach ( $rows as $rec ) {
+				if ( empty( $rec['id'] ) ) continue;
+				$p = (array) ( $rec['properties'] ?? array() );
+				$out['records'][ (string) $rec['id'] ] = array(
+					'name'  => trim( (string) ( $p['student_name'] ?? '' ) ),
+					'birth' => self::birth( $p['birth_date'] ?? '' ),
+				);
+			}
+			$page++;
+		} while ( $rows && count( $out['records'] ) < $total && $page <= 50 );
+
+		$out['ok'] = true;
+		set_transient( self::CACHE, $out, 10 * MINUTE_IN_SECONDS );
+		return $out;
+	}
+
+	/** A birth date as Y-m-d, from a date string or a millisecond stamp. */
+	public static function birth( $v ) {
+		if ( is_numeric( $v ) && (float) $v > 100000000000 ) return gmdate( 'Y-m-d', (int) ( $v / 1000 ) );
+		$v = trim( (string) $v );
+		return preg_match( '/^(\d{4}-\d{2}-\d{2})/', $v, $m ) ? $m[1] : '';
+	}
+
+	/** A name as it compares: lower case, letters and spaces only, one space between. */
+	public static function name_key( $name ) {
+		$n = strtolower( remove_accents( (string) $name ) );
+		$n = preg_replace( '/[^a-z ]+/', ' ', $n );
+		return trim( preg_replace( '/\s+/', ' ', $n ) );
+	}
+
+	/**
+	 * A suggested GoHighLevel student for each portal student. A suggestion,
+	 * never a link: somebody ticks it before anything is saved, because a
+	 * wrong link puts one family's details on another child's record.
+	 *
+	 * Same name, and the birth date agrees where both have one, first. Then a
+	 * close spelling of the name, marked to be checked. No record is offered
+	 * twice, and a record already linked elsewhere is not offered at all.
+	 *
+	 * @param array $portal sid => array( name, birth )
+	 * @param array $ghl    record id => array( name, birth )
+	 * @param array $taken  record ids already linked
+	 * @return array sid => array( record, why )
+	 */
+	public static function propose( $portal, $ghl, $taken = array() ) {
+		$out  = array();
+		$used = array_fill_keys( array_map( 'strval', (array) $taken ), true );
+
+		// Exact names first, so a close spelling never takes a record an
+		// exact match wanted.
+		foreach ( array( 'exact', 'close' ) as $pass ) {
+			foreach ( $portal as $sid => $p ) {
+				if ( isset( $out[ $sid ] ) ) continue;
+				$pk = self::name_key( $p['name'] );
+				if ( '' === $pk ) continue;
+				$best = ''; $best_score = 0;
+				foreach ( $ghl as $rid => $g ) {
+					$rid = (string) $rid;
+					if ( isset( $used[ $rid ] ) ) continue;
+					$gk = self::name_key( $g['name'] );
+					if ( '' === $gk ) continue;
+					// Two birth dates that disagree rule a pair out, whatever
+					// the names say.
+					if ( '' !== $p['birth'] && '' !== $g['birth'] && $p['birth'] !== $g['birth'] ) continue;
+					if ( 'exact' === $pass ) {
+						if ( $pk === $gk ) { $best = $rid; break; }
+					} else {
+						similar_text( $pk, $gk, $pct );
+						if ( $pct >= 85 && $pct > $best_score && $pk[0] === $gk[0] ) { $best = $rid; $best_score = $pct; }
+					}
+				}
+				if ( '' === $best ) continue;
+				$both = '' !== $p['birth'] && '' !== $ghl[ $best ]['birth'];
+				$out[ $sid ] = array(
+					'record' => $best,
+					'why'    => 'exact' === $pass
+						? ( $both ? 'Same name and birth date' : 'Same name' )
+						: 'Similar name, check it',
+				);
+				$used[ $best ] = true;
+			}
+		}
+		return $out;
+	}
+
 	/** The last report, kept for the person who ran it, for a day. */
 	public static function last_report() {
 		$r = get_transient( self::REPORT . get_current_user_id() );

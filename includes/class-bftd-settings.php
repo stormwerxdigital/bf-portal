@@ -50,6 +50,7 @@ class BFTD_Settings {
 			'reports' => 'Report wording',
 			'pay'     => 'Pay rates',
 			'crm'     => 'CRM connection',
+			'link'    => 'Link students',
 			'people'  => 'People and access',
 			'perms'   => 'Roles and permissions',
 		);
@@ -231,6 +232,7 @@ class BFTD_Settings {
 		switch ( $tab ) {
 			case 'brand':  self::save_brand();  break;
 			case 'crm': self::save_crm(); break;
+			case 'link': if ( ! self::save_links() ) return; break;
 			case 'portal': self::save_portal(); break;
 			case 'login':  self::save_login();  break;
 			case 'banner': self::save_banner(); break;
@@ -574,6 +576,7 @@ class BFTD_Settings {
 				<?php
 				switch ( $tab ) {
 					case 'crm': self::tab_crm(); break;
+					case 'link': self::tab_link(); break;
 					case 'portal': self::tab_portal(); break;
 					case 'login':  self::tab_login();  break;
 					case 'banner': self::tab_banner(); break;
@@ -637,6 +640,159 @@ class BFTD_Settings {
 				</td>
 			</tr>
 		</table>
+		<?php
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Linking students to GoHighLevel (integration phase 2, 1.174)        */
+	/* ------------------------------------------------------------------ */
+
+	/** Every portal student that could be linked, with what matching needs. */
+	public static function link_rows() {
+		$ids = get_posts( array(
+			'post_type'      => BFTD_CPT::STUDENT,
+			'post_status'    => array( 'publish', 'draft', 'pending', 'private', 'future' ),
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'orderby'        => 'title',
+			'order'          => 'ASC',
+			'no_found_rows'  => true,
+		) );
+		$out = array();
+		foreach ( $ids as $sid ) {
+			$out[ (int) $sid ] = array(
+				'name'   => get_the_title( $sid ),
+				'birth'  => (string) BFTD_Fields::get( $sid, 'student', 'birth_date' ),
+				'linked' => BFTD_CRM::linked( $sid ),
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * Links ticked on the Link students tab. Only a senior manager or an
+	 * administrator: a link decides whose details land on a child's record.
+	 * A record must be one GoHighLevel has, and linked to one student only.
+	 */
+	private static function save_links() {
+		if ( ! self::may_edit_text() ) {
+			add_settings_error( 'bftd_settings', 'link', 'Only a Senior Manager or an Administrator can link students.', 'error' );
+			return false;
+		}
+		if ( ! empty( $_POST['bftd_ghl_refresh'] ) ) {
+			BFTD_GHL::students( true );
+			return true;
+		}
+		$ghl = BFTD_GHL::students();
+		if ( ! $ghl['ok'] ) {
+			add_settings_error( 'bftd_settings', 'link', 'GoHighLevel did not answer, so nothing was linked: ' . $ghl['error'], 'error' );
+			return false;
+		}
+
+		$rows    = self::link_rows();
+		$confirm = isset( $_POST['bftd_link_ok'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['bftd_link_ok'] ) ) : array();
+		$pick    = isset( $_POST['bftd_link'] ) ? (array) wp_unslash( $_POST['bftd_link'] ) : array();
+		$unlink  = isset( $_POST['bftd_unlink'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['bftd_unlink'] ) ) : array();
+
+		$taken = array();
+		foreach ( $rows as $sid => $row ) if ( '' !== $row['linked'] && ! in_array( $sid, $unlink, true ) ) $taken[ $row['linked'] ] = $sid;
+
+		$done = 0; $refused = array();
+		foreach ( $unlink as $sid ) {
+			if ( ! isset( $rows[ $sid ] ) || '' === $rows[ $sid ]['linked'] ) continue;
+			BFTD_CRM::link( $sid, '' );
+			BFTD_Audit::log( 'crm_unlinked', array( 'post_id' => $sid, 'student_id' => $sid, 'summary' => $rows[ $sid ]['name'] . ' was unlinked from GoHighLevel.' ) );
+			$done++;
+		}
+		foreach ( $confirm as $sid ) {
+			if ( ! isset( $rows[ $sid ] ) || '' !== $rows[ $sid ]['linked'] ) continue;
+			$rid = sanitize_text_field( (string) ( $pick[ $sid ] ?? '' ) );
+			if ( '' === $rid ) continue;
+			if ( ! isset( $ghl['records'][ $rid ] ) ) { $refused[] = $rows[ $sid ]['name'] . ' (that GoHighLevel student was not found)'; continue; }
+			if ( isset( $taken[ $rid ] ) ) { $refused[] = $rows[ $sid ]['name'] . ' (that GoHighLevel student is already linked to ' . $rows[ $taken[ $rid ] ]['name'] . ')'; continue; }
+			BFTD_CRM::link( $sid, $rid );
+			$taken[ $rid ] = $sid;
+			BFTD_Audit::log( 'crm_linked', array( 'post_id' => $sid, 'student_id' => $sid,
+				'summary' => $rows[ $sid ]['name'] . ' was linked to GoHighLevel student ' . $ghl['records'][ $rid ]['name'] . '.' ) );
+			$done++;
+		}
+		if ( $refused ) add_settings_error( 'bftd_settings', 'link_refused', 'Not linked: ' . implode( '; ', $refused ) . '.', 'error' );
+		add_settings_error( 'bftd_settings', 'link_done', $done . ' ' . ( 1 === $done ? 'change' : 'changes' ) . ' saved.', 'updated' );
+		return true;
+	}
+
+	/**
+	 * Each portal student, its link, and a suggested GoHighLevel student to
+	 * confirm. Nothing is linked until it is ticked and saved.
+	 */
+	private static function tab_link() {
+		if ( ! class_exists( 'BFTD_GHL' ) || ! BFTD_GHL::configured() ) {
+			echo '<p><strong>Not set up yet.</strong> GoHighLevel has to be connected first, under CRM connection.</p>';
+			return;
+		}
+		$ghl = BFTD_GHL::students();
+		if ( ! $ghl['ok'] ) {
+			echo '<div class="notice notice-error inline"><p>GoHighLevel did not answer: ' . esc_html( $ghl['error'] ) . '</p></div>';
+			return;
+		}
+		$rows  = self::link_rows();
+		$may   = self::may_edit_text();
+		$taken = array();
+		foreach ( $rows as $sid => $row ) if ( '' !== $row['linked'] ) $taken[ $row['linked'] ] = $sid;
+
+		$portal = array();
+		foreach ( $rows as $sid => $row ) if ( '' === $row['linked'] ) $portal[ $sid ] = $row;
+		$offer = BFTD_GHL::propose( $portal, $ghl['records'], array_keys( $taken ) );
+
+		$names = array();
+		foreach ( $ghl['records'] as $rid => $g ) $names[ $rid ] = $g['name'] . ( $g['birth'] ? ' (born ' . $g['birth'] . ')' : '' );
+		asort( $names, SORT_NATURAL | SORT_FLAG_CASE );
+		$unmatched = count( array_diff_key( $ghl['records'], $taken ) );
+		?>
+		<p class="bftd-lede">Each student here can be linked to their record in GoHighLevel, so their details can be kept in step from there.
+			A suggestion is only a suggestion: nothing is linked until you tick <strong>Link</strong> and save, because a wrong link
+			would put one family's details on another child's record.</p>
+		<p><?php echo esc_html( count( $ghl['records'] ) ); ?> students in GoHighLevel, <?php echo esc_html( count( $taken ) ); ?> linked here.
+			<button class="button-link" name="bftd_ghl_refresh" value="1">Read GoHighLevel again</button></p>
+
+		<?php if ( ! $may ) : ?>
+			<div class="notice notice-info inline"><p>Only a Senior Manager or an Administrator can change links. This is how they stand.</p></div>
+		<?php endif; ?>
+
+		<table class="widefat striped bftd-link-table">
+			<thead><tr><th>Student here</th><th>GoHighLevel student</th><th>Why suggested</th><th><?php echo $may ? 'Link' : ''; ?></th></tr></thead>
+			<tbody>
+			<?php foreach ( $rows as $sid => $row ) :
+				$birth = $row['birth'] ? ' (born ' . $row['birth'] . ')' : '';
+				?>
+				<tr>
+					<td><a href="<?php echo esc_url( get_edit_post_link( $sid ) ); ?>"><?php echo esc_html( $row['name'] ); ?></a><?php echo esc_html( $birth ); ?></td>
+					<?php if ( '' !== $row['linked'] ) : ?>
+						<td><?php echo isset( $ghl['records'][ $row['linked'] ] )
+							? '<span class="bftd-pill bftd-pill-purple">Linked</span> ' . esc_html( $names[ $row['linked'] ] )
+							: '<span class="bftd-pill bftd-pill-quiet">Linked to a record GoHighLevel no longer has</span>'; ?></td>
+						<td></td>
+						<td><?php if ( $may ) : ?><label><input type="checkbox" name="bftd_unlink[]" value="<?php echo (int) $sid; ?>"> Unlink</label><?php endif; ?></td>
+					<?php else :
+						$o = isset( $offer[ $sid ] ) ? $offer[ $sid ] : null;
+						?>
+						<td>
+							<select name="bftd_link[<?php echo (int) $sid; ?>]"<?php disabled( ! $may ); ?> aria-label="<?php echo esc_attr( 'GoHighLevel student for ' . $row['name'] ); ?>">
+								<option value="">Not linked</option>
+								<?php foreach ( $names as $rid => $label ) :
+									if ( isset( $taken[ $rid ] ) ) continue; ?>
+									<option value="<?php echo esc_attr( $rid ); ?>"<?php selected( $o ? $o['record'] : '', $rid ); ?>><?php echo esc_html( $label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</td>
+						<td><?php echo $o ? esc_html( $o['why'] ) : '<span class="description">No match found</span>'; ?></td>
+						<td><?php if ( $may ) : ?><label><input type="checkbox" name="bftd_link_ok[]" value="<?php echo (int) $sid; ?>"> Link</label><?php endif; ?></td>
+					<?php endif; ?>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+		<p class="description"><?php echo esc_html( $unmatched ); ?> GoHighLevel students have no student here yet. The next phase brings them in as drafts.</p>
 		<?php
 	}
 
