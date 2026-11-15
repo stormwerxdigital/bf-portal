@@ -642,6 +642,98 @@ class BFTD_Settings {
 
 	private static function save_crm() {
 		if ( ! empty( $_POST['bftd_crm_new_key'] ) ) BFTD_CRM::new_key();
+		// Reading GoHighLevel (1.173). Read only: the test asks, it never writes.
+		if ( ! empty( $_POST['bftd_ghl_test'] ) && class_exists( 'BFTD_GHL' ) ) {
+			$r = BFTD_GHL::run_and_keep();
+			add_settings_error( 'bftd_settings', 'ghl', $r['ok']
+				? 'GoHighLevel answered every step. What it holds is listed under Reading from GoHighLevel.'
+				: 'GoHighLevel did not answer every step. The report under Reading from GoHighLevel says which, and why.',
+				$r['ok'] ? 'updated' : 'error' );
+		}
+	}
+
+	/**
+	 * The Test connection report: which steps answered, the objects on the
+	 * location, the Students fields, and the shape of one record. Shapes
+	 * only ("text", "empty"), never what a field says.
+	 */
+	public static function ghl_report_html( $r ) {
+		if ( ! $r ) return '<p class="description">Not tested yet.</p>';
+		ob_start();
+		?>
+		<p><strong><?php echo $r['ok'] ? 'Every step answered.' : 'Not every step answered.'; ?></strong>
+			Tested <?php echo esc_html( BFTD_Time::format( 'j M Y, g:i a', (int) $r['when'] ) ); ?><?php
+			echo $r['version'] ? esc_html( ', API version ' . $r['version'] ) : ''; ?>.</p>
+		<table class="widefat striped bftd-ghl-steps" style="max-width:860px">
+			<thead><tr><th>Step</th><th>Answer</th><th>What it means</th></tr></thead>
+			<tbody>
+			<?php foreach ( $r['steps'] as $s ) : ?>
+				<tr><td><?php echo esc_html( $s[0] ); ?></td>
+					<td><?php echo $s[2] ? '<span class="bftd-pill bftd-pill-purple">OK</span>' : esc_html( $s[1] ? 'HTTP ' . $s[1] : 'Not sent' ); ?></td>
+					<td><?php echo esc_html( $s[3] ); ?></td></tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+
+		<?php if ( $r['objects'] ) : ?>
+			<h4>Objects on this location</h4>
+			<table class="widefat striped" style="max-width:860px">
+				<thead><tr><th>Name</th><th>Key</th><th>Kind</th></tr></thead>
+				<tbody>
+				<?php foreach ( $r['objects'] as $o ) : ?>
+					<tr<?php echo $o['key'] === $r['object'] ? ' class="bftd-ghl-picked"' : ''; ?>>
+						<td><?php echo esc_html( $o['label'] ); ?><?php echo $o['key'] === $r['object'] ? ' <strong>(the students)</strong>' : ''; ?></td>
+						<td><code><?php echo esc_html( $o['key'] ); ?></code></td>
+						<td><?php echo $o['standard'] ? 'Standard' : 'Custom'; ?></td></tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+		<?php endif; ?>
+
+		<?php if ( $r['fields'] ) : ?>
+			<h4>Fields on the students object<?php echo null !== $r['total'] ? esc_html( ' (' . (int) $r['total'] . ' records)' ) : ''; ?></h4>
+			<table class="widefat striped" style="max-width:860px">
+				<thead><tr><th>Field</th><th>Key</th><th>Type</th><th>In the sample record</th></tr></thead>
+				<tbody>
+				<?php foreach ( $r['fields'] as $f ) :
+					// A record's properties are keyed by the field key without
+					// its "custom_object.<object>." prefix, so both are tried.
+					$short = preg_replace( '/^custom_objects?\.[^.]+\./', '', $f['key'] );
+					$seen  = $r['sample'][ $f['key'] ] ?? ( $r['sample'][ $short ] ?? '' );
+					?>
+					<tr><td><?php echo esc_html( $f['name'] ); ?></td><td><code><?php echo esc_html( $f['key'] ); ?></code></td>
+						<td><?php echo esc_html( $f['type'] ); ?></td><td><?php echo esc_html( '' === $seen ? 'not returned' : $seen ); ?></td></tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+		<?php endif; ?>
+
+		<?php if ( $r['links'] ) : ?>
+			<h4>Linked records on the sample student</h4>
+			<table class="widefat striped" style="max-width:860px">
+				<thead><tr><th>Linked to</th><th>Link name</th><th>What the link carries</th></tr></thead>
+				<tbody>
+				<?php foreach ( $r['links'] as $l ) : ?>
+					<tr><td><code><?php echo esc_html( $l['with'] ); ?></code></td><td><?php echo esc_html( $l['label'] ); ?></td>
+						<td><code><?php echo esc_html( $l['keys'] ); ?></code></td></tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+		<?php endif; ?>
+
+		<?php if ( $r['contact'] ) : ?>
+			<h4>A linked contact</h4>
+			<p class="description">
+				<?php
+				$bits = array();
+				foreach ( $r['contact'] as $k => $shape ) $bits[] = $k . ': ' . $shape;
+				echo esc_html( implode( ' · ', $bits ) );
+				?>
+			</p>
+		<?php endif; ?>
+		<p class="description">Shown here: which fields exist and whether they hold anything. What they hold is never shown, so nobody's details pass through this screen.</p>
+		<?php
+		return ob_get_clean();
 	}
 
 	/**
@@ -680,6 +772,19 @@ class BFTD_Settings {
 					<?php else : ?>
 						<p><strong>Not set up yet.</strong> Until a key exists, the endpoint refuses everything.</p>
 						<p><button class="button button-primary" name="bftd_crm_new_key" value="1">Create a key</button></p>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row">Reading from GoHighLevel</th>
+				<td>
+					<?php if ( class_exists( 'BFTD_GHL' ) && BFTD_GHL::configured() ) : ?>
+						<p style="margin-top:6px">The API token and location are set in <code>wp-config.php</code>. The token is never shown here or sent to a browser.
+							The portal only reads from GoHighLevel; it never writes to it.</p>
+						<p><button class="button button-primary" name="bftd_ghl_test" value="1">Test connection</button></p>
+						<?php echo self::ghl_report_html( BFTD_GHL::last_report() ); ?>
+					<?php else : ?>
+						<p style="margin-top:6px"><strong>Not set up yet.</strong> Add <code>BFTD_GHL_TOKEN</code> and <code>BFTD_GHL_LOCATION</code> to <code>wp-config.php</code>, then Test connection appears here.</p>
 					<?php endif; ?>
 				</td>
 			</tr>
