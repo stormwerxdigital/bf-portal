@@ -42,7 +42,8 @@ function check($ok, $msg) { global $fail; if ($ok) echo "  ok  $msg\n"; else { e
 $all = BFTD_GHL::students();
 check($all['ok'] && 105 === count($all['records']), 'every student is read, a hundred at a time, got ' . count($all['records']));
 check(array(1, 2) === array_map(function ($b) { return $b['page']; }, $GLOBALS['SENT']), 'two pages for 105 records');
-check(array('name' => 'Kid 1', 'birth' => '2013-07-06') === $all['records']['R1'], 'with the name and birth date of each');
+check('Kid 1' === $all['records']['R1']['name'] && '2013-07-06' === $all['records']['R1']['birth'], 'with the name and birth date of each');
+check(isset($all['records']['R1']['props']['student_name']), 'and everything the record holds, for the sync');
 BFTD_GHL::students();
 check(2 === count($GLOBALS['SENT']), 'and kept for ten minutes rather than read on every load');
 BFTD_GHL::students(true);

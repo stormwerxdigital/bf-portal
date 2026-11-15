@@ -683,6 +683,26 @@ class BFTD_Settings {
 			BFTD_GHL::students( true );
 			return true;
 		}
+		// Keep linked students in step now, rather than at tonight's sync (1.175).
+		if ( ! empty( $_POST['bftd_ghl_sync'] ) ) {
+			$log = BFTD_GHL::sync();
+			add_settings_error( 'bftd_settings', 'sync', $log['ok']
+				? 'Synced ' . count( $log['rows'] ) . ' linked ' . ( 1 === count( $log['rows'] ) ? 'student' : 'students' ) . '. What changed is listed below.'
+				: 'GoHighLevel did not answer: ' . $log['error'], $log['ok'] ? 'updated' : 'error' );
+			return true;
+		}
+		// Every GoHighLevel student with no student here, as linked drafts.
+		// Ticked to confirm, because it can make dozens of records at once.
+		if ( ! empty( $_POST['bftd_ghl_import'] ) ) {
+			if ( empty( $_POST['bftd_ghl_import_ok'] ) ) {
+				add_settings_error( 'bftd_settings', 'import', 'Nothing was brought in: tick the box to confirm first.', 'error' );
+				return true;
+			}
+			list( $made, $skipped ) = BFTD_GHL::import_missing();
+			add_settings_error( 'bftd_settings', 'import', $made . ' draft ' . ( 1 === $made ? 'student' : 'students' ) . ' made from GoHighLevel'
+				. ( $skipped ? ', ' . $skipped . ' skipped (no name)' : '' ) . '.', 'updated' );
+			return true;
+		}
 		$ghl = BFTD_GHL::students();
 		if ( ! $ghl['ok'] ) {
 			add_settings_error( 'bftd_settings', 'link', 'GoHighLevel did not answer, so nothing was linked: ' . $ghl['error'], 'error' );
@@ -792,8 +812,55 @@ class BFTD_Settings {
 			<?php endforeach; ?>
 			</tbody>
 		</table>
-		<p class="description"><?php echo esc_html( $unmatched ); ?> GoHighLevel students have no student here yet. The next phase brings them in as drafts.</p>
+		<h3 style="margin-top:28px">Keeping linked students in step</h3>
+		<p>Linked students take their details from GoHighLevel: anything blank here is filled, anything the sync filled before
+			follows GoHighLevel, and anything typed here is left alone. Status and dates are only set when GoHighLevel creates a
+			student; after that they are this dashboard's. This runs every night by itself.</p>
+		<?php if ( BFTD_Roles::can_manage() ) : ?>
+			<p><button class="button" name="bftd_ghl_sync" value="1">Sync linked students now</button></p>
+		<?php endif; ?>
+		<?php echo self::sync_log_html( get_option( BFTD_GHL::SYNC_LOG ) ); ?>
+
+		<h3 style="margin-top:28px">GoHighLevel students not here yet</h3>
+		<p><?php echo esc_html( $unmatched ); ?> GoHighLevel students have no student here.
+			Link any that are already here above first; the rest can be brought in as draft students, linked, so somebody here
+			still decides when each becomes a family with a portal.</p>
+		<?php if ( $may && $unmatched ) : ?>
+			<p><label><input type="checkbox" name="bftd_ghl_import_ok" value="1">
+				Yes, make <?php echo esc_html( $unmatched ); ?> draft students from GoHighLevel</label>
+				<button class="button" name="bftd_ghl_import" value="1">Bring them in</button></p>
+		<?php endif; ?>
 		<?php
+	}
+
+	/** What the last sync did, student by student. */
+	public static function sync_log_html( $log ) {
+		if ( ! is_array( $log ) ) return '<p class="description">Not synced yet.</p>';
+		$labels = BFTD_MetaBoxes::crm_fields();
+		$say    = function ( $keys ) use ( $labels ) {
+			$out = array();
+			foreach ( (array) $keys as $k ) $out[] = isset( $labels[ $k ] ) ? $labels[ $k ]['label'] : $k;
+			return implode( ', ', $out );
+		};
+		ob_start();
+		?>
+		<p class="description">Last synced <?php echo esc_html( BFTD_Time::format( 'j M Y, g:i a', (int) $log['when'] ) ); ?><?php
+			echo '' !== $log['by'] ? esc_html( ' by ' . $log['by'] ) : ''; ?>.<?php
+			echo $log['ok'] ? '' : esc_html( ' GoHighLevel did not answer: ' . $log['error'] ); ?></p>
+		<?php if ( $log['rows'] ) : ?>
+			<table class="widefat striped" style="max-width:860px">
+				<thead><tr><th>Student</th><th>Filled in</th><th>Left as typed here</th></tr></thead>
+				<tbody>
+				<?php foreach ( $log['rows'] as $r ) : ?>
+					<tr><td><?php echo esc_html( $r['name'] ); ?></td>
+						<td><?php echo $r['missing'] ? 'GoHighLevel no longer has this student' : esc_html( $r['written'] ? $say( $r['written'] ) : 'Nothing new' ); ?></td>
+						<td><?php echo esc_html( $say( $r['held'] ) ); ?></td></tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+		<?php endif; ?>
+		<?php
+		return ob_get_clean();
 	}
 
 	private static function save_crm() {

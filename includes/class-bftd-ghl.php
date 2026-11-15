@@ -32,6 +32,35 @@ class BFTD_GHL {
 
 	const REPORT = 'bftd_ghl_report_';
 
+	/** The last sync: when, who, and what it did to each student. */
+	const SYNC_LOG = 'bftd_ghl_sync_log';
+
+	/** The nightly sync's hook. */
+	const CRON = 'bftd_ghl_nightly';
+
+	public static function init() {
+		add_action( self::CRON, array( __CLASS__, 'nightly' ) );
+		add_action( 'init', array( __CLASS__, 'schedule' ) );
+		add_action( 'admin_post_bftd_ghl_sync_one', array( __CLASS__, 'sync_one_request' ) );
+	}
+
+	/**
+	 * Once a night while GoHighLevel is connected, and not at all when it is
+	 * not: a sync with no token would only fail every night.
+	 */
+	public static function schedule() {
+		$next = wp_next_scheduled( self::CRON );
+		if ( self::configured() && ! $next ) {
+			wp_schedule_event( strtotime( 'tomorrow 02:30:00' ), 'daily', self::CRON );
+		} elseif ( ! self::configured() && $next ) {
+			wp_unschedule_event( $next, self::CRON );
+		}
+	}
+
+	public static function nightly() {
+		self::sync( 0, 'nightly' );
+	}
+
 	public static function token() {
 		return defined( 'BFTD_GHL_TOKEN' ) ? trim( (string) BFTD_GHL_TOKEN ) : '';
 	}
@@ -283,6 +312,8 @@ class BFTD_GHL {
 				$out['records'][ (string) $rec['id'] ] = array(
 					'name'  => trim( (string) ( $p['student_name'] ?? '' ) ),
 					'birth' => self::birth( $p['birth_date'] ?? '' ),
+					// Everything the record holds, for the sync (1.175).
+					'props' => $p,
 				);
 			}
 			$page++;
@@ -360,6 +391,165 @@ class BFTD_GHL {
 			}
 		}
 		return $out;
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Phase 3: keeping linked students in step (1.175)                    */
+	/* ------------------------------------------------------------------ */
+
+	/**
+	 * GoHighLevel's Students fields, by the short key a record's properties
+	 * use, against the column names the CRM merge already understands
+	 * (BFTD_CRM::mapping). Found by the Phase 1 test on Karl's account.
+	 */
+	public static function property_map() {
+		return array(
+			'student_name'          => 'Student Name',
+			'birth_date'            => 'Birth Date',
+			'school'                => 'School',
+			'phone'                 => 'Phone',
+			'email'                 => 'Email',
+			'status'                => 'Status',
+			'diagnostic_assessment' => 'Diagnostic Assessment',
+			'fromto'                => 'From/To',
+		);
+	}
+
+	/** One GoHighLevel student as what the CRM merge takes in. */
+	public static function to_incoming( $record_id, $props ) {
+		$out = array( 'crm_id' => (string) $record_id );
+		foreach ( self::property_map() as $short => $column ) {
+			if ( ! array_key_exists( $short, (array) $props ) ) continue;
+			$v = $props[ $short ];
+			if ( is_array( $v ) ) $v = implode( ', ', array_map( 'strval', $v ) );   // an option list
+			if ( 'birth_date' === $short ) $v = self::birth( $v ) ?: $v;
+			$out[ $column ] = $v;
+		}
+		return $out;
+	}
+
+	/** Portal students with a link, as student id => record id. */
+	public static function linked_students() {
+		$ids = get_posts( array(
+			'post_type'      => BFTD_CPT::STUDENT,
+			'post_status'    => array( 'publish', 'draft', 'pending', 'private', 'future' ),
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+			'meta_query'     => array( array( 'key' => BFTD_CRM::LINK_KEY, 'compare' => 'EXISTS' ) ),
+		) );
+		$out = array();
+		foreach ( $ids as $sid ) {
+			$rid = BFTD_CRM::linked( $sid );
+			if ( '' !== $rid ) $out[ (int) $sid ] = $rid;
+		}
+		return $out;
+	}
+
+	/**
+	 * Bring every linked student, or one, in step with GoHighLevel.
+	 *
+	 * Through BFTD_CRM::upsert, the merge the older endpoint uses: it fills
+	 * what is blank, follows what it filled last time, leaves what a person
+	 * typed, and never touches the journey (status, dates) on a student who
+	 * already exists. Read only on GoHighLevel's side. Logged.
+	 *
+	 * @return array the log entry
+	 */
+	public static function sync( $only = 0, $by = '' ) {
+		$log = array(
+			'when'  => time(),
+			'by'    => '' !== $by ? $by : ( get_current_user_id() ? wp_get_current_user()->display_name : '' ),
+			'ok'    => false,
+			'error' => '',
+			'rows'  => array(),
+		);
+		$all = self::students( true );
+		if ( ! $all['ok'] ) {
+			$log['error'] = $all['error'];
+			update_option( self::SYNC_LOG, $log, false );
+			return $log;
+		}
+
+		foreach ( self::linked_students() as $sid => $rid ) {
+			if ( $only && (int) $only !== $sid ) continue;
+			$row = array( 'student' => $sid, 'name' => get_the_title( $sid ), 'written' => array(), 'held' => array(), 'missing' => false );
+			if ( ! isset( $all['records'][ $rid ] ) ) {
+				$row['missing'] = true;           // linked to a record GoHighLevel no longer has
+			} else {
+				$res = BFTD_CRM::upsert( self::to_incoming( $rid, $all['records'][ $rid ]['props'] ?? array() ) );
+				if ( is_wp_error( $res ) ) {
+					$row['error'] = $res->get_error_message();
+				} else {
+					$row['written'] = $res['merge']['written'];
+					$row['held']    = $res['merge']['held'];
+				}
+			}
+			$log['rows'][] = $row;
+		}
+		$log['ok'] = true;
+		if ( ! $only ) update_option( self::SYNC_LOG, $log, false );
+		return $log;
+	}
+
+	/** GoHighLevel students no student here is linked to: record id => name. */
+	public static function unlinked_records() {
+		$all = self::students();
+		if ( ! $all['ok'] ) return array();
+		$taken = array_flip( self::linked_students() );
+		$out   = array();
+		foreach ( $all['records'] as $rid => $g ) if ( ! isset( $taken[ $rid ] ) ) $out[ $rid ] = $g['name'];
+		return $out;
+	}
+
+	/**
+	 * Every GoHighLevel student with no student here, made a draft student
+	 * and linked. Only when asked, by somebody allowed to: it is how a
+	 * prospect from an enquiry arrives, and nobody here decides that by
+	 * accident. Drafts, so somebody still decides when each becomes real.
+	 *
+	 * @return array( made, skipped )
+	 */
+	public static function import_missing() {
+		$all = self::students( true );
+		if ( ! $all['ok'] ) return array( 0, 0 );
+		$taken = array_flip( self::linked_students() );
+		$made = 0; $skipped = 0;
+		foreach ( $all['records'] as $rid => $g ) {
+			if ( isset( $taken[ $rid ] ) ) continue;
+			if ( '' === trim( $g['name'] ) ) { $skipped++; continue; }   // a student needs a name
+			$res = BFTD_CRM::upsert( self::to_incoming( $rid, $g['props'] ?? array() ) );
+			if ( is_wp_error( $res ) || empty( $res['created'] ) ) { $skipped++; continue; }
+			$made++;
+		}
+		return array( $made, $skipped );
+	}
+
+	/** "Sync from GoHighLevel now" on a student's record. */
+	public static function sync_one_request() {
+		$sid = isset( $_GET['student'] ) ? absint( $_GET['student'] ) : 0;
+		check_admin_referer( 'bftd_ghl_sync_' . $sid );
+		if ( ! $sid || ! BFTD_Roles::can_manage() || ! current_user_can( 'edit_post', $sid ) ) {
+			wp_die( 'You cannot sync this student.', 403 );
+		}
+		$log = self::sync( $sid );
+		$row = $log['rows'][0] ?? null;
+		// Said as the fields are labelled on the screen, not as their keys.
+		$labels = class_exists( 'BFTD_MetaBoxes' ) ? BFTD_MetaBoxes::crm_fields() : array();
+		$say    = function ( $keys ) use ( $labels ) {
+			$out = array();
+			foreach ( (array) $keys as $k ) $out[] = isset( $labels[ $k ] ) ? $labels[ $k ]['label'] : $k;
+			return implode( ', ', $out );
+		};
+		if ( ! $log['ok'] )         $msg = 'GoHighLevel did not answer: ' . $log['error'];
+		elseif ( ! $row )           $msg = 'This student is not linked to GoHighLevel.';
+		elseif ( $row['missing'] )  $msg = 'GoHighLevel no longer has the student this is linked to.';
+		elseif ( $row['written'] )  $msg = 'Filled in from GoHighLevel: ' . $say( $row['written'] ) . '.';
+		else                        $msg = 'Already in step with GoHighLevel.';
+		if ( $row && $row['held'] ) $msg .= ' Left as typed here: ' . $say( $row['held'] ) . '.';
+		set_transient( 'bftd_ghl_flash_' . get_current_user_id(), $msg, 60 );
+		wp_safe_redirect( (string) get_edit_post_link( $sid, 'raw' ) );
+		exit;
 	}
 
 	/** The last report, kept for the person who ran it, for a day. */

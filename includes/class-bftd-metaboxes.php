@@ -341,6 +341,15 @@ class BFTD_MetaBoxes {
 					Linked to the CRM as <code><?php echo esc_html( $linked ); ?></code>.
 					Last checked <?php echo esc_html( BFTD_CRM::last_synced_label( $post->ID ) ); ?>.
 					The sync fills anything left blank here and leaves whatever you have typed alone.
+					<?php
+					// Now, rather than at tonight's sync (1.175).
+					$flash = get_transient( 'bftd_ghl_flash_' . get_current_user_id() );
+					if ( $flash ) { delete_transient( 'bftd_ghl_flash_' . get_current_user_id() ); echo '<br><strong>' . esc_html( $flash ) . '</strong>'; }
+					if ( class_exists( 'BFTD_GHL' ) && BFTD_GHL::configured() && BFTD_Roles::can_manage() ) :
+						$sync = wp_nonce_url( admin_url( 'admin-post.php?action=bftd_ghl_sync_one&student=' . (int) $post->ID ), 'bftd_ghl_sync_' . (int) $post->ID );
+						?>
+						<br><a href="<?php echo esc_url( $sync ); ?>">Sync from GoHighLevel now</a>
+					<?php endif; ?>
 				<?php else : ?>
 					<strong>Not linked to the CRM yet.</strong> Fill these in by hand for now.
 					Once this student is linked, the sync will fill any that are still blank and will
