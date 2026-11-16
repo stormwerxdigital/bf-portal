@@ -788,7 +788,7 @@ class BFTD_Settings {
 			<?php foreach ( $rows as $sid => $row ) :
 				$birth = $row['birth'] ? ' (born ' . $row['birth'] . ')' : '';
 				?>
-				<tr>
+				<tr id="bftd-link-<?php echo (int) $sid; ?>">
 					<td><a href="<?php echo esc_url( get_edit_post_link( $sid ) ); ?>"><?php echo esc_html( $row['name'] ); ?></a><?php echo esc_html( $birth ); ?></td>
 					<?php if ( '' !== $row['linked'] ) : ?>
 						<td><?php echo isset( $ghl['records'][ $row['linked'] ] )

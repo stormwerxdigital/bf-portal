@@ -97,8 +97,9 @@ class BFTD_Access {
   public static function can_staff_view(...$a) { return true; }
 }
 /* GoHighLevel offers, stood in for: what the sync stored, per student (1.177). */
-class BFTD_GHL { public static function offers_for($sid) { $GLOBALS['GHL_ASKED'][] = (int) $sid; return $GLOBALS['GHL_OFFERS'][(int) $sid] ?? array(); } }
+class BFTD_GHL { public static function configured() { return $GLOBALS['GHL_ON'] ?? true; } public static function offers_for($sid) { $GLOBALS['GHL_ASKED'][] = (int) $sid; return $GLOBALS['GHL_OFFERS'][(int) $sid] ?? array(); } }
 class BFTD_Settings { const PAGE_SLUG = 'bftd-settings'; }
+class BFTD_CRM { public static function linked($sid) { return (string) ($GLOBALS['META'][(int) $sid]['_bftd_crm_id'] ?? ''); } }
 require BFTD_PATH . 'includes/class-bftd-cpt.php';
 require BFTD_PATH . 'includes/class-bftd-schedule.php';
 require BFTD_PATH . 'includes/class-bftd-students.php';
@@ -202,6 +203,24 @@ ob_start(); $draw->invoke(null, $one); $g3 = ob_get_clean();
 check(false === strpos($g3, 'bftd-stu-ghl'), 'a tutor reading the list sees no GoHighLevel offers');
 check(array() === $GLOBALS['GHL_ASKED'], 'and is not made to wait for them to be worked out');
 $GLOBALS['MANAGE'] = true; $GLOBALS['GHL_OFFERS'] = array();
+
+/* Linked to GoHighLevel or not, beside the name, to the student's row on
+   Settings, Link students (1.178). */
+check(1 === preg_match('#<td class="bftd-stu-name">\s*<a [^>]+>Student 000</a>\s*<a class="bftd-stu-crm" href="[^"]*page=bftd-settings&(amp;|\#038;)?tab=link\#bftd-link-1001" title="Not linked to GoHighLevel">Not linked</a>#', $g),
+  'a student not linked says so beside the name, linked to its row on Link students');
+$GLOBALS['META'][1001]['_bftd_crm_id'] = 'REC1';
+$lk = BFTD_Students::rows(array(1001))[1001];
+check('REC1' === $lk['crm'], 'the row knows its GoHighLevel record');
+ob_start(); $draw->invoke(null, $lk); $g4 = ob_get_clean();
+check(1 === preg_match('#<a class="bftd-stu-crm is-linked" href="[^"]*\#bftd-link-1001" title="Linked to GoHighLevel">Linked</a>#', $g4),
+  'and a linked one says Linked');
+$GLOBALS['MANAGE'] = false;
+ob_start(); $draw->invoke(null, $lk); $g5 = ob_get_clean();
+$GLOBALS['MANAGE'] = true; $GLOBALS['GHL_ON'] = false;
+ob_start(); $draw->invoke(null, $lk); $g6 = ob_get_clean();
+$GLOBALS['GHL_ON'] = true; unset($GLOBALS['META'][1001]['_bftd_crm_id']);
+check(false === strpos($g5, 'bftd-stu-crm'), 'a tutor does not see it');
+check(false === strpos($g6, 'bftd-stu-crm'), 'nor does anyone before GoHighLevel is connected');
 /* The student record's own state, in its own column, in the same pills the
    Sessions screen uses for a session. */
 check(1 === preg_match('#<td data-l="Record"><span class="bftd-pill is-active">Published</span></td>#', $tr),

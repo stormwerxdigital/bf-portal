@@ -179,6 +179,7 @@ $set = file_get_contents(BFTD_PATH . 'includes/class-bftd-settings.php');
 $a = strpos($set, 'private static function save_family()');
 check(false !== $a && strpos($set, 'self::may_edit_text()', $a) < strpos($set, 'BFTD_GHL::accept', $a), 'adding people is behind the senior manager check');
 check(preg_match('/if \( ! isset\( \$linked\[ \$sid \] \) \) continue;\s+\$keys = array_diff/', substr($set, $a)) && preg_match('/if \( ! isset\( \$linked\[ \$sid \] \) \) continue;\s+\$keys = array_map/', substr($set, $a)), 'and only on a student linked to GoHighLevel, for adding and for hiding');
+check(false !== strpos($set, '<tr id="bftd-link-<?php echo (int) $sid; ?>">'), 'each student on Link students can be linked to from the Students list');
 check(false !== strpos($set, '<h3 id="bftd-offers-<?php echo (int) $sid; ?>"'), 'each student on the tab can be linked to from the Students list');
 $g = file_get_contents(BFTD_PATH . 'includes/class-bftd-ghl.php');
 check(false === strpos($g, "'POST', '/contacts") && false === strpos($g, "'PUT'") && false === strpos($g, "'DELETE'"), 'nothing is written to GoHighLevel');

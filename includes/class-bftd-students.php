@@ -271,6 +271,8 @@ class BFTD_Students {
 				'record'    => (string) get_post_status( $id ),
 				'draft'     => ( 'publish' !== get_post_status( $id ) ),
 				'drafts'    => isset( $records[ $id ] ) ? (int) $records[ $id ]['draft'] : 0,
+				// Its GoHighLevel record, or '' (1.178).
+				'crm'       => class_exists( 'BFTD_CRM' ) ? BFTD_CRM::linked( $id ) : '',
 			);
 		}
 		return $out;
@@ -460,6 +462,7 @@ class BFTD_Students {
 		<tr>
 			<td class="bftd-stu-name">
 				<a href="<?php echo esc_url( $hub ); ?>"><?php echo esc_html( $row['name'] ); ?></a>
+				<?php echo self::crm_mark( $row ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in crm_mark ?>
 				<span class="bftd-stu-acts">
 					<a href="<?php echo esc_url( (string) get_edit_post_link( $row['id'] ) ); ?>">Edit</a>
 					<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=' . BFTD_CPT::SESSION . '&student=' . (int) $row['id'] ) ); ?>">Record a session</a>
@@ -488,6 +491,24 @@ class BFTD_Students {
 			<td data-l="Record"><?php self::record_cell( $row['record'] ); ?></td>
 		</tr>
 		<?php
+	}
+
+	/**
+	 * Linked or not linked to GoHighLevel, small, beside the name (1.178).
+	 * Goes to this student's row on Settings, Link students. Managers only,
+	 * and only once GoHighLevel is connected.
+	 */
+	public static function crm_mark( $row ) {
+		if ( ! class_exists( 'BFTD_GHL' ) || ! BFTD_GHL::configured() || ! BFTD_Roles::can_manage() ) return '';
+		$on  = '' !== (string) ( $row['crm'] ?? '' );
+		$url = admin_url( 'admin.php?page=' . BFTD_Settings::PAGE_SLUG . '&tab=link' ) . '#bftd-link-' . (int) $row['id'];
+		return sprintf(
+			'<a class="bftd-stu-crm%s" href="%s" title="%s">%s</a>',
+			$on ? ' is-linked' : '',
+			esc_url( $url ),
+			esc_attr( $on ? 'Linked to GoHighLevel' : 'Not linked to GoHighLevel' ),
+			esc_html( $on ? 'Linked' : 'Not linked' )
+		);
 	}
 
 	/**
