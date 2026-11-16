@@ -455,6 +455,7 @@ class BFTD_Students {
 
 	private static function row( $row ) {
 		$hub = admin_url( 'admin.php?page=' . BFTD_Admin::HUB_SLUG . '&student=' . (int) $row['id'] );
+		$ghl = self::ghl_waiting( $row['id'] );
 		?>
 		<tr>
 			<td class="bftd-stu-name">
@@ -468,10 +469,11 @@ class BFTD_Students {
 			<td data-l="Client"><?php echo $row['client']
 				? esc_html( $row['client'] )
 				: '<span class="bftd-none">Nobody yet</span>'; ?></td>
-			<td data-l="Caregivers"><?php self::care_cell( $row['care'] ); ?></td>
+			<td data-l="Caregivers"><?php self::care_cell( $row['care'] ); echo self::ghl_note( $ghl['care'], $row['id'] ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in ghl_note ?></td>
 			<td data-l="Tutors"><?php echo $row['tutors']
 				? esc_html( implode( ', ', $row['tutors'] ) )
-				: '<span class="bftd-none">Unassigned</span>'; ?></td>
+				: '<span class="bftd-none">Unassigned</span>';
+				echo self::ghl_note( $ghl['tutors'], $row['id'] ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in ghl_note ?></td>
 			<td class="num" data-l="Sessions left"><?php self::bank_cell( $row ); ?></td>
 			<td data-l="Status"><?php
 				self::status_cell( $row['status'] );
@@ -486,6 +488,35 @@ class BFTD_Students {
 			<td data-l="Record"><?php self::record_cell( $row['record'] ); ?></td>
 		</tr>
 		<?php
+	}
+
+	/**
+	 * GoHighLevel people waiting to be added to this student (1.177): the
+	 * caregivers and the tutors, counted apart so each shows in its own
+	 * column. Managers only, the same as the link in the student's CRM box;
+	 * a tutor reading their caseload has nothing to do with it, and is not
+	 * made to wait for the lookups.
+	 */
+	private static function ghl_waiting( $sid ) {
+		$n = array( 'care' => 0, 'tutors' => 0 );
+		if ( ! class_exists( 'BFTD_GHL' ) || ! BFTD_Roles::can_manage() ) return $n;
+		foreach ( BFTD_GHL::offers_for( $sid ) as $o ) {
+			if ( 'assign' === $o['kind'] ) $n['tutors']++;
+			else $n['care']++;
+		}
+		return $n;
+	}
+
+	/** "2 to add from GoHighLevel", linked to this student on the Caregivers and tutors tab. */
+	public static function ghl_note( $n, $sid ) {
+		$n = (int) $n;
+		if ( $n < 1 ) return '';
+		$url = admin_url( 'admin.php?page=' . BFTD_Settings::PAGE_SLUG . '&tab=family' ) . '#bftd-offers-' . (int) $sid;
+		return sprintf(
+			'<a class="bftd-stu-ghl" href="%s">%s</a>',
+			esc_url( $url ),
+			esc_html( $n . ' to add from GoHighLevel' )
+		);
 	}
 
 	/** Who can open this child's portal, with the client marked among them. */

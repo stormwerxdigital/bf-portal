@@ -82,7 +82,7 @@ class BFTD_Admin { const MENU_SLUG = 'bftd'; const HUB_SLUG = 'bftd-student'; }
 class BFTD_Roles {
   const STAFF_CAP = 'bftd_manage_students';
   public static function is_staff($u = null) { return true; }
-  public static function can_manage($u = null) { return true; }
+  public static function can_manage($u = null) { return $GLOBALS['MANAGE'] ?? true; }
   public static function relationship($u) { return 'Parent or guardian'; }
   public static function role_name($u) { return 'Tutor'; }
   public static function post_types() { return array('bftd_session'); }
@@ -96,6 +96,9 @@ class BFTD_Access {
   public static function visible_student_ids($u) { return $GLOBALS['VISIBLE']; }
   public static function can_staff_view(...$a) { return true; }
 }
+/* GoHighLevel offers, stood in for: what the sync stored, per student (1.177). */
+class BFTD_GHL { public static function offers_for($sid) { $GLOBALS['GHL_ASKED'][] = (int) $sid; return $GLOBALS['GHL_OFFERS'][(int) $sid] ?? array(); } }
+class BFTD_Settings { const PAGE_SLUG = 'bftd-settings'; }
 require BFTD_PATH . 'includes/class-bftd-cpt.php';
 require BFTD_PATH . 'includes/class-bftd-schedule.php';
 require BFTD_PATH . 'includes/class-bftd-students.php';
@@ -179,6 +182,26 @@ check(1 === preg_match('#class="bftd-stu-drafts" href="[^"]*post_status=draft[^"
   'and says so under the status, linked to those drafts');
 ob_start(); $draw->invoke(null, $rows[1002]); $tr2 = ob_get_clean();
 check(false === strpos($tr2, 'bftd-stu-drafts'), 'while a student with none says nothing');
+
+/* GoHighLevel people waiting to be added (1.177): caregivers under Caregivers,
+   tutors under Tutors, each linked to this student on the Settings tab. */
+$GLOBALS['GHL_OFFERS'][1001] = array(
+  array('kind' => 'create'), array('kind' => 'link'), array('kind' => 'assign'),
+);
+ob_start(); $draw->invoke(null, $one); $g = ob_get_clean();
+check(1 === preg_match('#<td data-l="Caregivers">.*<a class="bftd-stu-ghl" href="[^"]*page=bftd-settings&(amp;|\#038;)?tab=family\#bftd-offers-1001">2 to add from GoHighLevel</a></td>#s', $g),
+  'two caregivers waiting in GoHighLevel show under Caregivers, linked to this student on the tab');
+check(1 === preg_match('#<td data-l="Tutors">.*<a class="bftd-stu-ghl"[^>]*>1 to add from GoHighLevel</a></td>#s', $g),
+  'and the tutor waiting shows under Tutors');
+$GLOBALS['GHL_OFFERS'][1001] = array(array('kind' => 'assign'));
+ob_start(); $draw->invoke(null, $one); $g2 = ob_get_clean();
+check(1 === substr_count($g2, 'bftd-stu-ghl') && 1 === preg_match('#<td data-l="Tutors">.*bftd-stu-ghl#s', $g2),
+  'a tutor alone adds nothing under Caregivers');
+$GLOBALS['MANAGE'] = false; $GLOBALS['GHL_ASKED'] = array();
+ob_start(); $draw->invoke(null, $one); $g3 = ob_get_clean();
+check(false === strpos($g3, 'bftd-stu-ghl'), 'a tutor reading the list sees no GoHighLevel offers');
+check(array() === $GLOBALS['GHL_ASKED'], 'and is not made to wait for them to be worked out');
+$GLOBALS['MANAGE'] = true; $GLOBALS['GHL_OFFERS'] = array();
 /* The student record's own state, in its own column, in the same pills the
    Sessions screen uses for a session. */
 check(1 === preg_match('#<td data-l="Record"><span class="bftd-pill is-active">Published</span></td>#', $tr),

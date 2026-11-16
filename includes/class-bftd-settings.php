@@ -938,7 +938,7 @@ class BFTD_Settings {
 		<?php endif; ?>
 
 		<?php foreach ( $rows as $sid => $r ) : ?>
-			<h3 style="margin:24px 0 8px"><a href="<?php echo esc_url( get_edit_post_link( $sid ) ); ?>"><?php echo esc_html( get_the_title( $sid ) ); ?></a></h3>
+			<h3 id="bftd-offers-<?php echo (int) $sid; ?>" style="margin:24px 0 8px"><a href="<?php echo esc_url( get_edit_post_link( $sid ) ); ?>"><?php echo esc_html( get_the_title( $sid ) ); ?></a></h3>
 			<?php if ( $r['offers'] ) : ?>
 				<table class="widefat striped bftd-offer-table" style="max-width:960px">
 					<thead><tr><th>Person</th><th>Email</th><th>What happens</th><th><?php echo $may ? 'Add' : ''; ?></th><th><?php echo $may ? 'Not this one' : ''; ?></th></tr></thead>
