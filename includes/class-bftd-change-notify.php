@@ -60,8 +60,21 @@ class BFTD_Change_Notify {
 
 		foreach ( BFTD_CPT::client_ids( $post->ID ) as $uid ) {
 			if ( get_user_meta( $uid, self::welcomed_key( $post->ID ), true ) ) continue;
+			// Added quietly from GoHighLevel: publishing does not tell them (Karl, 1.185).
+			if ( get_user_meta( $uid, self::quiet_key( $post->ID ), true ) ) continue;
 			BFTD_MetaBoxes::send_welcome( $uid, $post->ID );
 		}
+	}
+
+	/**
+	 * One flag per caregiver per student added from GoHighLevel (1.185).
+	 * Their welcome is not sent when the student is published; somebody
+	 * here tells the family when it is ready. Adding them by hand on the
+	 * student record still welcomes them, because that is a person
+	 * deciding to.
+	 */
+	public static function quiet_key( $student_id ) {
+		return '_bftd_quiet_' . (int) $student_id;
 	}
 
 	/** One flag per caregiver per student, so nobody is welcomed twice. */

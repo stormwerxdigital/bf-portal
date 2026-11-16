@@ -90,6 +90,14 @@ $GLOBALS['SENT'] = array();
 BFTD_Change_Notify::on_publish('publish','draft',$post);
 check($GLOBALS['SENT'] === array(), 'and a later republish welcomes nobody twice');
 
+/* A caregiver added quietly from GoHighLevel is not welcomed by publishing (1.185). */
+$GLOBALS['UMETA'] = array(7 => array(BFTD_Change_Notify::quiet_key(11) => 1700000000)); $GLOBALS['SENT'] = array(); $GLOBALS['NOTED'] = array();
+BFTD_Change_Notify::on_publish('publish','draft',$post);
+check($GLOBALS['SENT'] === array() && $GLOBALS['NOTED'] === array(), 'a caregiver added from GoHighLevel is not emailed or noticed when the student is published');
+$GLOBALS['UMETA'] = array(7 => array(BFTD_Change_Notify::quiet_key(12) => 1700000000)); $GLOBALS['SENT'] = array();
+BFTD_Change_Notify::on_publish('publish','draft',$post);
+check(in_array('client_welcome',$GLOBALS['SENT'],true), 'quiet for that student only: on another student they are welcomed as usual');
+
 /* An update to an already published record is not a publish event. */
 $GLOBALS['UMETA'] = array(); $GLOBALS['SENT'] = array();
 BFTD_Change_Notify::on_publish('publish','publish',$post);

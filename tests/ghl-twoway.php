@@ -85,6 +85,10 @@ function wp_mail() { $GLOBALS['MAIL']++; return true; }
 $GLOBALS['AUDIT'] = array();
 class BFTD_Audit { public static function log($e, $a = array()) { $GLOBALS['AUDIT'][] = $e . ': ' . ($a['summary'] ?? ''); } }
 class BFTD_Notices { public static function add(...$a) {} }
+class BFTD_Change_Notify { public static function quiet_key($s) { return '_bftd_quiet_' . (int) $s; } public static function welcomed_key($s) { return '_bftd_welcomed_' . (int) $s; } }
+function get_user_meta($u, $k, $s = false) { return $GLOBALS['UMETA'][$u][$k] ?? ($s ? '' : array()); }
+$GLOBALS['UMETA'] = array();
+function update_user_meta($u, $k, $v) { $GLOBALS['UMETA'][$u][$k] = $v; return true; }
 class BFTD_Roles { const CLIENT_ROLE = 'bftd_client'; public static function is_staff($u) { return !empty($GLOBALS['USERS'][$u]['staff']); } public static function can_manage() { return true; } }
 class BFTD_CPT {
   const STUDENT = 'bftd_student'; const CLIENT_KEY = '_bftd_client_user_id'; const PRIMARY_KEY = '_bftd_client_primary'; const STAFF_KEY = '_bftd_assigned_staff';
@@ -290,6 +294,14 @@ $clients = BFTD_CPT::client_ids(11);
 check(2 === count($log['rows'][0]['added']), 'each contact with an email is added at the sync, got ' . json_encode($log['rows'][0]['added']));
 check(in_array(300, $clients, true) && 1 === count($GLOBALS['INSERTED']) && 'nova@example.test' === $GLOBALS['INSERTED'][0]['user_email'], 'an existing account is linked, and one is made for a contact with none');
 check(0 === $GLOBALS['MAIL'], 'with no email sent');
+check(!empty($GLOBALS['UMETA'][300]['_bftd_quiet_11']) && !empty($GLOBALS['UMETA'][500]['_bftd_quiet_11']), 'and each is marked quiet, so publishing the student does not welcome them later');
+// Added before 1.185, with nothing marked: the next sync marks them, unless already welcomed.
+$GLOBALS['UMETA'] = array();
+BFTD_GHL::sync();
+check(in_array(500, BFTD_CPT::client_ids(11), true) && !empty($GLOBALS['UMETA'][500]['_bftd_quiet_11']), 'caregivers added before this are marked quiet at the next sync');
+$GLOBALS['UMETA'] = array(500 => array('_bftd_welcomed_11' => '2026-11-01 10:00:00'));
+BFTD_GHL::sync();
+check(empty($GLOBALS['UMETA'][500]['_bftd_quiet_11']), 'but not one who was already welcomed');
 check(BFTD_CPT::primary_client_id(11) === 500, 'the contact tagged primary parent becomes the client, as there was none');
 check(2 === count($clients), 'a contact with no email is not added');
 delete_post_meta(11, BFTD_CPT::CLIENT_KEY, 300);

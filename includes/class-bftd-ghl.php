@@ -567,6 +567,7 @@ class BFTD_GHL {
 				$people = self::gather( $all['records'][ $rid ], $lookup );
 				update_post_meta( $sid, self::PEOPLE_KEY, $people );
 				$added = self::auto_add( $sid );
+				self::quiet_earlier( $sid );
 				$row['added']  = $added['done'];
 				if ( $added['failed'] ) $row['add_failed'] = $added['failed'];
 				$row['offers'] = count( self::offers_for( $sid ) );
@@ -926,6 +927,8 @@ class BFTD_GHL {
 			}
 			add_post_meta( $sid, BFTD_CPT::CLIENT_KEY, $uid );
 			self::remember_added( $sid, $key );
+			// Quiet now and later: publishing the student does not welcome them (1.185).
+			if ( class_exists( 'BFTD_Change_Notify' ) ) update_user_meta( $uid, BFTD_Change_Notify::quiet_key( $sid ), time() );
 			BFTD_Audit::log( 'client_linked', array( 'post_id' => $sid, 'student_id' => $sid,
 				'summary' => 'Caregiver ' . $o['name'] . ' was given access to ' . $student . ', from GoHighLevel.' ) );
 			if ( $o['primary'] && ! BFTD_CPT::primary_client_id( $sid ) ) {
@@ -1319,6 +1322,26 @@ class BFTD_GHL {
 			$keys[] = $o['key'];
 		}
 		return $keys ? self::accept( $sid, $keys ) : array( 'done' => array(), 'failed' => array() );
+	}
+
+	/**
+	 * Caregivers added from GoHighLevel before 1.185, when nothing marked
+	 * them quiet: each one still on the student and not yet welcomed is
+	 * marked now, so publishing the student does not email them.
+	 */
+	public static function quiet_earlier( $sid ) {
+		if ( ! class_exists( 'BFTD_Change_Notify' ) ) return;
+		$added = get_post_meta( $sid, self::ADDED_KEY, true );
+		if ( ! is_array( $added ) || ! $added ) return;
+		$people  = self::people( $sid );
+		$clients = BFTD_CPT::client_ids( $sid );
+		foreach ( (array) ( $people['contacts'] ?? array() ) as $c ) {
+			if ( ! in_array( 'c:' . $c['id'], $added, true ) || '' === $c['email'] ) continue;
+			$u = get_user_by( 'email', $c['email'] );
+			if ( ! $u || ! in_array( (int) $u->ID, $clients, true ) ) continue;
+			if ( get_user_meta( $u->ID, BFTD_Change_Notify::welcomed_key( $sid ), true ) ) continue;
+			if ( ! get_user_meta( $u->ID, BFTD_Change_Notify::quiet_key( $sid ), true ) ) update_user_meta( $u->ID, BFTD_Change_Notify::quiet_key( $sid ), time() );
+		}
 	}
 
 	public static function add_box() {
