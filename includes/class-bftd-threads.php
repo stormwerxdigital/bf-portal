@@ -258,8 +258,11 @@ class BFTD_Threads {
 	/**
 	 * Tell the other side. A family posting always reaches their tutor,
 	 * because a question sitting unanswered is the one failure this system
-	 * cannot have. A tutor posting reaches the family through the send rules,
-	 * which may hold it for the daily summary or for a human to send.
+	 * cannot have. A tutor's reply reaches only the caregivers who wrote in
+	 * that conversation (Karl, 1.186), not every caregiver on the student:
+	 * those now include school and agency contacts from GoHighLevel, who
+	 * did not ask. Everyone else hears through the review bar, when
+	 * somebody sends it.
 	 */
 	private static function notify( $thread_id, $comment_id, $post_id, $section_id, $user_id, $content ) {
 		$student_id = BFTD_CPT::student_id( $post_id );
@@ -286,7 +289,7 @@ class BFTD_Threads {
 				BFTD_Change_Notify::queue_message( $post_id, $excerpt );
 				return;
 			}
-			foreach ( BFTD_CPT::client_ids( $student_id ) as $uid ) {
+			foreach ( self::posters( $thread_id, $student_id ) as $uid ) {
 				$u = get_userdata( $uid );
 				if ( ! $u ) continue;
 				BFTD_Notices::add( $uid, 'message', $student_id, $post_id, $section_id,
@@ -327,6 +330,21 @@ class BFTD_Threads {
 				$told[] = strtolower( $email );
 			}
 		}
+	}
+
+	/**
+	 * The caregivers who wrote in this conversation and can still see the
+	 * student: the people a tutor's reply is for (1.186).
+	 */
+	public static function posters( $thread_id, $student_id ) {
+		$clients = array_map( 'intval', BFTD_CPT::client_ids( $student_id ) );
+		$out     = array();
+		foreach ( self::messages( $thread_id ) as $m ) {
+			$uid = (int) $m->user_id;
+			if ( ! $uid || isset( $out[ $uid ] ) || BFTD_Roles::is_staff( $uid ) ) continue;
+			if ( in_array( $uid, $clients, true ) ) $out[ $uid ] = $uid;
+		}
+		return array_values( $out );
 	}
 
 	public static function edit_message( $comment_id, $content, $user_id = 0 ) {
