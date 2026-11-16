@@ -39,6 +39,8 @@ function get_post_meta($id, $k, $s = false) { $v = $GLOBALS['META'][$id][$k] ?? 
 function get_userdata($id) { return $GLOBALS['USERS'][(int) $id] ?? false; }
 function get_current_user_id() { return 1; }
 function is_admin() { return true; }
+function current_user_can($cap, ...$a) { return $GLOBALS['CAN'] ?? true; }
+if (!function_exists('wp_json_encode')) { function wp_json_encode($v) { return json_encode($v); } }
 function wp_list_pluck($l, $f) { $o = array(); foreach ((array) $l as $r) { $o[] = is_array($r) ? $r[$f] : $r->$f; } return $o; }
 
 /* The two WordPress calls that make a screen like this cheap, counted so the
@@ -229,9 +231,24 @@ $GLOBALS['POSTS'][1002]->post_status = 'draft';
 $draft_row = BFTD_Students::rows(array(1002))[1002];
 ob_start(); $draw->invoke(null, $draft_row); $tr3 = ob_get_clean();
 $GLOBALS['POSTS'][1002]->post_status = 'publish';
-check(1 === preg_match('#<td data-l="Record"><span class="bftd-pill is-past">Draft</span></td>#', $tr3),
+check(1 === preg_match('#<td data-l="Record"><span class="bftd-pill is-past">Draft</span>(<a class="bftd-stu-trash".*?</a>)?</td>#s', $tr3),
   'and one still in draft reads Draft');
 check(false === strpos($tr3, 'bftd-stu-draft"'), 'said once, in the column, not again beside the name');
+
+/* A red trash can on a draft student, for managers and up (1.179). */
+check(1 === preg_match('#<td data-l="Record"><span class="bftd-pill is-past">Draft</span><a class="bftd-stu-trash" href="[^"]*admin-post\.php\?action=bftd_trash_student(&|&amp;|&\#038;)student=1002[^"]*_wpnonce=[^"]*" title="Delete" aria-label="Delete Student 001, a draft student" onclick="return confirm\(&quot;Move Student 001 to the trash\? It can be brought back from there\.&quot;\)"><span class="dashicons dashicons-trash"#', $tr3),
+  'a draft student has a trash can beside Draft, asking before it moves them to the trash');
+check(false === strpos($tr, 'bftd-stu-trash'), 'a published student has none');
+$GLOBALS['MANAGE'] = false; ob_start(); $draw->invoke(null, $draft_row); $t1 = ob_get_clean(); $GLOBALS['MANAGE'] = true;
+$GLOBALS['CAN'] = false; ob_start(); $draw->invoke(null, $draft_row); $t2 = ob_get_clean(); $GLOBALS['CAN'] = true;
+check(false === strpos($t1, 'bftd-stu-trash'), 'a tutor sees no trash can');
+check(false === strpos($t2, 'bftd-stu-trash'), 'nor does anyone who may not delete the student');
+$src = file_get_contents(BFTD_PATH . 'includes/class-bftd-students.php');
+$h = substr($src, strpos($src, 'public static function trash_request()'));
+$h = substr($h, 0, strpos($h, "\n\t}\n"));
+check(false !== strpos($h, 'check_admin_referer') && strpos($h, 'check_admin_referer') < strpos($h, 'wp_trash_post'), 'pressing it checks the nonce before anything moves');
+check(1 === preg_match('#\'draft\' !== \$post->post_status\s*\|\| ! BFTD_Roles::can_manage\(\) \|\| ! current_user_can\( \'delete_post\', \$sid \)#', $h), 'and checks again that it is a draft, and that this person is a manager who may delete it');
+check(false === strpos($h, 'wp_delete_post'), 'and only ever moves it to the trash, never deletes it for good');
 $sec = new ReflectionMethod('BFTD_Students', 'section'); $sec->setAccessible(true);
 ob_start(); $sec->invoke(null, 0, array('name' => 'Unassigned', 'rows' => array($one)), array('tutor' => 0)); $table = ob_get_clean();
 check(1 === preg_match('#<th>Status</th>\s*<th>Record</th>#', $table), 'with Record as a column of its own beside Status');

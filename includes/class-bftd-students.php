@@ -33,6 +33,7 @@ class BFTD_Students {
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ), 21 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'hide_list_row' ), 0 );
+		add_action( 'admin_post_bftd_trash_student', array( __CLASS__, 'trash_request' ) );
 	}
 
 	/**
@@ -296,6 +297,12 @@ class BFTD_Students {
 			<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=' . BFTD_CPT::STUDENT ) ); ?>" class="page-title-action">Add Student</a>
 			<hr class="wp-header-end">
 
+			<?php if ( isset( $_GET['trashed'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification -- a message only ?>
+				<div class="notice notice-success is-dismissible"><p><?php
+					echo esc_html( sanitize_text_field( wp_unslash( $_GET['trashed'] ) ) . ' was moved to the trash.' ); // phpcs:ignore WordPress.Security.NonceVerification
+					?> <a href="<?php echo esc_url( admin_url( 'edit.php?post_status=trash&post_type=' . BFTD_CPT::STUDENT ) ); ?>">Open the trash</a></p></div>
+			<?php endif; ?>
+
 			<?php self::filter_bar( $f, count( $rows ), self::SLUG ); ?>
 
 			<?php if ( ! $rows ) : ?>
@@ -488,9 +495,50 @@ class BFTD_Students {
 					);
 				}
 			?></td>
-			<td data-l="Record"><?php self::record_cell( $row['record'] ); ?></td>
+			<td data-l="Record"><?php self::record_cell( $row['record'] ); echo self::trash_link( $row ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in trash_link ?></td>
 		</tr>
 		<?php
+	}
+
+	/**
+	 * A red trash can on a draft student, for managers and up (1.179).
+	 * The trash, not a permanent delete: it can be brought back from there,
+	 * and only a senior manager can empty it. A published student has none;
+	 * that is a family's record.
+	 */
+	public static function trash_link( $row ) {
+		if ( 'draft' !== (string) $row['record'] ) return '';
+		if ( ! BFTD_Roles::can_manage() || ! current_user_can( 'delete_post', (int) $row['id'] ) ) return '';
+		$url  = wp_nonce_url( admin_url( 'admin-post.php?action=bftd_trash_student&student=' . (int) $row['id'] ), 'bftd_trash_student_' . (int) $row['id'] );
+		$name = '' !== (string) $row['name'] ? (string) $row['name'] : 'this student';
+		return sprintf(
+			'<a class="bftd-stu-trash" href="%s" title="Delete" aria-label="%s" onclick="return confirm(%s)"><span class="dashicons dashicons-trash" aria-hidden="true"></span></a>',
+			esc_url( $url ),
+			esc_attr( 'Delete ' . $name . ', a draft student' ),
+			esc_attr( wp_json_encode( 'Move ' . $name . ' to the trash? It can be brought back from there.' ) )
+		);
+	}
+
+	/** The trash can, pressed. Checked again here, not only when drawn. */
+	public static function trash_request() {
+		$sid = isset( $_GET['student'] ) ? absint( $_GET['student'] ) : 0;
+		check_admin_referer( 'bftd_trash_student_' . $sid );
+		$post = $sid ? get_post( $sid ) : null;
+		if ( ! $post || BFTD_CPT::STUDENT !== $post->post_type || 'draft' !== $post->post_status
+			|| ! BFTD_Roles::can_manage() || ! current_user_can( 'delete_post', $sid ) ) {
+			wp_die( 'Only a draft student can be deleted here, by a manager.', 403 );
+		}
+		$name = get_the_title( $sid );
+		if ( ! wp_trash_post( $sid ) ) wp_die( 'That student could not be moved to the trash.', 500 );
+		if ( class_exists( 'BFTD_Audit' ) ) {
+			BFTD_Audit::log( 'student_trashed', array(
+				'post_id'    => $sid,
+				'student_id' => $sid,
+				'summary'    => 'Draft student ' . ( '' !== $name ? $name : '#' . $sid ) . ' moved to the trash.',
+			) );
+		}
+		wp_safe_redirect( add_query_arg( array( 'page' => self::SLUG, 'trashed' => rawurlencode( '' !== $name ? $name : 'The student' ) ), admin_url( 'admin.php' ) ) );
+		exit;
 	}
 
 	/**

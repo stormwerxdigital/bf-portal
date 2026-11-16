@@ -17,6 +17,8 @@ function get_post_meta($id,$k,$s=false){ $v=$GLOBALS['META'][$id][$k]??null; ret
 function get_userdata($id){ return $GLOBALS['USERS'][(int)$id] ?? false; }
 function get_current_user_id(){ return 1; }
 function is_admin(){ return true; }
+function current_user_can($c, ...$a){ return true; }
+if (!function_exists('wp_json_encode')) { function wp_json_encode($v){ return json_encode($v); } }
 function get_edit_post_link($id){ return '/wp-admin/post.php?post='.(int)$id.'&action=edit'; }
 function wp_list_pluck($l,$f){ $o=array(); foreach((array)$l as $r){ $o[]=is_array($r)?$r[$f]:$r->$f; } return $o; }
 function update_meta_cache($t,$i){ return true; }
