@@ -340,7 +340,16 @@ class BFTD_MetaBoxes {
 				<?php if ( $linked ) : ?>
 					Linked to the CRM as <code><?php echo esc_html( $linked ); ?></code>.
 					Last checked <?php echo esc_html( BFTD_CRM::last_synced_label( $post->ID ) ); ?>.
-					The sync fills anything left blank here and leaves whatever you have typed alone.
+					<?php if ( class_exists( 'BFTD_GHL' ) && BFTD_GHL::configured() ) : ?>
+						These are kept the same in GoHighLevel: a change here is sent when you save, a change there arrives within the hour,
+						and if both change, the later change wins.
+						<?php
+						$push_err = get_post_meta( $post->ID, BFTD_GHL::PUSH_ERROR, true );
+						if ( is_array( $push_err ) && ! empty( $push_err['error'] ) ) echo '<br><strong>' . esc_html( $push_err['error'] ) . '</strong>';
+						?>
+					<?php else : ?>
+						The sync fills anything left blank here and leaves whatever you have typed alone.
+					<?php endif; ?>
 					<?php
 					// Now, rather than at the next hourly sync (1.175).
 					$flash = get_transient( 'bftd_ghl_flash_' . get_current_user_id() );
@@ -414,7 +423,10 @@ class BFTD_MetaBoxes {
 				<?php endforeach; ?>
 			</div>
 
-			<?php $held = BFTD_CRM::held_back( $post->ID ); ?>
+			<?php
+			// Not for a student kept the same both ways with GoHighLevel (1.180): nothing is held back there.
+			$held = ( $linked && class_exists( 'BFTD_GHL' ) && BFTD_GHL::configured() ) ? array() : BFTD_CRM::held_back( $post->ID );
+			?>
 			<?php if ( $held ) : ?>
 				<p class="description" style="margin-top:10px">
 					The CRM has a different value for
@@ -453,10 +465,11 @@ class BFTD_MetaBoxes {
 				// A record starts life at the reading diagnostic, before
 				// anybody has committed to a programme, so prospect comes
 				// first and is where most new students begin.
-				'prospect' => 'Prospect',
-				'active'   => 'Active',
+				// GoHighLevel's names since 1.180, and kept the same there.
+				'prospect' => 'Pending',
+				'active'   => 'Current student',
 				'past'     => 'Past student',
-			), 'help' => 'A new student starts as a prospect at their reading diagnostic.' ),
+			), 'help' => 'A new student starts as pending, at their reading diagnostic. Kept the same in GoHighLevel.' ),
 			'attend_from'   => array( 'type' => 'date',   'label' => 'Attending from' ),
 			'attend_to'     => array( 'type' => 'date',   'label' => 'Attending to', 'help' => 'Left empty while they are still with us.' ),
 		);

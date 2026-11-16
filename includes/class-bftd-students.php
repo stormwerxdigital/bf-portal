@@ -370,7 +370,7 @@ class BFTD_Students {
 			<?php if ( $with_status ) : ?>
 				<select name="status" aria-label="Status">
 					<?php
-					$states = array( '' => 'Any status', 'prospect' => 'Prospects', 'active' => 'Active', 'past' => 'Past students' );
+					$states = array( '' => 'Any status', 'prospect' => 'Pending', 'active' => 'Current students', 'past' => 'Past students' );
 					foreach ( $states as $k => $label ) {
 						printf( '<option value="%s"%s>%s</option>', esc_attr( $k ), selected( $f['status'], $k, false ), esc_html( $label ) );
 					}
@@ -631,7 +631,7 @@ class BFTD_Students {
 	}
 
 	private static function status_cell( $status ) {
-		$words = array( 'prospect' => 'Prospect', 'active' => 'Active', 'past' => 'Past student' );
+		$words = array( 'prospect' => 'Pending', 'active' => 'Current student', 'past' => 'Past student' );
 		if ( ! isset( $words[ $status ] ) ) {
 			echo '<span class="bftd-none">Not set</span>';
 			return;

@@ -720,7 +720,7 @@ class BFTD_Settings {
 		$taken = array();
 		foreach ( $rows as $sid => $row ) if ( '' !== $row['linked'] && ! in_array( $sid, $unlink, true ) ) $taken[ $row['linked'] ] = $sid;
 
-		$done = 0; $refused = array();
+		$done = 0; $refused = array(); $newly = 0;
 		foreach ( $unlink as $sid ) {
 			if ( ! isset( $rows[ $sid ] ) || '' === $rows[ $sid ]['linked'] ) continue;
 			BFTD_CRM::link( $sid, '' );
@@ -735,12 +735,23 @@ class BFTD_Settings {
 			if ( isset( $taken[ $rid ] ) ) { $refused[] = $rows[ $sid ]['name'] . ' (that GoHighLevel student is already linked to ' . $rows[ $taken[ $rid ] ]['name'] . ')'; continue; }
 			BFTD_CRM::link( $sid, $rid );
 			$taken[ $rid ] = $sid;
+			$newly++;
 			BFTD_Audit::log( 'crm_linked', array( 'post_id' => $sid, 'student_id' => $sid,
 				'summary' => $rows[ $sid ]['name'] . ' was linked to GoHighLevel student ' . $ghl['records'][ $rid ]['name'] . '.' ) );
 			$done++;
 		}
 		if ( $refused ) add_settings_error( 'bftd_settings', 'link_refused', 'Not linked: ' . implode( '; ', $refused ) . '.', 'error' );
 		add_settings_error( 'bftd_settings', 'link_done', $done . ' ' . ( 1 === $done ? 'change' : 'changes' ) . ' saved.', 'updated' );
+		// Newly linked students made the same as GoHighLevel now, their
+		// caregivers with them, rather than at the next hourly sync (1.180).
+		if ( $newly ) {
+			$log   = BFTD_GHL::sync();
+			$added = 0;
+			foreach ( $log['rows'] as $r ) $added += count( $r['added'] ?? array() );
+			add_settings_error( 'bftd_settings', 'link_sync', $log['ok']
+				? 'Synced with GoHighLevel. ' . $added . ' ' . ( 1 === $added ? 'caregiver' : 'caregivers' ) . ' added, with no email. What changed is listed below.'
+				: 'Linked, but GoHighLevel did not answer the sync: ' . $log['error'], $log['ok'] ? 'updated' : 'error' );
+		}
 		return true;
 	}
 
@@ -816,9 +827,11 @@ class BFTD_Settings {
 			</tbody>
 		</table>
 		<h3 style="margin-top:28px">Keeping linked students in step</h3>
-		<p>Linked students take their details from GoHighLevel: anything blank here is filled, anything the sync filled before
-			follows GoHighLevel, and anything typed here is left alone. Status and dates are only set when GoHighLevel creates a
-			student; after that they are this dashboard's. This runs every hour by itself.</p>
+		<p>Every field of a linked student is kept the same here and in GoHighLevel, status included, and a field added to
+			students in GoHighLevel is added here by itself. A change here is sent when the student is saved; a change in GoHighLevel
+			arrives at the hourly sync. If a field changed in both, the later change wins. When a student is first linked, what
+			GoHighLevel already has stands, and only its blanks are filled from here. Its caregivers in GoHighLevel are added at
+			the same time, with no email.</p>
 		<?php if ( BFTD_Roles::can_manage() ) : ?>
 			<p><button class="button" name="bftd_ghl_sync" value="1">Sync linked students now</button></p>
 		<?php endif; ?>
@@ -915,9 +928,10 @@ class BFTD_Settings {
 			'assign' => 'Assign as a tutor',
 		);
 		?>
-		<p class="bftd-lede">The people GoHighLevel links to each linked student, offered here so the portal can catch up. Parents, caregivers
-			and teachers are GoHighLevel's contacts on the student; tutors are the GoHighLevel users who own or follow the student record,
-			matched to a staff account here by email. Nothing is added until you tick it and save. Nothing is emailed, and nothing
+		<p class="bftd-lede">The people GoHighLevel links to each linked student. Parents, caregivers and teachers are GoHighLevel's
+			contacts on the student, and are added by themselves when the student is linked and at each hourly sync, with no email.
+			Anyone listed here is one who was not: a tutor (a GoHighLevel user who owns or follows the student record, matched to a
+			staff account here by email), or a caregiver removed here since, who is not added again unless you tick them. Nothing
 			changes in GoHighLevel.</p>
 		<p><?php echo esc_html( count( $linked ) ); ?> linked students, <?php echo esc_html( $waiting ); ?> <?php echo 1 === $waiting ? 'person' : 'people'; ?> to add.
 			Read from GoHighLevel every hour.
@@ -973,11 +987,8 @@ class BFTD_Settings {
 	/** What the last sync did, student by student. */
 	public static function sync_log_html( $log ) {
 		if ( ! is_array( $log ) ) return '<p class="description">Not synced yet.</p>';
-		$labels = BFTD_MetaBoxes::crm_fields();
-		$say    = function ( $keys ) use ( $labels ) {
-			$out = array();
-			foreach ( (array) $keys as $k ) $out[] = isset( $labels[ $k ] ) ? $labels[ $k ]['label'] : $k;
-			return implode( ', ', $out );
+		$say = function ( $keys ) {
+			return implode( ', ', array_map( array( 'BFTD_GHL', 'label' ), (array) $keys ) );
 		};
 		ob_start();
 		?>
@@ -986,12 +997,14 @@ class BFTD_Settings {
 			echo $log['ok'] ? '' : esc_html( ' GoHighLevel did not answer: ' . $log['error'] ); ?></p>
 		<?php if ( $log['rows'] ) : ?>
 			<table class="widefat striped" style="max-width:860px">
-				<thead><tr><th>Student</th><th>Filled in</th><th>Left as typed here</th><th>Caregivers and tutors to add</th></tr></thead>
+				<thead><tr><th>Student</th><th>From GoHighLevel</th><th>Sent to GoHighLevel</th><th>Caregivers added</th><th>Still to add</th></tr></thead>
 				<tbody>
 				<?php foreach ( $log['rows'] as $r ) : ?>
 					<tr><td><?php echo esc_html( $r['name'] ); ?></td>
 						<td><?php echo $r['missing'] ? 'GoHighLevel no longer has this student' : esc_html( $r['written'] ? $say( $r['written'] ) : 'Nothing new' ); ?></td>
-						<td><?php echo esc_html( $say( $r['held'] ) ); ?></td>
+						<td><?php echo esc_html( $say( $r['sent'] ?? array() ) );
+							if ( ! empty( $r['error'] ) ) echo '<br><strong>' . esc_html( $r['error'] ) . '</strong>'; ?></td>
+						<td><?php echo esc_html( implode( ', ', $r['added'] ?? array() ) ); ?></td>
 						<td><?php echo ! empty( $r['offers'] ) ? esc_html( $r['offers'] ) : ''; ?></td></tr>
 				<?php endforeach; ?>
 				</tbody>
@@ -1170,8 +1183,8 @@ class BFTD_Settings {
 						foreach ( BFTD_CRM::seed_only() as $k ) $names[] = isset( $labels[ $k ] ) ? $labels[ $k ]['label'] : $k;
 						echo esc_html( implode( ', ', $names ) );
 						?>.
-						These are the journey. If the CRM kept writing them, a student you moved to Active
-						would be dragged back to Prospect by the next sync.
+						These are the journey. If the CRM kept writing them, a student you moved to Current student
+						would be dragged back to Pending by the next sync.
 					</p>
 					<p>New students arrive as drafts, so somebody here decides when a prospect becomes a family with a portal.</p>
 				</td>

@@ -83,16 +83,19 @@ check('Y' === $close_first[10]['record'] && !isset($close_first[9]), 'an exact n
 $src = file_get_contents(BFTD_PATH . 'includes/class-bftd-settings.php');
 $a = strpos($src, "\tprivate static function save_links() {");
 $b = strpos($src, "\t/**\n\t * Each portal student, its link, and a suggested");
-eval('class LinkSave { public static $may = true; public static $rows = array();
+// The sync that runs on linking (1.180) is stood in for: it is tested in ghl-twoway.php.
+eval('class LinkSave { public static $may = true; public static $rows = array(); public static $syncs = 0;
   public static function may_edit_text() { return self::$may; }
   public static function link_rows() { return self::$rows; }
-  ' . str_replace('private static function save_links', 'public static function save_links', substr($src, $a, $b - $a)) . ' }');
+  public static function sync() { self::$syncs++; return array("ok" => true, "error" => "", "rows" => array(array("added" => array("A", "B")))); }
+  ' . str_replace(array('private static function save_links', 'BFTD_GHL::sync()'), array('public static function save_links', 'self::sync()'), substr($src, $a, $b - $a)) . ' }');
 class BFTD_CRM { public static function link($sid, $rid) { $GLOBALS['LINKS'][$sid] = $rid; } }
 function add_settings_error($s, $c, $m, $t = 'error') { $GLOBALS['NOTES'][] = $t . ': ' . $m; }
 $GLOBALS['T']['bftd_ghl_students'] = array('ok' => true, 'error' => '', 'records' => $ghl);
 
 function save($post, $rows) {
   $_POST = $post; $GLOBALS['LINKS'] = array(); $GLOBALS['NOTES'] = array(); $GLOBALS['LOG'] = array();
+  LinkSave::$syncs = 0;
   LinkSave::$rows = $rows;
   return LinkSave::save_links();
 }
@@ -103,8 +106,10 @@ $rows = array(
 );
 save(array('bftd_link' => array(1 => 'G1', 2 => 'G2')), $rows);
 check(array() === $GLOBALS['LINKS'], 'a suggestion that is not ticked links nothing');
+check(0 === LinkSave::$syncs, 'and syncs nothing');
 save(array('bftd_link' => array(1 => 'G1', 2 => 'G2'), 'bftd_link_ok' => array(1)), $rows);
 check(array(1 => 'G1') === $GLOBALS['LINKS'], 'only the ticked row is linked');
+check(1 === LinkSave::$syncs && false !== strpos(implode(' ', $GLOBALS['NOTES']), '2 caregivers added, with no email'), 'and it is synced there and then, its caregivers added and counted');
 check(false !== strpos(implode(' ', $GLOBALS['LOG']), 'Eleanor Rettkowski was linked to GoHighLevel student Eleanor Rettkowski'), 'and the link is in the history');
 save(array('bftd_link' => array(2 => 'G6'), 'bftd_link_ok' => array(2)), $rows);
 check(array() === $GLOBALS['LINKS'] && false !== strpos(implode(' ', $GLOBALS['NOTES']), 'already linked to Kaine Miller'), 'a record already linked to another child is refused, and says to whom');
@@ -114,6 +119,7 @@ save(array('bftd_link' => array(1 => 'G1', 2 => 'G1'), 'bftd_link_ok' => array(1
 check(array(1 => 'G1') === $GLOBALS['LINKS'], 'one record ticked for two students goes to the first only');
 save(array('bftd_unlink' => array(5)), $rows);
 check(array(5 => '') === $GLOBALS['LINKS'], 'a linked student can be unlinked');
+check(0 === LinkSave::$syncs, 'unlinking alone syncs nothing');
 save(array('bftd_unlink' => array(5), 'bftd_link' => array(2 => 'G6'), 'bftd_link_ok' => array(2)), $rows);
 check(array(5 => '', 2 => 'G6') === $GLOBALS['LINKS'], 'and its record moved to another student in the same save');
 LinkSave::$may = false;

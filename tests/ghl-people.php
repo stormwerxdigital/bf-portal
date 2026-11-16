@@ -6,7 +6,8 @@
  * and its users (staff) own or follow the record. The sync keeps who they
  * are; the portal offers each one it does not have yet: link an account,
  * make one quietly, or assign a tutor. Only what is on offer can be done,
- * nothing is emailed to a family, and nothing is written to GoHighLevel.
+ * nothing is emailed to a family, and no person is written to GoHighLevel
+ * (since 1.180 the student record itself is, in ghl-twoway.php).
  */
 require __DIR__ . '/wp-stubs.php';
 define('BFTD_PATH', dirname(__DIR__) . '/');
@@ -182,7 +183,7 @@ check(preg_match('/if \( ! isset\( \$linked\[ \$sid \] \) \) continue;\s+\$keys 
 check(false !== strpos($set, '<tr id="bftd-link-<?php echo (int) $sid; ?>">'), 'each student on Link students can be linked to from the Students list');
 check(false !== strpos($set, '<h3 id="bftd-offers-<?php echo (int) $sid; ?>"'), 'each student on the tab can be linked to from the Students list');
 $g = file_get_contents(BFTD_PATH . 'includes/class-bftd-ghl.php');
-check(false === strpos($g, "'POST', '/contacts") && false === strpos($g, "'PUT'") && false === strpos($g, "'DELETE'"), 'nothing is written to GoHighLevel');
+check(false === strpos($g, "'DELETE'") && 0 === preg_match("#self::request\\( '(PUT|POST)', '/(contacts|users|associations)#", $g), 'nothing about a person is written to GoHighLevel');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

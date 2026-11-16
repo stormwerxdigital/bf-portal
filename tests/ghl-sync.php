@@ -2,12 +2,13 @@
 /*
  * Keeping linked students in step with GoHighLevel, integration phase 3 (1.175).
  *
- * The merge itself (fill blanks, follow what it filled, leave what a person
- * typed, journey only on creation) is BFTD_CRM's and has its own tests. What
- * is checked here is what Phase 3 adds around it: GoHighLevel's fields reach
- * the merge under the right names; only linked students are synced; a record
- * GoHighLevel no longer has is reported, not guessed at; drafts are made only
- * when asked; the hourly run is there only while GoHighLevel is connected.
+ * Since 1.180 a linked student is kept the same both ways, field by field
+ * (BFTD_GHL::merge, tested in ghl-twoway.php). What is checked here is what
+ * is around it: GoHighLevel's fields reach the older merge under the right
+ * names when a student is brought in; only linked students are synced; a
+ * record GoHighLevel no longer has is reported, not guessed at; drafts are
+ * made only when asked; the hourly run is there only while GoHighLevel is
+ * connected.
  */
 require __DIR__ . '/wp-stubs.php';
 define('BFTD_PATH', dirname(__DIR__) . '/');
@@ -25,6 +26,12 @@ function get_posts($a) { return array_keys($GLOBALS['LINKS']); }
 function update_post_meta($id, $k, $v) { $GLOBALS['META'][$id][$k] = $v; return true; }
 function get_post_meta($id, $k = '', $single = false) { $v = $GLOBALS['META'][$id][$k] ?? ($single ? '' : array()); return $v; }
 function get_user_by($f, $v) { return false; }
+function get_option($k, $d = false) { return $GLOBALS['OPT'][$k] ?? $d; }
+function delete_post_meta($id, $k) { unset($GLOBALS['META'][$id][$k]); return true; }
+function delete_transient($k) { unset($GLOBALS['T'][$k]); return true; }
+function get_post_field($f, $id) { return $GLOBALS['TITLES'][$id] ?? ('Student ' . $id); }
+function wp_update_post($a, $e = false) { $GLOBALS['TITLES'][$a['ID']] = $a['post_title']; return $a['ID']; }
+class BFTD_Fields { public static function get($id, $g, $k, $f = array()) { return $GLOBALS['F'][$id][$k] ?? ''; } public static function set($id, $g, $k, $v) { $GLOBALS['F'][$id][$k] = $v; } }
 class BFTD_Roles { public static function is_staff($u) { return false; } public static function can_manage() { return true; } }
 $GLOBALS['RECORDS'] = array();
 function wp_remote_request($url, $args) {
@@ -36,7 +43,8 @@ function wp_remote_retrieve_response_code($r) { return $r['code']; }
 function wp_remote_retrieve_body($r) { return $r['body']; }
 class BFTD_Audit { public static function log($e, $a = array()) {} }
 class BFTD_CPT { const STUDENT = 'bftd_student';
-  public static function client_ids($s) { return array(); } public static function staff_ids($s) { return array(); } public static function primary_client_id($s) { return 0; } }
+  public static function client_ids($s) { return array(); } public static function staff_ids($s) { return array(); } public static function primary_client_id($s) { return 0; }
+  public static function diagnostic_on($s) { return ''; } }
 class BFTD_CRM {
   const LINK_KEY = '_bftd_crm_id';
   public static function linked($sid) { return $GLOBALS['LINKS'][$sid] ?? ''; }
@@ -76,8 +84,8 @@ $GLOBALS['LINKS'] = array(11 => 'R1', 12 => 'GONE');
 $GLOBALS['UPSERTS'] = array();
 $log = BFTD_GHL::sync();
 check($log['ok'] && 2 === count($log['rows']), 'every linked student is synced');
-check(1 === count($GLOBALS['UPSERTS']) && 'R1' === $GLOBALS['UPSERTS'][0]['crm_id'], 'through the merge, only for the ones GoHighLevel has');
-check(array('phone') === $log['rows'][0]['written'] && array('email') === $log['rows'][0]['held'], 'what was filled and what was left as typed are recorded');
+check(array() === $GLOBALS['UPSERTS'], 'not through the older one-way merge any more');
+check(array('student_name') === $log['rows'][0]['written'] && 'Ana Lee' === $GLOBALS['TITLES'][11], 'GoHighLevel\'s value is brought here, and what came is recorded');
 check(true === $log['rows'][1]['missing'], 'a link to a record GoHighLevel no longer has is reported, not guessed at');
 check(is_array($GLOBALS['META'][11][BFTD_GHL::PEOPLE_KEY] ?? null) && !isset($GLOBALS['META'][12]), 'each synced student keeps who GoHighLevel links it to');
 check('Karl' === $log['by'] && $GLOBALS['OPT'][BFTD_GHL::SYNC_LOG] === $log, 'the sync is logged, with who ran it');
@@ -115,7 +123,7 @@ check(false !== $a && strpos($set, "self::may_edit_text()", $a) < strpos($set, "
 $g = file_get_contents(BFTD_PATH . 'includes/class-bftd-ghl.php');
 check(false !== strpos($g, "check_admin_referer( 'bftd_ghl_sync_' . \$sid );") && false !== strpos($g, "! BFTD_Roles::can_manage() || ! current_user_can( 'edit_post', \$sid )"), 'a student\'s Sync now is signed and needs a manager who can edit that student');
 
-check(false !== strpos($g, "'Filled in from GoHighLevel: ' . \$say( \$row['written'] )") && false === strpos($g, "implode( ', ', \$row['written'] )"),
+check(false !== strpos($g, "'From GoHighLevel: ' . \$say( \$row['written'] )") && false !== strpos($g, "array_map( array( __CLASS__, 'label' ), (array) \$keys )"),
   'the message names fields as the screen labels them, not by their keys');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";

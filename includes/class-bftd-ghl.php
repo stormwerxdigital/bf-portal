@@ -49,6 +49,9 @@ class BFTD_GHL {
 		add_action( self::CRON, array( __CLASS__, 'hourly' ) );
 		add_action( 'init', array( __CLASS__, 'schedule' ) );
 		add_action( 'admin_post_bftd_ghl_sync_one', array( __CLASS__, 'sync_one_request' ) );
+		// A change made here goes to GoHighLevel when the student is saved (1.180).
+		add_action( 'save_post_' . BFTD_CPT::STUDENT, array( __CLASS__, 'on_save' ), 99, 2 );
+		add_action( 'add_meta_boxes_' . BFTD_CPT::STUDENT, array( __CLASS__, 'add_box' ) );
 	}
 
 	/**
@@ -330,6 +333,8 @@ class BFTD_GHL {
 					// GoHighLevel users who own or follow it.
 					'contacts' => self::contact_ids( $rec['relations'] ?? array() ),
 					'staff'    => self::staff_ids( $rec ),
+					// When GoHighLevel last changed it, for "the later change wins" (1.180).
+					'updated'  => (string) ( $rec['updatedAt'] ?? '' ),
 				);
 			}
 			$page++;
@@ -439,6 +444,8 @@ class BFTD_GHL {
 			$v = $props[ $short ];
 			if ( is_array( $v ) ) $v = implode( ', ', array_map( 'strval', $v ) );   // an option list
 			if ( 'birth_date' === $short ) $v = self::birth( $v ) ?: $v;
+			// GoHighLevel's status option, as the portal's own (1.180).
+			if ( 'status' === $short && false !== ( $k = array_search( (string) $v, self::STATUS_MAP, true ) ) ) $v = $k;
 			$out[ $column ] = $v;
 		}
 		return $out;
@@ -465,10 +472,10 @@ class BFTD_GHL {
 	/**
 	 * Bring every linked student, or one, in step with GoHighLevel.
 	 *
-	 * Through BFTD_CRM::upsert, the merge the older endpoint uses: it fills
-	 * what is blank, follows what it filled last time, leaves what a person
-	 * typed, and never touches the journey (status, dates) on a student who
-	 * already exists. Read only on GoHighLevel's side. Logged.
+	 * Both ways since 1.180 (Karl): each field, status included, ends the
+	 * same in both, and where both changed since the last sync the later
+	 * change wins (merge()). Then its caregivers from GoHighLevel are added
+	 * (auto_add()). Logged.
 	 *
 	 * @return array the log entry
 	 */
@@ -487,6 +494,7 @@ class BFTD_GHL {
 			return $log;
 		}
 
+		$defs   = self::field_defs( true );                                // a field added in GoHighLevel arrives here
 		$lookup = array( 'contacts' => array(), 'users' => array() );   // each person read once a run
 		foreach ( self::linked_students() as $sid => $rid ) {
 			if ( $only && (int) $only !== $sid ) continue;
@@ -494,16 +502,18 @@ class BFTD_GHL {
 			if ( ! isset( $all['records'][ $rid ] ) ) {
 				$row['missing'] = true;           // linked to a record GoHighLevel no longer has
 			} else {
-				$res = BFTD_CRM::upsert( self::to_incoming( $rid, $all['records'][ $rid ]['props'] ?? array() ) );
-				if ( is_wp_error( $res ) ) {
-					$row['error'] = $res->get_error_message();
-				} else {
-					$row['written'] = $res['merge']['written'];
-					$row['held']    = $res['merge']['held'];
-				}
-				// Its caregivers, teachers and staff in GoHighLevel (1.176).
+				$m = self::merge( $sid, $rid, $all['records'][ $rid ], $defs );
+				$row['written'] = $m['written'];
+				$row['sent']    = $m['sent'];
+				$row['kept']    = $m['kept'];
+				if ( '' !== $m['error'] ) $row['error'] = $m['error'];
+				// Its caregivers, teachers and staff in GoHighLevel (1.176),
+				// the caregivers added by themselves (1.180).
 				$people = self::gather( $all['records'][ $rid ], $lookup );
 				update_post_meta( $sid, self::PEOPLE_KEY, $people );
+				$added = self::auto_add( $sid );
+				$row['added']  = $added['done'];
+				if ( $added['failed'] ) $row['add_failed'] = $added['failed'];
 				$row['offers'] = count( self::offers_for( $sid ) );
 			}
 			$log['rows'][] = $row;
@@ -556,18 +566,20 @@ class BFTD_GHL {
 		$log = self::sync( $sid );
 		$row = $log['rows'][0] ?? null;
 		// Said as the fields are labelled on the screen, not as their keys.
-		$labels = class_exists( 'BFTD_MetaBoxes' ) ? BFTD_MetaBoxes::crm_fields() : array();
-		$say    = function ( $keys ) use ( $labels ) {
-			$out = array();
-			foreach ( (array) $keys as $k ) $out[] = isset( $labels[ $k ] ) ? $labels[ $k ]['label'] : $k;
-			return implode( ', ', $out );
+		$say = function ( $keys ) {
+			return implode( ', ', array_map( array( __CLASS__, 'label' ), (array) $keys ) );
 		};
-		if ( ! $log['ok'] )         $msg = 'GoHighLevel did not answer: ' . $log['error'];
-		elseif ( ! $row )           $msg = 'This student is not linked to GoHighLevel.';
-		elseif ( $row['missing'] )  $msg = 'GoHighLevel no longer has the student this is linked to.';
-		elseif ( $row['written'] )  $msg = 'Filled in from GoHighLevel: ' . $say( $row['written'] ) . '.';
-		else                        $msg = 'Already in step with GoHighLevel.';
-		if ( $row && $row['held'] ) $msg .= ' Left as typed here: ' . $say( $row['held'] ) . '.';
+		if ( ! $log['ok'] )        $msg = 'GoHighLevel did not answer: ' . $log['error'];
+		elseif ( ! $row )          $msg = 'This student is not linked to GoHighLevel.';
+		elseif ( $row['missing'] ) $msg = 'GoHighLevel no longer has the student this is linked to.';
+		else {
+			$parts = array();
+			if ( $row['written'] )          $parts[] = 'From GoHighLevel: ' . $say( $row['written'] ) . '.';
+			if ( ! empty( $row['sent'] ) )  $parts[] = 'Sent to GoHighLevel: ' . $say( $row['sent'] ) . '.';
+			if ( ! empty( $row['added'] ) ) $parts[] = 'Added: ' . implode( ', ', $row['added'] ) . '.';
+			if ( ! empty( $row['error'] ) ) $parts[] = $row['error'];
+			$msg = $parts ? implode( ' ', $parts ) : 'Already the same as GoHighLevel.';
+		}
 		set_transient( 'bftd_ghl_flash_' . get_current_user_id(), $msg, 60 );
 		wp_safe_redirect( (string) get_edit_post_link( $sid, 'raw' ) );
 		exit;
@@ -825,6 +837,7 @@ class BFTD_GHL {
 			}
 			if ( 'assign' === $o['kind'] ) {
 				add_post_meta( $sid, BFTD_CPT::STAFF_KEY, $uid );
+				self::remember_added( $sid, $key );
 				BFTD_Audit::log( 'staff_assigned', array( 'post_id' => $sid, 'student_id' => $sid,
 					'summary' => 'Tutor ' . $o['name'] . ' was given access to ' . $student . ', from GoHighLevel.' ) );
 				if ( class_exists( 'BFTD_Notices' ) ) BFTD_Notices::add( $uid, 'system', $sid, $sid, '', 'You have been assigned ' . $student, '' );
@@ -832,6 +845,7 @@ class BFTD_GHL {
 				continue;
 			}
 			add_post_meta( $sid, BFTD_CPT::CLIENT_KEY, $uid );
+			self::remember_added( $sid, $key );
 			BFTD_Audit::log( 'client_linked', array( 'post_id' => $sid, 'student_id' => $sid,
 				'summary' => 'Caregiver ' . $o['name'] . ' was given access to ' . $student . ', from GoHighLevel.' ) );
 			if ( $o['primary'] && ! BFTD_CPT::primary_client_id( $sid ) ) {
@@ -852,6 +866,417 @@ class BFTD_GHL {
 			if ( preg_match( '/^[cu]:[A-Za-z0-9_-]+$/', $k ) && ! in_array( $k, $have, true ) ) $have[] = $k;
 		}
 		update_post_meta( $sid, self::DISMISSED_KEY, $have );
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Phase 5: caregivers added by themselves, every field both ways     */
+	/* (1.180)                                                             */
+	/* ------------------------------------------------------------------ */
+
+	/** The portal's status => GoHighLevel's option: one status, kept the same in both. */
+	const STATUS_MAP = array( 'prospect' => 'pending', 'active' => 'current_student', 'past' => 'past_student' );
+
+	/** Per student, per field: what each side held when they last agreed. */
+	const SHADOW_KEY = '_bftd_ghl_shadow';
+
+	/** Per student, per field: when it was last changed here. */
+	const EDITED_KEY = '_bftd_ghl_edited';
+
+	/** Per student: the last change GoHighLevel would not take. */
+	const PUSH_ERROR = '_bftd_ghl_push_error';
+
+	/** Per student: the people from GoHighLevel already added once. */
+	const ADDED_KEY = '_bftd_ghl_added';
+
+	/** A GoHighLevel field the portal has no place of its own for, kept on the student under this. */
+	const EXTRA_PREFIX = '_bftd_ghl_f_';
+
+	/** Every GoHighLevel Students field, as last read. */
+	const FIELDS = 'bftd_ghl_fields';
+
+	/** Kinds of field that hold a file, which a form here cannot change. */
+	const UNSYNCED_TYPES = array( 'FILE_UPLOAD', 'SIGNATURE' );
+
+	/** Set while GoHighLevel's values are being written here, so they are not sent straight back. */
+	private static $pulling = false;
+
+	/** The eight fields the portal has its own place for, labelled as people read them. */
+	public static function fixed_fields() {
+		return array(
+			'student_name'          => 'Student name',
+			'birth_date'            => 'Birth date',
+			'school'                => 'School',
+			'phone'                 => 'Phone',
+			'email'                 => 'Email',
+			'status'                => 'Status',
+			'diagnostic_assessment' => 'Diagnostic assessment',
+			'fromto'                => 'Attending from and to',
+		);
+	}
+
+	/**
+	 * Every field GoHighLevel's Students object has: short key => array(
+	 * label, type, options ). Read again at each sync, so one added there
+	 * arrives here within the hour; kept otherwise.
+	 */
+	public static function field_defs( $fresh = false ) {
+		$have = get_option( self::FIELDS );
+		if ( ! $fresh && is_array( $have ) ) return $have;
+		if ( ! self::configured() ) return is_array( $have ) ? $have : array();
+		list( , $data, $err ) = self::request( 'GET', '/objects/' . rawurlencode( self::STUDENTS ), array( 'locationId' => self::location(), 'fetchProperties' => 'true' ) );
+		if ( '' !== $err || empty( $data['fields'] ) ) return is_array( $have ) ? $have : array();
+		$out = array();
+		foreach ( (array) $data['fields'] as $f ) {
+			$short = preg_replace( '/^' . preg_quote( self::STUDENTS, '/' ) . '\./', '', (string) ( $f['fieldKey'] ?? '' ) );
+			if ( ! preg_match( '/^[a-z0-9_]+$/', $short ) ) continue;
+			$opts = array();
+			foreach ( (array) ( $f['options'] ?? array() ) as $o ) {
+				if ( is_array( $o ) && isset( $o['key'] ) ) $opts[ (string) $o['key'] ] = sanitize_text_field( (string) ( $o['label'] ?? $o['key'] ) );
+			}
+			$out[ $short ] = array(
+				'label'   => sanitize_text_field( (string) ( $f['name'] ?? $short ) ),
+				'type'    => strtoupper( (string) ( $f['dataType'] ?? 'TEXT' ) ),
+				'options' => $opts,
+			);
+		}
+		update_option( self::FIELDS, $out, false );
+		return $out;
+	}
+
+	/** GoHighLevel's fields beyond the eight: added to the student by themselves. */
+	public static function extra_fields( $defs = null ) {
+		$defs = null === $defs ? self::field_defs() : $defs;
+		return array_diff_key( (array) $defs, self::fixed_fields() );
+	}
+
+	/** Every field kept the same both ways: short key => GoHighLevel type. */
+	public static function sync_keys( $defs ) {
+		$out = array();
+		foreach ( self::fixed_fields() as $k => $l ) $out[ $k ] = $defs[ $k ]['type'] ?? ( 'birth_date' === $k ? 'DATE' : 'TEXT' );
+		foreach ( self::extra_fields( $defs ) as $k => $d ) {
+			if ( ! in_array( $d['type'], self::UNSYNCED_TYPES, true ) ) $out[ $k ] = $d['type'];
+		}
+		return $out;
+	}
+
+	public static function label( $short ) {
+		$fixed = self::fixed_fields();
+		if ( isset( $fixed[ $short ] ) ) return $fixed[ $short ];
+		$defs = self::field_defs();
+		return isset( $defs[ $short ]['label'] ) ? $defs[ $short ]['label'] : (string) $short;
+	}
+
+	/** A date written as a date, "2023-03-12" or "Mar 12, 2023", as a timestamp; anything else, false. */
+	public static function date_ts( $v ) {
+		$v = trim( (string) $v );
+		if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $v ) || preg_match( '/^[A-Za-z]{3,}\.?\s+\d{1,2},?\s+\d{4}$/', $v ) ) {
+			$ts = strtotime( str_replace( '.', '', $v ) . ' 12:00:00 UTC' );
+			return $ts ? $ts : false;
+		}
+		return false;
+	}
+
+	/** Attending from and to as "2022-Apr END 2023-Jun", the way GoHighLevel has always held it. */
+	public static function span( $from, $to ) {
+		$m = function ( $d ) { $ts = self::date_ts( $d ); return $ts ? gmdate( 'Y-M', $ts ) : ''; };
+		$f = $m( $from );
+		$t = $m( $to );
+		if ( '' === $t ) return $f;
+		return trim( $f . ' END ' . $t );
+	}
+
+	/** A GoHighLevel value as it compares with the portal's. */
+	public static function canon( $short, $raw, $type = '' ) {
+		if ( is_array( $raw ) ) $raw = implode( ', ', array_map( 'strval', $raw ) );
+		$raw = trim( (string) $raw );
+		if ( '' === $raw ) return '';
+		if ( 'birth_date' === $short || 'DATE' === $type ) return self::birth( $raw ) ?: $raw;
+		if ( 'diagnostic_assessment' === $short ) {
+			$ts = self::date_ts( $raw );
+			return $ts ? gmdate( 'M j, Y', $ts ) : $raw;    // "2023-2024" stays as GoHighLevel wrote it
+		}
+		return $raw;
+	}
+
+	/** The portal's value for one GoHighLevel field, as GoHighLevel would hold it. */
+	public static function here( $sid, $short, $type = '' ) {
+		switch ( $short ) {
+			case 'student_name':
+				return trim( (string) get_post_field( 'post_title', $sid ) );
+			case 'status':
+				$s = (string) BFTD_Fields::get( $sid, 'student', 'status' );
+				return isset( self::STATUS_MAP[ $s ] ) ? self::STATUS_MAP[ $s ] : '';
+			case 'diagnostic_assessment':
+				$ts = self::date_ts( BFTD_CPT::diagnostic_on( $sid ) );
+				return $ts ? gmdate( 'M j, Y', $ts ) : '';
+			case 'fromto':
+				return self::span( BFTD_Fields::get( $sid, 'student', 'attend_from' ), BFTD_Fields::get( $sid, 'student', 'attend_to' ) );
+			case 'birth_date':
+			case 'school':
+			case 'phone':
+			case 'email':
+				return trim( (string) BFTD_Fields::get( $sid, 'student', $short ) );
+		}
+		return self::canon( $short, get_post_meta( $sid, self::EXTRA_PREFIX . $short, true ), $type );
+	}
+
+	/**
+	 * GoHighLevel's value written here. False when it cannot be: a status
+	 * the portal has no word for, or a date written as words that are not
+	 * a date ("2023-2024"), which is left as it is on both sides.
+	 */
+	public static function put_here( $sid, $short, $g, $type = '' ) {
+		self::$pulling = true;
+		$ok = false;
+		switch ( $short ) {
+			case 'student_name':
+				if ( '' !== $g ) $ok = ! is_wp_error( wp_update_post( array( 'ID' => $sid, 'post_title' => $g ), true ) );
+				break;
+			case 'status':
+				$k = array_search( $g, self::STATUS_MAP, true );
+				if ( false !== $k ) { BFTD_Fields::set( $sid, 'student', 'status', $k ); $ok = true; }
+				break;
+			case 'diagnostic_assessment':
+				$ts = self::date_ts( $g );
+				if ( $ts || '' === $g ) { BFTD_Fields::set( $sid, 'student', 'diagnostic_on', $ts ? gmdate( 'Y-m-d', $ts ) : '' ); $ok = true; }
+				break;
+			case 'fromto':
+				$sp = BFTD_CRM::split_span( $g );
+				if ( '' === $g || '' !== $sp['from'] || '' !== $sp['to'] ) {
+					BFTD_Fields::set( $sid, 'student', 'attend_from', $sp['from'] );
+					BFTD_Fields::set( $sid, 'student', 'attend_to', $sp['to'] );
+					$ok = true;
+				}
+				break;
+			case 'birth_date':
+				$v = self::birth( $g );
+				if ( '' !== $v || '' === $g ) { BFTD_Fields::set( $sid, 'student', 'birth_date', $v ); $ok = true; }
+				break;
+			case 'school':
+			case 'phone':
+			case 'email':
+				BFTD_Fields::set( $sid, 'student', $short, sanitize_text_field( $g ) );
+				$ok = true;
+				break;
+			default:
+				update_post_meta( $sid, self::EXTRA_PREFIX . $short, sanitize_textarea_field( $g ) );
+				$ok = true;
+		}
+		self::$pulling = false;
+		return $ok;
+	}
+
+	/** The portal's value as GoHighLevel's API takes it. */
+	public static function to_api( $short, $h, $type = '' ) {
+		if ( 'birth_date' === $short || 'DATE' === $type ) return '' === $h ? null : $h;
+		if ( in_array( $type, array( 'MULTIPLE_OPTIONS', 'CHECKBOX' ), true ) ) return '' === $h ? array() : array_map( 'trim', explode( ',', $h ) );
+		if ( in_array( $type, array( 'NUMERICAL', 'MONETORY' ), true ) && is_numeric( $h ) ) return $h + 0;
+		return $h;
+	}
+
+	/**
+	 * One linked student and its GoHighLevel record, made the same.
+	 *
+	 * Field by field, against what both held when they last agreed: the
+	 * side that changed since is copied to the other; where both changed,
+	 * the later change wins (Karl, 1.180), this side's time being when it
+	 * was saved here and GoHighLevel's when the record was last changed.
+	 * The first time, before there is anything to compare with, what
+	 * GoHighLevel has stands and only its blanks are filled from here, so
+	 * linking never overwrites what the practice already keeps there.
+	 *
+	 * @return array( written, sent, kept, error )
+	 */
+	public static function merge( $sid, $rid, $rec, $defs ) {
+		$props  = (array) ( $rec['props'] ?? array() );
+		$shadow = get_post_meta( $sid, self::SHADOW_KEY, true );
+		$shadow = is_array( $shadow ) ? $shadow : array();
+		$edited = get_post_meta( $sid, self::EDITED_KEY, true );
+		$edited = is_array( $edited ) ? $edited : array();
+		$theirs = ! empty( $rec['updated'] ) ? (int) strtotime( (string) $rec['updated'] ) : 0;
+		$out    = array( 'written' => array(), 'sent' => array(), 'kept' => array(), 'error' => '' );
+		$push   = array();
+
+		foreach ( self::sync_keys( $defs ) as $short => $type ) {
+			$g = self::canon( $short, $props[ $short ] ?? '', $type );
+			$h = self::here( $sid, $short, $type );
+			if ( $g === $h ) { $shadow[ $short ] = array( 'ghl' => $g, 'here' => $h ); continue; }
+			$s = $shadow[ $short ] ?? null;
+			if ( ! is_array( $s ) ) {
+				$win = '' !== $g ? 'ghl' : 'here';
+			} else {
+				$gc = $g !== $s['ghl'];
+				$hc = $h !== $s['here'];
+				if ( ! $gc && ! $hc ) continue;       // a difference already settled
+				if ( $gc && $hc ) $win = (int) ( $edited[ $short ] ?? 0 ) > $theirs ? 'here' : 'ghl';
+				else $win = $gc ? 'ghl' : 'here';
+			}
+			if ( 'ghl' === $win ) {
+				if ( self::put_here( $sid, $short, $g, $type ) ) $out['written'][] = $short;
+				else $out['kept'][] = $short;
+				$shadow[ $short ] = array( 'ghl' => $g, 'here' => self::here( $sid, $short, $type ) );
+			} else {
+				$push[ $short ] = $h;
+			}
+		}
+		update_post_meta( $sid, self::SHADOW_KEY, $shadow );
+
+		if ( $out['written'] ) {
+			BFTD_Audit::log( 'crm_synced', array( 'post_id' => $sid, 'student_id' => $sid,
+				'summary' => 'From GoHighLevel: ' . implode( ', ', array_map( array( __CLASS__, 'label' ), $out['written'] ) ) . '.' ) );
+		}
+		if ( $push ) {
+			$out['error'] = self::push( $sid, $rid, $push, $defs );
+			if ( '' === $out['error'] ) $out['sent'] = array_keys( $push );
+		}
+		return $out;
+	}
+
+	/**
+	 * Fields changed here, sent to the GoHighLevel record. The only thing
+	 * the portal writes to GoHighLevel: a linked student's own fields.
+	 *
+	 * @return string '' when GoHighLevel took it, else why not
+	 */
+	public static function push( $sid, $rid, $values, $defs = null ) {
+		$defs  = null === $defs ? self::field_defs() : $defs;
+		$props = array();
+		foreach ( $values as $short => $h ) $props[ $short ] = self::to_api( $short, $h, $defs[ $short ]['type'] ?? '' );
+		list( $code, , $err ) = self::request( 'PUT', '/objects/' . rawurlencode( self::STUDENTS ) . '/records/' . rawurlencode( $rid ),
+			array( 'locationId' => self::location() ), array( 'properties' => $props ) );
+		if ( '' !== $err ) {
+			$say = ( 401 === (int) $code || 403 === (int) $code )
+				? 'GoHighLevel would not let the portal change its students. The private integration needs permission to edit custom object records (objects/record.write).'
+				: 'GoHighLevel did not take the change: ' . $err;
+			update_post_meta( $sid, self::PUSH_ERROR, array( 'when' => time(), 'error' => $say ) );
+			return $say;
+		}
+		delete_post_meta( $sid, self::PUSH_ERROR );
+		$shadow = get_post_meta( $sid, self::SHADOW_KEY, true );
+		$shadow = is_array( $shadow ) ? $shadow : array();
+		foreach ( $values as $short => $h ) $shadow[ $short ] = array( 'ghl' => $h, 'here' => $h );
+		update_post_meta( $sid, self::SHADOW_KEY, $shadow );
+		delete_transient( self::CACHE );
+		BFTD_Audit::log( 'crm_sent', array( 'post_id' => $sid, 'student_id' => $sid,
+			'summary' => 'Sent to GoHighLevel: ' . implode( ', ', array_map( array( __CLASS__, 'label' ), array_keys( $values ) ) ) . '.' ) );
+		return '';
+	}
+
+	/** A student saved here: its extra fields kept, and what changed sent to GoHighLevel. */
+	public static function on_save( $sid, $post ) {
+		if ( self::$pulling || wp_is_post_revision( $sid ) || wp_is_post_autosave( $sid ) ) return;
+		if ( in_array( $post->post_status, array( 'auto-draft', 'trash' ), true ) ) return;
+		self::save_extras( $sid );
+		if ( ! self::configured() ) return;
+		$rid = BFTD_CRM::linked( $sid );
+		if ( '' !== $rid ) self::send_changes( $sid, $rid );
+	}
+
+	/**
+	 * Each field that differs from what both sides last agreed, sent now.
+	 * Before the first sync there is nothing agreed; the sync settles it.
+	 */
+	public static function send_changes( $sid, $rid ) {
+		$shadow = get_post_meta( $sid, self::SHADOW_KEY, true );
+		if ( ! is_array( $shadow ) || ! $shadow ) return '';
+		$edited = get_post_meta( $sid, self::EDITED_KEY, true );
+		$edited = is_array( $edited ) ? $edited : array();
+		$defs   = self::field_defs();
+		$push   = array();
+		foreach ( self::sync_keys( $defs ) as $short => $type ) {
+			if ( ! isset( $shadow[ $short ] ) ) continue;
+			$h = self::here( $sid, $short, $type );
+			if ( $h === $shadow[ $short ]['here'] ) continue;
+			$edited[ $short ] = time();
+			$push[ $short ]   = $h;
+		}
+		if ( ! $push ) return '';
+		update_post_meta( $sid, self::EDITED_KEY, $edited );
+		return self::push( $sid, $rid, $push, $defs );
+	}
+
+	/** Remember that this person from GoHighLevel was added, so removing them here is final. */
+	private static function remember_added( $sid, $key ) {
+		$have = get_post_meta( $sid, self::ADDED_KEY, true );
+		$have = is_array( $have ) ? $have : array();
+		if ( ! in_array( $key, $have, true ) ) $have[] = $key;
+		update_post_meta( $sid, self::ADDED_KEY, $have );
+	}
+
+	/**
+	 * A linked student's caregivers from GoHighLevel, added (Karl, 1.180):
+	 * each associated contact with an email is linked, or given a portal
+	 * account quietly, with no email. Someone added once and removed here
+	 * since is not added again; they stay on offer on the Caregivers and
+	 * tutors tab. Tutors are still offered, not added.
+	 */
+	public static function auto_add( $sid ) {
+		$before = get_post_meta( $sid, self::ADDED_KEY, true );
+		$before = is_array( $before ) ? $before : array();
+		$keys   = array();
+		foreach ( self::offers_for( $sid ) as $o ) {
+			if ( 'assign' === $o['kind'] || in_array( $o['key'], $before, true ) ) continue;
+			$keys[] = $o['key'];
+		}
+		return $keys ? self::accept( $sid, $keys ) : array( 'done' => array(), 'failed' => array() );
+	}
+
+	public static function add_box() {
+		if ( ! self::configured() || ! self::extra_fields() ) return;
+		add_meta_box( 'bftd_student_ghl_more', 'More from GoHighLevel', array( __CLASS__, 'box_more' ), BFTD_CPT::STUDENT, 'normal', 'default' );
+	}
+
+	/** GoHighLevel's other student fields, each the kind of input its type asks for. */
+	public static function box_more( $post ) {
+		wp_nonce_field( 'bftd_ghl_more_' . $post->ID, 'bftd_ghl_more_nonce' );
+		echo '<p class="description">Fields GoHighLevel has for students beyond the ones above. One added in GoHighLevel appears here by itself, and each is kept the same in both.</p><div class="bftd-grid">';
+		foreach ( self::extra_fields() as $short => $d ) {
+			$v    = self::here( $post->ID, $short, $d['type'] );
+			$name = 'bftd_ghl_more[' . $short . ']';
+			$id   = 'bftd-ghl-' . $short;
+			echo '<div class="bftd-field"><label class="bftd-label" for="' . esc_attr( $id ) . '">' . esc_html( $d['label'] ) . '</label>';
+			if ( in_array( $d['type'], self::UNSYNCED_TYPES, true ) ) {
+				echo '<p class="bftd-readonly" id="' . esc_attr( $id ) . '">' . ( '' !== $v ? esc_html( $v ) : '<span class="bftd-none">Nothing</span>' ) . '</p>';
+			} elseif ( in_array( $d['type'], array( 'MULTIPLE_OPTIONS', 'CHECKBOX' ), true ) ) {
+				$on = array_map( 'trim', explode( ',', $v ) );
+				echo '<span id="' . esc_attr( $id ) . '">';
+				foreach ( $d['options'] as $k => $l ) {
+					echo '<label style="display:block"><input type="checkbox" name="' . esc_attr( $name ) . '[]" value="' . esc_attr( $k ) . '"' . checked( in_array( (string) $k, $on, true ), true, false ) . '> ' . esc_html( $l ) . '</label>';
+				}
+				echo '</span>';
+			} elseif ( $d['options'] ) {
+				echo '<select id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '"><option value="">Not set</option>';
+				foreach ( $d['options'] as $k => $l ) echo '<option value="' . esc_attr( $k ) . '"' . selected( $v, (string) $k, false ) . '>' . esc_html( $l ) . '</option>';
+				echo '</select>';
+			} elseif ( 'LARGE_TEXT' === $d['type'] ) {
+				echo '<textarea id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '" rows="3">' . esc_textarea( $v ) . '</textarea>';
+			} else {
+				$t = 'DATE' === $d['type'] ? 'date' : ( in_array( $d['type'], array( 'NUMERICAL', 'MONETORY' ), true ) ? 'number' : 'text' );
+				echo '<input type="' . esc_attr( $t ) . '" id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( $v ) . '"' . ( 'number' === $t ? ' step="any"' : '' ) . '>';
+			}
+			echo '</div>';
+		}
+		echo '</div>';
+	}
+
+	/** The box above, saved. Only what the box drew, only a value its options allow. */
+	public static function save_extras( $sid ) {
+		if ( empty( $_POST['bftd_ghl_more_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['bftd_ghl_more_nonce'] ) ), 'bftd_ghl_more_' . $sid ) ) return;
+		if ( ! current_user_can( 'edit_post', $sid ) ) return;
+		$in = isset( $_POST['bftd_ghl_more'] ) ? (array) wp_unslash( $_POST['bftd_ghl_more'] ) : array();
+		foreach ( self::extra_fields() as $short => $d ) {
+			if ( in_array( $d['type'], self::UNSYNCED_TYPES, true ) ) continue;
+			$multi = in_array( $d['type'], array( 'MULTIPLE_OPTIONS', 'CHECKBOX' ), true );
+			$v     = $in[ $short ] ?? ( $multi ? array() : '' );
+			if ( $multi ) {
+				$v = implode( ', ', array_values( array_intersect( array_map( 'strval', (array) $v ), array_map( 'strval', array_keys( $d['options'] ) ) ) ) );
+			} else {
+				$v = is_scalar( $v ) ? (string) $v : '';
+				if ( $d['options'] && '' !== $v && ! isset( $d['options'][ $v ] ) ) continue;
+				$v = 'LARGE_TEXT' === $d['type'] ? sanitize_textarea_field( $v ) : sanitize_text_field( $v );
+			}
+			update_post_meta( $sid, self::EXTRA_PREFIX . $short, $v );
+		}
 	}
 
 	/** The last report, kept for the person who ran it, for a day. */
