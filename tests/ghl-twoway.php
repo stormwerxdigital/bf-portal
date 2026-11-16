@@ -254,6 +254,26 @@ $log = BFTD_GHL::sync(13);
 check(!in_array('diagnostic_assessment', $log['rows'][0]['written'], true) && array() === puts_for('R3'), '"June 3, 2023" in GoHighLevel and 3 June 2023 here agree, and neither side is changed');
 unset($GLOBALS['LINKS'][13], $GLOBALS['RECORDS']['R3']);
 
+/* ---- a phone number, as GoHighLevel takes it (1.183) ---- */
+$GLOBALS['PUTS'] = array();
+$GLOBALS['TITLES'][14] = 'Dee Fone'; $GLOBALS['F'][14] = array('phone' => '(778) 675-8433');
+$GLOBALS['RECORDS']['R4'] = array('u' => '2026-11-01T10:00:00.000Z', 'p' => array('student_name' => 'Dee Fone'));
+$GLOBALS['LINKS'][14] = 'R4';
+BFTD_GHL::sync(14);
+$p = puts_for('R4');
+check(1 === count($p) && '+17786758433' === ($p[0][1]['properties']['phone'] ?? ''), 'a phone typed "(778) 675-8433" is sent as "+17786758433", which GoHighLevel refused otherwise');
+$GLOBALS['PUTS'] = array();
+$GLOBALS['RECORDS']['R4']['p']['phone'] = '+17786758433';
+$log = BFTD_GHL::sync(14);
+check(array() === puts_for('R4') && array() === $log['rows'][0]['written'] && '(778) 675-8433' === $GLOBALS['F'][14]['phone'], 'and once GoHighLevel has it, the two agree: nothing is sent again, and the number here is left as typed');
+$GLOBALS['TITLES'][15] = 'Ed Fone'; $GLOBALS['F'][15] = array('phone' => '778-675-8433');
+$GLOBALS['RECORDS']['R6'] = array('u' => '2026-11-01T10:00:00.000Z', 'p' => array('student_name' => 'Ed Fone', 'phone' => '778.675.8433'));
+$GLOBALS['LINKS'][15] = 'R6';
+$log = BFTD_GHL::sync(15);
+check(array() === puts_for('R6') && array() === $log['rows'][0]['written'], 'the same number written two ways is the same number the first time too');
+check('+447700900123' === BFTD_GHL::phone('+44 7700 900123') && '+17786758433' === BFTD_GHL::phone('1 778 675 8433') && 'ext 12' === BFTD_GHL::phone('ext 12'), 'an international number keeps its country, and what is not a number is left alone');
+unset($GLOBALS['LINKS'][14], $GLOBALS['LINKS'][15], $GLOBALS['RECORDS']['R4'], $GLOBALS['RECORDS']['R6']);
+
 /* ---- caregivers, added by themselves ---- */
 $GLOBALS['USERS'] = array(300 => array('email' => 'pat@example.test', 'login' => 'pat'), 301 => array('email' => 'staff@example.test', 'login' => 's', 'staff' => true));
 $GLOBALS['CONTACTS'] = array(

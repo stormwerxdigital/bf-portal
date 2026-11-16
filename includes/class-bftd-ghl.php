@@ -1065,12 +1065,28 @@ class BFTD_GHL {
 		return trim( $f . ' END ' . $t );
 	}
 
+	/**
+	 * A phone number as GoHighLevel's Phone fields take it, "+17786758433"
+	 * (1.183: it refused "(778) 675-8433"). Ten digits are taken as North
+	 * American; anything that cannot be read as a number is left as typed.
+	 */
+	public static function phone( $v ) {
+		$v = trim( (string) $v );
+		if ( '' === $v ) return '';
+		$d = preg_replace( '/\D+/', '', $v );
+		if ( 0 === strpos( $v, '+' ) && strlen( $d ) >= 8 ) return '+' . $d;
+		if ( 10 === strlen( $d ) ) return '+1' . $d;
+		if ( 11 === strlen( $d ) && '1' === $d[0] ) return '+' . $d;
+		return $v;
+	}
+
 	/** A GoHighLevel value as it compares with the portal's. */
 	public static function canon( $short, $raw, $type = '' ) {
 		if ( is_array( $raw ) ) $raw = implode( ', ', array_map( 'strval', $raw ) );
 		$raw = trim( (string) $raw );
 		if ( '' === $raw ) return '';
 		if ( 'birth_date' === $short || 'DATE' === $type ) return self::birth( $raw ) ?: $raw;
+		if ( 'phone' === $short || 'PHONE' === $type ) return self::phone( $raw );
 		if ( 'diagnostic_assessment' === $short ) {
 			$ts = self::date_ts( $raw );
 			return $ts ? gmdate( 'M j, Y', $ts ) : $raw;    // "2023-2024" stays as GoHighLevel wrote it
@@ -1091,9 +1107,11 @@ class BFTD_GHL {
 				return $ts ? gmdate( 'M j, Y', $ts ) : '';
 			case 'fromto':
 				return self::span( BFTD_Fields::get( $sid, 'student', 'attend_from' ), BFTD_Fields::get( $sid, 'student', 'attend_to' ) );
+			case 'phone':
+				// Compared, and sent, as GoHighLevel holds it (1.183).
+				return self::phone( BFTD_Fields::get( $sid, 'student', 'phone' ) );
 			case 'birth_date':
 			case 'school':
-			case 'phone':
 			case 'email':
 				return trim( (string) BFTD_Fields::get( $sid, 'student', $short ) );
 		}
