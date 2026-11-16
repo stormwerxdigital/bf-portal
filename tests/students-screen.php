@@ -208,8 +208,9 @@ $GLOBALS['MANAGE'] = true; $GLOBALS['GHL_OFFERS'] = array();
 
 /* Linked to GoHighLevel or not, beside the name, to the student's row on
    Settings, Link students (1.178). */
-check(1 === preg_match('#<td class="bftd-stu-name">\s*<a [^>]+>Student 000</a>\s*<a class="bftd-stu-crm" href="[^"]*page=bftd-settings&(amp;|\#038;)?tab=link\#bftd-link-1001" title="Not linked to GoHighLevel">Not linked</a>#', $g),
-  'a student not linked says so beside the name, linked to its row on Link students');
+check(1 === preg_match('#</td>\s*<td data-l="Linked"><a class="bftd-stu-crm" href="[^"]*page=bftd-settings&(amp;|\#038;)?tab=link\#bftd-link-1001" title="Not linked to GoHighLevel">Not linked</a></td>\s*<td data-l="Client">#', $g),
+  'a student not linked says so in its own Linked column, after the name, linked to its row on Link students (1.184)');
+check(false === strpos(explode('</td>', $g)[0], 'bftd-stu-crm'), 'and not beside the name any more');
 $GLOBALS['META'][1001]['_bftd_crm_id'] = 'REC1';
 $lk = BFTD_Students::rows(array(1001))[1001];
 check('REC1' === $lk['crm'], 'the row knows its GoHighLevel record');
@@ -221,8 +222,21 @@ ob_start(); $draw->invoke(null, $lk); $g5 = ob_get_clean();
 $GLOBALS['MANAGE'] = true; $GLOBALS['GHL_ON'] = false;
 ob_start(); $draw->invoke(null, $lk); $g6 = ob_get_clean();
 $GLOBALS['GHL_ON'] = true; unset($GLOBALS['META'][1001]['_bftd_crm_id']);
-check(false === strpos($g5, 'bftd-stu-crm'), 'a tutor does not see it');
-check(false === strpos($g6, 'bftd-stu-crm'), 'nor does anyone before GoHighLevel is connected');
+check(false === strpos($g5, 'bftd-stu-crm') && false === strpos($g5, 'data-l="Linked"'), 'a tutor does not see it, nor an empty column');
+check(false === strpos($g6, 'bftd-stu-crm') && false === strpos($g6, 'data-l="Linked"'), 'nor does anyone before GoHighLevel is connected');
+$secm = new ReflectionMethod('BFTD_Students', 'section'); $secm->setAccessible(true);
+foreach (array(true, false) as $mg) {
+  $GLOBALS['MANAGE'] = $mg;
+  ob_start(); $secm->invoke(null, 0, array('name' => 'Unassigned', 'rows' => array($one)), array('tutor' => 0)); $tb = ob_get_clean();
+  $heads = preg_match_all('#<th[ >]#', $tb); $cells = substr_count(explode('</tr>', explode('<tbody>', $tb)[1])[0], '<td');
+  check($heads === $cells && ($mg ? 1 : 0) === preg_match('#<th>Student</th>\s*<th>Linked</th>\s*<th>Client</th>#', $tb),
+    ($mg ? 'a manager has the Linked heading beside Student' : 'a tutor has no Linked heading') . ', and a cell for every heading, got ' . $heads . '/' . $cells);
+  check(1 === preg_match('#<div class="bftd-stu-scroll" tabindex="0" role="region" aria-label="Unassigned, students">\s*<table class="bftd-stu-t">.*</table>\s*</div>#s', $tb), 'the table sits in a region that scrolls sideways, reachable from the keyboard');
+}
+$GLOBALS['MANAGE'] = true;
+$css = file_get_contents(BFTD_PATH . 'assets/css/bftd-admin.css');
+check(false !== strpos($css, '.bftd-stu-scroll{overflow-x:auto;') && false !== strpos($css, '@media (min-width:783px){ .bftd-stu-t{min-width:1100px} }') && false !== strpos($css, '@media (max-width:782px){ .bftd-stu-scroll{overflow:visible} }'),
+  'it scrolls rather than squeezing its columns, except on a phone, where rows are cards');
 /* The student record's own state, in its own column, in the same pills the
    Sessions screen uses for a session. */
 check(1 === preg_match('#<td data-l="Record"><span class="bftd-pill is-active">Published</span></td>#', $tr),

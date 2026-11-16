@@ -433,10 +433,17 @@ class BFTD_Students {
 				<?php endif; ?>
 			</header>
 
+			<?php
+			// Scrolls sideways rather than squeezing, so there is room for
+			// more columns (Karl, 1.184). Focusable, so it scrolls from the
+			// keyboard too.
+			?>
+			<div class="bftd-stu-scroll" tabindex="0" role="region" aria-label="<?php echo esc_attr( $group['name'] . ', students' ); ?>">
 			<table class="bftd-stu-t">
 				<thead>
 					<tr>
 						<th>Student</th>
+						<?php if ( self::show_crm() ) : ?><th>Linked</th><?php endif; ?>
 						<th>Client</th>
 						<th>Caregivers</th>
 						<th>Tutors</th>
@@ -449,6 +456,7 @@ class BFTD_Students {
 					<?php foreach ( $shown as $row ) self::row( $row ); ?>
 				</tbody>
 			</table>
+			</div>
 
 			<?php if ( ! $full ) : ?>
 				<p class="bftd-stu-more">
@@ -469,13 +477,15 @@ class BFTD_Students {
 		<tr>
 			<td class="bftd-stu-name">
 				<a href="<?php echo esc_url( $hub ); ?>"><?php echo esc_html( $row['name'] ); ?></a>
-				<?php echo self::crm_mark( $row ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in crm_mark ?>
 				<span class="bftd-stu-acts">
 					<a href="<?php echo esc_url( (string) get_edit_post_link( $row['id'] ) ); ?>">Edit</a>
 					<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=' . BFTD_CPT::SESSION . '&student=' . (int) $row['id'] ) ); ?>">Record a session</a>
 					<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . BFTD_CPT::SESSION . '&bftd_student=' . (int) $row['id'] ) ); ?>">Sessions</a>
 				</span>
 			</td>
+			<?php if ( self::show_crm() ) : ?>
+				<td data-l="Linked"><?php echo self::crm_mark( $row ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in crm_mark ?></td>
+			<?php endif; ?>
 			<td data-l="Client"><?php echo $row['client']
 				? esc_html( $row['client'] )
 				: '<span class="bftd-none">Nobody yet</span>'; ?></td>
@@ -542,12 +552,20 @@ class BFTD_Students {
 	}
 
 	/**
-	 * Linked or not linked to GoHighLevel, small, beside the name (1.178).
-	 * Goes to this student's row on Settings, Link students. Managers only,
-	 * and only once GoHighLevel is connected.
+	 * Whether the Linked column is shown: managers only, and only once
+	 * GoHighLevel is connected (1.184).
+	 */
+	public static function show_crm() {
+		return class_exists( 'BFTD_GHL' ) && BFTD_GHL::configured() && BFTD_Roles::can_manage();
+	}
+
+	/**
+	 * Linked or not linked to GoHighLevel, in its own column (1.184; beside
+	 * the name from 1.178). Goes to this student's row on Settings, Link
+	 * students.
 	 */
 	public static function crm_mark( $row ) {
-		if ( ! class_exists( 'BFTD_GHL' ) || ! BFTD_GHL::configured() || ! BFTD_Roles::can_manage() ) return '';
+		if ( ! self::show_crm() ) return '';
 		$on  = '' !== (string) ( $row['crm'] ?? '' );
 		$url = admin_url( 'admin.php?page=' . BFTD_Settings::PAGE_SLUG . '&tab=link' ) . '#bftd-link-' . (int) $row['id'];
 		return sprintf(
