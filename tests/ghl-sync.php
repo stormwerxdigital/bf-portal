@@ -79,7 +79,7 @@ $names = array_values(BFTD_GHL::property_map());
 check(array() === array_diff($names, array('Student Name', 'Birth Date', 'School', 'Phone', 'Email', 'Status', 'Diagnostic Assessment', 'From/To')), 'every field maps to a column the merge already knows');
 
 /* ---- syncing linked students ---- */
-$GLOBALS['RECORDS'] = array('R1' => array('student_name' => 'Ana Lee'), 'R2' => array('student_name' => 'Bo Ray'), 'R9' => array('student_name' => 'New Kid'));
+$GLOBALS['RECORDS'] = array('R1' => array('student_name' => 'Ana Lee'), 'R2' => array('student_name' => 'Bo Ray', 'status' => 'current_student'), 'R9' => array('student_name' => 'New Kid', 'status' => 'pending'));
 $GLOBALS['LINKS'] = array(11 => 'R1', 12 => 'GONE');
 $GLOBALS['UPSERTS'] = array();
 $log = BFTD_GHL::sync();
@@ -97,13 +97,17 @@ check(1 === count($one['rows']) && 11 === $one['rows'][0]['student'], 'one stude
 check(!isset($GLOBALS['OPT'][BFTD_GHL::SYNC_LOG]), 'without replacing the log of the last full sync');
 
 /* ---- bringing in the rest, only when asked ---- */
-$GLOBALS['RECORDS']['R5'] = array('student_name' => '   ');
+$GLOBALS['RECORDS']['R5'] = array('student_name' => '   ', 'status' => 'pending');
+$GLOBALS['RECORDS']['R7'] = array('student_name' => 'Old Kid', 'status' => 'past_student');
+$GLOBALS['RECORDS']['R8'] = array('student_name' => 'No Status');
 BFTD_GHL::students(true);   // read again, past the ten minute cache
 $GLOBALS['UPSERTS'] = array();
-check(array('R2' => 'Bo Ray', 'R9' => 'New Kid', 'R5' => '') === BFTD_GHL::unlinked_records(), 'the GoHighLevel students with no student here are counted');
+check(array('R2' => 'Bo Ray', 'R9' => 'New Kid', 'R5' => '', 'R7' => 'Old Kid', 'R8' => 'No Status') === BFTD_GHL::unlinked_records(), 'the GoHighLevel students with no student here are counted');
+check(array('R2' => 'Bo Ray', 'R9' => 'New Kid', 'R5' => '') === BFTD_GHL::to_bring_in(), 'only the current and pending ones are to be brought in (Karl, 1.181)');
 list($made, $skipped) = BFTD_GHL::import_missing();
 check(2 === $made && 1 === $skipped, 'they are made drafts, and one with no name is skipped, got ' . $made . '/' . $skipped);
 check(array('R2', 'R9') === array_map(function ($u) { return $u['crm_id']; }, $GLOBALS['UPSERTS']), 'each through the same merge, and linked');
+check(!isset(array_flip($GLOBALS['LINKS'])['R7']) && !isset(array_flip($GLOBALS['LINKS'])['R8']), 'a past student, and one with no status, are not brought in');
 $GLOBALS['UPSERTS'] = array();
 BFTD_GHL::import_missing();
 check(array() === $GLOBALS['UPSERTS'], 'asking twice makes nothing twice');

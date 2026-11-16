@@ -287,5 +287,8 @@ check(1 === substr_count($src, "self::request( 'PUT'") && false === strpos($src,
 $set = file_get_contents(BFTD_PATH . 'includes/class-bftd-settings.php');
 check(1 === preg_match('/\$newly\+\+;.*if \( \$newly \) \{\s+\$log\s+= BFTD_GHL::sync\(\);/s', $set), 'linking a student syncs it at once, so its caregivers and fields arrive without waiting the hour');
 
+$set2 = file_get_contents(BFTD_PATH . 'includes/class-bftd-settings.php');
+check(false !== strpos($set2, '<?php if ( $may && $to_bring ) : ?>') && false !== strpos($set2, 'Yes, make <?php echo esc_html( $to_bring ); ?> draft'), 'the bring-in offer counts only current and pending students');
+
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

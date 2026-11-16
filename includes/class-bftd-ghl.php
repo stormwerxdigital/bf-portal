@@ -533,21 +533,46 @@ class BFTD_GHL {
 		return $out;
 	}
 
+	/** GoHighLevel's statuses that are brought in; a past student, or one with no status, is not (Karl, 1.181). */
+	const BRING_IN = array( 'current_student', 'pending' );
+
+	/** A GoHighLevel student's status option, '' when it has none. */
+	public static function ghl_status( $g ) {
+		$v = $g['props']['status'] ?? '';
+		if ( is_array( $v ) ) $v = reset( $v );
+		return (string) $v;
+	}
+
+	/** GoHighLevel students with no student here that are current or pending: record id => name. */
+	public static function to_bring_in( $all = null ) {
+		$all = null === $all ? self::students() : $all;
+		if ( ! $all['ok'] ) return array();
+		$taken = array_flip( self::linked_students() );
+		$out   = array();
+		foreach ( $all['records'] as $rid => $g ) {
+			if ( isset( $taken[ $rid ] ) || ! in_array( self::ghl_status( $g ), self::BRING_IN, true ) ) continue;
+			$out[ $rid ] = $g['name'];
+		}
+		return $out;
+	}
+
 	/**
-	 * Every GoHighLevel student with no student here, made a draft student
-	 * and linked. Only when asked, by somebody allowed to: it is how a
-	 * prospect from an enquiry arrives, and nobody here decides that by
-	 * accident. Drafts, so somebody still decides when each becomes real.
+	 * Every current or pending GoHighLevel student with no student here,
+	 * made a draft student and linked. Past students, and any with no
+	 * status, stay in GoHighLevel only (Karl, 1.181). Only when asked, by
+	 * somebody allowed to: it is how a prospect from an enquiry arrives,
+	 * and nobody here decides that by accident. Drafts, so somebody still
+	 * decides when each becomes real.
 	 *
 	 * @return array( made, skipped )
 	 */
 	public static function import_missing() {
 		$all = self::students( true );
 		if ( ! $all['ok'] ) return array( 0, 0 );
-		$taken = array_flip( self::linked_students() );
+		$want = self::to_bring_in( $all );
 		$made = 0; $skipped = 0;
 		foreach ( $all['records'] as $rid => $g ) {
-			if ( isset( $taken[ $rid ] ) ) continue;
+			if ( ! isset( $want[ $rid ] ) ) continue;
 			if ( '' === trim( $g['name'] ) ) { $skipped++; continue; }   // a student needs a name
 			$res = BFTD_CRM::upsert( self::to_incoming( $rid, $g['props'] ?? array() ) );
 			if ( is_wp_error( $res ) || empty( $res['created'] ) ) { $skipped++; continue; }

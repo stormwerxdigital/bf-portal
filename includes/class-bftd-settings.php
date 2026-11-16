@@ -782,6 +782,8 @@ class BFTD_Settings {
 		foreach ( $ghl['records'] as $rid => $g ) $names[ $rid ] = $g['name'] . ( $g['birth'] ? ' (born ' . $g['birth'] . ')' : '' );
 		asort( $names, SORT_NATURAL | SORT_FLAG_CASE );
 		$unmatched = count( array_diff_key( $ghl['records'], $taken ) );
+		// Only current and pending students are brought in (Karl, 1.181).
+		$to_bring  = count( BFTD_GHL::to_bring_in( $ghl ) );
 		?>
 		<p class="bftd-lede">Each student here can be linked to their record in GoHighLevel, so their details can be kept in step from there.
 			A suggestion is only a suggestion: nothing is linked until you tick <strong>Link</strong> and save, because a wrong link
@@ -838,12 +840,13 @@ class BFTD_Settings {
 		<?php echo self::sync_log_html( get_option( BFTD_GHL::SYNC_LOG ) ); ?>
 
 		<h3 style="margin-top:28px">GoHighLevel students not here yet</h3>
-		<p><?php echo esc_html( $unmatched ); ?> GoHighLevel students have no student here.
-			Link any that are already here above first; the rest can be brought in as draft students, linked, so somebody here
-			still decides when each becomes a family with a portal.</p>
-		<?php if ( $may && $unmatched ) : ?>
+		<p><?php echo esc_html( $unmatched ); ?> GoHighLevel students have no student here, and <?php echo esc_html( $to_bring ); ?>
+			of them are current or pending. Link any that are already here above first; the current and pending ones left can be
+			brought in as draft students, linked, so somebody here still decides when each becomes a family with a portal. Past
+			students, and any with no status, stay in GoHighLevel only.</p>
+		<?php if ( $may && $to_bring ) : ?>
 			<p><label><input type="checkbox" name="bftd_ghl_import_ok" value="1">
-				Yes, make <?php echo esc_html( $unmatched ); ?> draft students from GoHighLevel</label>
+				Yes, make <?php echo esc_html( $to_bring ); ?> draft <?php echo 1 === $to_bring ? 'student' : 'students'; ?> from GoHighLevel</label>
 				<button class="button" name="bftd_ghl_import" value="1">Bring them in</button></p>
 		<?php endif; ?>
 		<?php
