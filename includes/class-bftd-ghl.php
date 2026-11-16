@@ -327,6 +327,7 @@ class BFTD_GHL {
 				$out['records'][ (string) $rec['id'] ] = array(
 					'name'  => trim( (string) ( $p['student_name'] ?? '' ) ),
 					'birth' => self::birth( $p['birth_date'] ?? '' ),
+					'school' => trim( (string) ( $p['school'] ?? '' ) ),   // the third thing matched on (1.182)
 					// Everything the record holds, for the sync (1.175).
 					'props' => $p,
 					// Who it is linked to (1.176): its contacts, and the
@@ -364,54 +365,108 @@ class BFTD_GHL {
 	 * never a link: somebody ticks it before anything is saved, because a
 	 * wrong link puts one family's details on another child's record.
 	 *
-	 * Same name, and the birth date agrees where both have one, first. Then a
-	 * close spelling of the name, marked to be checked. No record is offered
-	 * twice, and a record already linked elsewhere is not offered at all.
+	 * Matched in Karl's order (1.182): the name, then the birth date, then
+	 * the school. A name is the same, shortened ("Kaine M" for "Kaine
+	 * Miller"), or a close spelling. Two birth dates that disagree no longer
+	 * rule a pair out, because a birth date typed wrongly here would then
+	 * hide the right record; the pair is still offered when the name is the
+	 * same or the school agrees, and says the birth dates differ. The best
+	 * pairs are taken first, so no record is offered twice, and a record
+	 * already linked elsewhere is not offered at all.
 	 *
-	 * @param array $portal sid => array( name, birth )
-	 * @param array $ghl    record id => array( name, birth )
+	 * @param array $portal sid => array( name, birth, school )
+	 * @param array $ghl    record id => array( name, birth, school )
 	 * @param array $taken  record ids already linked
 	 * @return array sid => array( record, why )
 	 */
 	public static function propose( $portal, $ghl, $taken = array() ) {
-		$out  = array();
-		$used = array_fill_keys( array_map( 'strval', (array) $taken ), true );
-
-		// Exact names first, so a close spelling never takes a record an
-		// exact match wanted.
-		foreach ( array( 'exact', 'close' ) as $pass ) {
-			foreach ( $portal as $sid => $p ) {
-				if ( isset( $out[ $sid ] ) ) continue;
-				$pk = self::name_key( $p['name'] );
-				if ( '' === $pk ) continue;
-				$best = ''; $best_score = 0;
-				foreach ( $ghl as $rid => $g ) {
-					$rid = (string) $rid;
-					if ( isset( $used[ $rid ] ) ) continue;
-					$gk = self::name_key( $g['name'] );
-					if ( '' === $gk ) continue;
-					// Two birth dates that disagree rule a pair out, whatever
-					// the names say.
-					if ( '' !== $p['birth'] && '' !== $g['birth'] && $p['birth'] !== $g['birth'] ) continue;
-					if ( 'exact' === $pass ) {
-						if ( $pk === $gk ) { $best = $rid; break; }
-					} else {
-						similar_text( $pk, $gk, $pct );
-						if ( $pct >= 85 && $pct > $best_score && $pk[0] === $gk[0] ) { $best = $rid; $best_score = $pct; }
-					}
+		$used  = array_fill_keys( array_map( 'strval', (array) $taken ), true );
+		$pairs = array();
+		$order = 0;
+		foreach ( $portal as $sid => $p ) {
+			$pk = self::name_key( $p['name'] );
+			if ( '' === $pk ) continue;
+			foreach ( $ghl as $rid => $g ) {
+				$rid = (string) $rid;
+				if ( isset( $used[ $rid ] ) ) continue;
+				$gk = self::name_key( $g['name'] );
+				if ( '' === $gk ) continue;
+				if ( $pk === $gk ) {
+					$name = 3;
+				} elseif ( self::short_name( $pk, $gk ) ) {
+					$name = 2;
+				} else {
+					similar_text( $pk, $gk, $pct );
+					$name = ( $pct >= 85 && $pk[0] === $gk[0] ) ? 1 : 0;
 				}
-				if ( '' === $best ) continue;
-				$both = '' !== $p['birth'] && '' !== $ghl[ $best ]['birth'];
-				$out[ $sid ] = array(
-					'record' => $best,
-					'why'    => 'exact' === $pass
-						? ( $both ? 'Same name and birth date' : 'Same name' )
-						: 'Similar name, check it',
-				);
-				$used[ $best ] = true;
+				if ( ! $name ) continue;
+				$pb = (string) ( $p['birth'] ?? '' );
+				$gb = (string) ( $g['birth'] ?? '' );
+				$birth  = ( '' === $pb || '' === $gb ) ? 'unknown' : ( $pb === $gb ? 'same' : 'differs' );
+				$school = self::same_school( $p['school'] ?? '', $g['school'] ?? '' );
+				// A birth date that disagrees is only borne by the same name, or the same school.
+				if ( 'differs' === $birth && $name < 3 && 'same' !== $school ) continue;
+				$score = $name * 100 + array( 'same' => 20, 'unknown' => 10, 'differs' => 0 )[ $birth ]
+					+ array( 'same' => 5, 'unknown' => 2, 'different' => 0 )[ $school ];
+				$pairs[] = array( $score, $order++, $sid, $rid, $name, $birth, $school );
 			}
 		}
+		usort( $pairs, function ( $a, $b ) { return $b[0] <=> $a[0] ?: $a[1] <=> $b[1]; } );
+
+		$out = array();
+		foreach ( $pairs as $x ) {
+			list( , , $sid, $rid, $name, $birth, $school ) = $x;
+			if ( isset( $out[ $sid ] ) || isset( $used[ $rid ] ) ) continue;
+			$agree = array();
+			if ( 'same' === $birth )  $agree[] = 'birth date';
+			if ( 'same' === $school ) $agree[] = 'school';
+			if ( 3 === $name ) {
+				$why = 'Same ' . self::and_list( array_merge( array( 'name' ), $agree ) );
+			} else {
+				$why = ( 2 === $name ? 'Shortened name' : 'Similar name' ) . ( $agree ? ', same ' . self::and_list( $agree ) : '' );
+			}
+			if ( 'differs' === $birth ) $why .= '; birth dates differ';
+			if ( $name < 3 || 'differs' === $birth ) $why .= ', check it';
+			$out[ $sid ] = array( 'record' => $rid, 'why' => $why );
+			$used[ $rid ] = true;
+		}
 		return $out;
+	}
+
+	/** "Kaine M" and "Kaine Miller": the same first name, and one last name the start of the other. */
+	public static function short_name( $a, $b ) {
+		$x = explode( ' ', $a );
+		$y = explode( ' ', $b );
+		if ( count( $x ) < 2 || count( $y ) < 2 || $x[0] !== $y[0] ) return false;
+		$xl = end( $x );
+		$yl = end( $y );
+		return $xl !== $yl && ( 0 === strpos( $xl, $yl ) || 0 === strpos( $yl, $xl ) );
+	}
+
+	/** The words of a school's name that say which school, without "school", "district" and the like. */
+	public static function school_words( $s ) {
+		$s    = strtolower( remove_accents( (string) $s ) );
+		$stop = array( 'school', 'schools', 'district', 'elementary', 'elem', 'high', 'highschool', 'middle', 'secondary', 'academy',
+			'the', 'of', 'and', 'sd', 'wa', 'bc', 'ab', 'private', 'public', 'online', 'primary', 'junior', 'senior', 'jr', 'sr', 'k12' );
+		$out  = array();
+		foreach ( preg_split( '/[^a-z0-9]+/', $s ) as $w ) {
+			if ( strlen( $w ) >= 3 && ! in_array( $w, $stop, true ) ) $out[] = $w;
+		}
+		return array_values( array_unique( $out ) );
+	}
+
+	/** Two schools: same, different, or unknown when either is blank. */
+	public static function same_school( $a, $b ) {
+		$x = self::school_words( $a );
+		$y = self::school_words( $b );
+		if ( ! $x || ! $y ) return 'unknown';
+		return array_intersect( $x, $y ) ? 'same' : 'different';
+	}
+
+	/** "name", "name and school", "name, birth date and school". */
+	private static function and_list( $words ) {
+		$last = array_pop( $words );
+		return $words ? implode( ', ', $words ) . ' and ' . $last : $last;
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -1145,6 +1200,8 @@ class BFTD_GHL {
 			}
 		}
 		update_post_meta( $sid, self::SHADOW_KEY, $shadow );
+		// "Last checked" on the student's record (1.182: it said never).
+		update_post_meta( $sid, BFTD_CRM::SYNCED_KEY, time() );
 
 		if ( $out['written'] ) {
 			BFTD_Audit::log( 'crm_synced', array( 'post_id' => $sid, 'student_id' => $sid,

@@ -666,6 +666,7 @@ class BFTD_Settings {
 			$out[ (int) $sid ] = array(
 				'name'   => get_the_title( $sid ),
 				'birth'  => (string) BFTD_Fields::get( $sid, 'student', 'birth_date' ),
+				'school' => (string) BFTD_Fields::get( $sid, 'student', 'school' ),
 				'linked' => BFTD_CRM::linked( $sid ),
 			);
 		}

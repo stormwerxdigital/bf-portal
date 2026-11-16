@@ -70,7 +70,7 @@ $portal = array(
 $o = BFTD_GHL::propose($portal, $ghl, array('G6'));
 check('G1' === $o[1]['record'] && 'Same name and birth date' === $o[1]['why'], 'the same name and birth date is offered first');
 check('G2' === $o[2]['record'] && 'Same name' === $o[2]['why'], 'capitals and spacing do not stop a match, and one birth date missing is still a match');
-check(!isset($o[3]), 'two birth dates that disagree rule a pair out, whatever the names say');
+check('G3' === $o[3]['record'] && 'Same name; birth dates differ, check it' === $o[3]['why'], 'the same name with birth dates that disagree is still offered, saying so (1.182)');
 check('G5' === $o[4]['record'] && 'Similar name, check it' === $o[4]['why'], 'a close spelling is offered, marked to be checked');
 check(!isset($o[5]), 'a record already linked to another student is not offered');
 check(!isset($o[6]), 'and a name with nothing like it gets no suggestion');
@@ -78,6 +78,40 @@ $twins = BFTD_GHL::propose(array(7 => array('name' => 'Ana Lee', 'birth' => ''),
 check(1 === count($twins), 'one GoHighLevel student is never offered to two students here');
 $close_first = BFTD_GHL::propose(array(9 => array('name' => 'Emanuel Encinas', 'birth' => ''), 10 => array('name' => 'Emmanuel Encinas', 'birth' => '')), array('Y' => array('name' => 'Emmanuel Encinas', 'birth' => '')));
 check('Y' === $close_first[10]['record'] && !isset($close_first[9]), 'an exact name takes its record before a close spelling can');
+
+/* ---- name, then birth date, then school (Karl, 1.182) ---- */
+$kaine = BFTD_GHL::propose(
+  array(39 => array('name' => 'Kaine M', 'birth' => '2026-08-11', 'school' => 'Chewelah Highschool')),
+  array('K' => array('name' => 'Kaine Miller', 'birth' => '2013-07-06', 'school' => 'Chewelah School District, WA'))
+);
+check('K' === ($kaine[39]['record'] ?? '') && 'Shortened name, same school; birth dates differ, check it' === $kaine[39]['why'],
+  'a shortened name at the same school is offered even with a birth date typed wrongly here, got ' . json_encode($kaine));
+$other = BFTD_GHL::propose(
+  array(39 => array('name' => 'Kaine M', 'birth' => '2026-08-11', 'school' => 'Hart Highlands')),
+  array('K' => array('name' => 'Kaine Miller', 'birth' => '2013-07-06', 'school' => 'Chewelah School District, WA'))
+);
+check(array() === $other, 'but not a shortened name at another school with another birth date');
+check('Shortened name, check it' === (BFTD_GHL::propose(array(1 => array('name' => 'Kaine M', 'birth' => '')), array('K' => array('name' => 'Kaine Miller', 'birth' => '')))[1]['why'] ?? ''), 'a shortened name alone is offered, to be checked');
+check(array() === BFTD_GHL::propose(array(1 => array('name' => 'Jo', 'birth' => '')), array('K' => array('name' => 'Jo Jones', 'birth' => ''))), 'a first name alone is not a match');
+$set3 = file_get_contents(BFTD_PATH . 'includes/class-bftd-settings.php');
+check(false !== strpos($set3, "'school' => (string) BFTD_Fields::get( \$sid, 'student', 'school' ),"), 'the school here is passed to the matching');
+$by_birth = BFTD_GHL::propose(
+  array(1 => array('name' => 'Ana Lee', 'birth' => '2014-01-01', 'school' => '')),
+  array('A' => array('name' => 'Ana Lee', 'birth' => '2015-05-05', 'school' => ''), 'B' => array('name' => 'Ana Lee', 'birth' => '2014-01-01', 'school' => ''))
+);
+check('B' === $by_birth[1]['record'] && 'Same name and birth date' === $by_birth[1]['why'], 'between two of the same name, the birth date decides');
+$by_school = BFTD_GHL::propose(
+  array(1 => array('name' => 'Ana Lee', 'birth' => '', 'school' => 'Cedar Elementary')),
+  array('A' => array('name' => 'Ana Lee', 'birth' => '', 'school' => 'Oak Park'), 'B' => array('name' => 'Ana Lee', 'birth' => '', 'school' => 'Cedar School'))
+);
+check('B' === $by_school[1]['record'] && 'Same name and school' === $by_school[1]['why'], 'and then the school');
+$name_first = BFTD_GHL::propose(
+  array(1 => array('name' => 'Ana Lee', 'birth' => '2014-01-01', 'school' => 'Cedar')),
+  array('A' => array('name' => 'Ana Lees', 'birth' => '2014-01-01', 'school' => 'Cedar'), 'B' => array('name' => 'Ana Lee', 'birth' => '', 'school' => ''))
+);
+check('B' === $name_first[1]['record'], 'the name comes first: the same name beats a close spelling with the same birth date and school');
+check('same' === BFTD_GHL::same_school('Chewelah Highschool', 'Chewelah School District, WA') && 'different' === BFTD_GHL::same_school('Hart Highlands', 'Heather Park') && 'unknown' === BFTD_GHL::same_school('', 'Cedar'),
+  'schools are compared by the words that name them');
 
 /* ---- saving: the save is lifted out of Settings and run against stubs ---- */
 $src = file_get_contents(BFTD_PATH . 'includes/class-bftd-settings.php');

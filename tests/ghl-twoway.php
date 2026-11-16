@@ -101,6 +101,7 @@ class BFTD_Fields {
 $GLOBALS['LINKS'] = array();
 class BFTD_CRM {
   const LINK_KEY = '_bftd_crm_id';
+  const SYNCED_KEY = '_bftd_crm_synced';
   public static function linked($sid) { return $GLOBALS['LINKS'][$sid] ?? ''; }
   public static function split_span($t) {
     $o = array('from' => '', 'to' => '');
@@ -164,6 +165,7 @@ check(in_array('diagnostic_assessment', $row['kept'], true) && !isset($GLOBALS['
 $p = puts_for('R1');
 check(1 === count($p) && array('phone' => '+15550001') === $p[0][1]['properties'], 'a field GoHighLevel has blank is filled from here, and nothing else is sent');
 check(array('phone') === $row['sent'], 'and the log says what was sent');
+check(!empty($GLOBALS['META'][11]['_bftd_crm_synced']), 'and the student\'s Last checked is set (it said never)');
 check(false !== strpos(implode(' ', $GLOBALS['AUDIT']), 'Sent to GoHighLevel: Phone.'), 'and the history');
 
 /* ---- after that, the side that changed is copied to the other ---- */

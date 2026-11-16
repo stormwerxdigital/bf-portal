@@ -47,6 +47,7 @@ class BFTD_CPT { const STUDENT = 'bftd_student';
   public static function diagnostic_on($s) { return ''; } }
 class BFTD_CRM {
   const LINK_KEY = '_bftd_crm_id';
+  const SYNCED_KEY = '_bftd_crm_synced';
   public static function linked($sid) { return $GLOBALS['LINKS'][$sid] ?? ''; }
   public static function upsert($in) {
     $GLOBALS['UPSERTS'][] = $in;
