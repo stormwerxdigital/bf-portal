@@ -645,6 +645,8 @@ function bftdThumb( id, thumb, full ) {
 			if ( ! res || ! res.success ) return;
 			$wrap.find( '.bftd-occ-wrap' ).html( res.data.html );
 			paintBank( $wrap, res.data.bank );
+			// The banner of changes not sent catches up (1.200).
+			document.dispatchEvent( new Event( 'bftd:schedule-changed' ) );
 		} );
 	}
 

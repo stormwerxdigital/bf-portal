@@ -256,7 +256,7 @@
 			}
 			said.textContent = 'Saving…';
 			post( data ).then( function ( res ) {
-				if ( res && res.success ) { closePop(); load(); return; }
+				if ( res && res.success ) { closePop(); load(); document.dispatchEvent( new Event( 'bftd:schedule-changed' ) ); return; }
 				said.textContent = res && res.data && res.data.message ? res.data.message : 'That was not saved.';
 			} ).catch( function () { said.textContent = 'That was not saved. Check the connection and try again.'; } );
 		}

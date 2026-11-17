@@ -1611,3 +1611,18 @@ html.mce-fullscreen div.mce-fullscreen{left:0 !important;top:0 !important;right:
 .bftd-tn-flag{display:inline-block;padding:1px 8px;border-radius:9px;font:600 12px/1.6 var(--bftd-b);background:#fff4e0;color:#6e3d00;border:1px solid #f0cf91}
 .bftd-tn-missing{padding:10px 12px;border:1px dashed #e0b25c;border-radius:7px;background:#fffaf0;font-size:13px;color:#6e3d00}
 .bftd-tn-gapsum{max-width:1100px}
+
+/* ------------------------------------------------------------------ */
+/* Schedule changes not sent (1.200): a banner across the top of every */
+/* portal screen until somebody confirms                               */
+/* ------------------------------------------------------------------ */
+.bftd-sw{position:fixed;z-index:9990;top:32px;left:160px;right:0;padding:10px 20px;
+  background:#fff4e0;border-bottom:2px solid #dba617;box-shadow:0 2px 8px rgba(0,0,0,.12);
+  display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;font-size:13px;color:#3c2a00}
+.bftd-sw[hidden]{display:none}
+.bftd-sw p{margin:0;flex:1 1 420px}
+.bftd-sw-do{display:flex;gap:8px;flex-wrap:wrap}
+.bftd-sw-do form{margin:0}
+.folded .bftd-sw{left:36px}
+@media (max-width:960px){ .auto-fold .bftd-sw{left:36px} }
+@media (max-width:782px){ .bftd-sw{top:46px;left:0} }

@@ -43,15 +43,12 @@ class BFTD_Bookings {
 
 	const VERSION = '2021-04-15';
 
-	public static function init() {
-		// save_post, not save_post_bftd_student: WordPress runs the type's own
-		// hook first, before the form is saved on save_post, so the sync saw
-		// the choice from the save before (1.190, found in the live test).
-		add_action( 'save_post', array( __CLASS__, 'on_save' ), 100, 2 );
-		add_action( 'bftd_schedule_changed', array( __CLASS__, 'sync_student' ) );
-		add_action( BFTD_GHL::CRON, array( __CLASS__, 'sync_all' ) );
-		add_action( 'wp_trash_post', array( __CLASS__, 'on_trash' ) );
-	}
+	/**
+	 * Nothing here sends by itself any more (1.200): a change is held until
+	 * somebody confirms, and sent in hours, by BFTD_Send_Window, which calls
+	 * sync_student() when it is time.
+	 */
+	public static function init() {}
 
 	/* ------------------------------------------------------------------ */
 	/* Who is reminded, where                                              */
@@ -247,7 +244,10 @@ class BFTD_Bookings {
 
 		$prefs = self::prefs( $sid );
 		$live  = 'publish' === get_post_status( $sid );
-		if ( ! $live || ! $prefs['notify'] ) {
+		// In the trash: everything still ahead is cancelled (1.200; it was
+		// done the moment the student was trashed, at any hour).
+		$gone  = 'trash' === get_post_status( $sid );
+		if ( ! $gone && ( ! $live || ! $prefs['notify'] ) ) {
 			// Nothing is sent; anything sent before stays until the schedule changes it.
 			$state['error'] = ! $live ? 'Not sent to GoHighLevel while the student is a draft.' : 'Not sent to GoHighLevel: choose who is reminded first.';
 			if ( ! $map ) { update_post_meta( $sid, self::STATE_KEY, $state ); return $state; }
@@ -255,7 +255,7 @@ class BFTD_Bookings {
 		}
 
 		$contact = '';
-		if ( $prefs['notify'] ) {
+		if ( $prefs['notify'] && ! $gone ) {
 			$c = self::contact_for( $sid, $prefs['notify'] );
 			if ( is_wp_error( $c ) ) {
 				$state['error'] = 'Not sent to GoHighLevel: ' . $c->get_error_message() . '.';
@@ -330,44 +330,6 @@ class BFTD_Bookings {
 		return $state;
 	}
 
-	/** Every published student with a schedule and someone to remind, hourly. */
-	public static function sync_all() {
-		if ( ! BFTD_GHL::configured() ) return;
-		$ids = get_posts( array(
-			'post_type'      => BFTD_CPT::STUDENT,
-			'post_status'    => 'publish',
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-			'no_found_rows'  => true,
-			'meta_query'     => array( array( 'key' => BFTD_Schedule::RULES_KEY, 'compare' => 'EXISTS' ) ),
-		) );
-		foreach ( $ids as $sid ) {
-			$p = self::prefs( $sid );
-			$m = get_post_meta( $sid, self::MAP_KEY, true );
-			if ( $p['notify'] || ( is_array( $m ) && $m ) ) self::sync_student( $sid );
-		}
-	}
-
-	public static function on_save( $sid, $post ) {
-		if ( ! $post || BFTD_CPT::STUDENT !== $post->post_type ) return;
-		if ( wp_is_post_revision( $sid ) || wp_is_post_autosave( $sid ) || 'auto-draft' === $post->post_status ) return;
-		self::sync_student( $sid );
-	}
-
-	/** A student moved to the trash: their sessions still ahead are cancelled in GoHighLevel. */
-	public static function on_trash( $sid ) {
-		if ( BFTD_CPT::STUDENT !== get_post_type( $sid ) || ! BFTD_GHL::configured() ) return;
-		$map = get_post_meta( $sid, self::MAP_KEY, true );
-		if ( ! is_array( $map ) || ! $map ) return;
-		$today = BFTD_Time::today();
-		foreach ( $map as $key => $had ) {
-			if ( substr( (string) $key, 0, 10 ) >= $today && ! empty( $had['id'] ) ) {
-				BFTD_GHL::request( 'PUT', '/calendars/events/appointments/' . rawurlencode( $had['id'] ), array(), array( 'appointmentStatus' => 'cancelled' ), self::VERSION );
-			}
-		}
-		delete_post_meta( $sid, self::MAP_KEY );
-	}
-
 	/* ------------------------------------------------------------------ */
 	/* On the student's Sessions and schedule box                          */
 	/* ------------------------------------------------------------------ */
@@ -422,6 +384,13 @@ class BFTD_Bookings {
 					says so beside the session. Either way a tutor never has two sessions at once, or more than <?php echo (int) BFTD_Schedule::daily_cap(); ?> in a day.</p>
 			</div>
 		</div>
+		<?php
+		$held = class_exists( 'BFTD_Send_Window' ) ? ( BFTD_Send_Window::pending()[ $post->ID ] ?? null ) : null;
+		if ( $held ) : ?>
+			<p class="bftd-cal-warn"><?php echo esc_html( 'queued' === $held['state']
+				? 'Changes confirmed, to be sent to GoHighLevel at ' . BFTD_Send_Window::when( (int) $held['send_at'] ) . '.'
+				: 'Changes not sent to GoHighLevel yet. Families are told once somebody confirms in the banner at the top of the screen.' ); ?></p>
+		<?php endif; ?>
 		<?php if ( is_array( $state ) && ! empty( $state['when'] ) ) : ?>
 			<p class="<?php echo '' !== $state['error'] ? 'bftd-cal-warn' : 'description'; ?>"><?php
 				echo esc_html( '' !== $state['error'] ? $state['error'] : 'In step with GoHighLevel.' );
