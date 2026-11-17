@@ -481,6 +481,7 @@ class BFTD_Students {
 					<a href="<?php echo esc_url( (string) get_edit_post_link( $row['id'] ) ); ?>">Edit</a>
 					<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=' . BFTD_CPT::SESSION . '&student=' . (int) $row['id'] ) ); ?>">Record a session</a>
 					<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . BFTD_CPT::SESSION . '&bftd_student=' . (int) $row['id'] ) ); ?>">Sessions</a>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=bftd-tutor-notes&student=' . (int) $row['id'] ) ); ?>">Tutor notes</a>
 				</span>
 			</td>
 			<?php if ( self::show_crm() ) : ?>

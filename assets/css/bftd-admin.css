@@ -1565,3 +1565,36 @@ html.mce-fullscreen div.mce-fullscreen{left:0 !important;top:0 !important;right:
   .bftd-calv-side{width:auto}
   .bftd-calv-pop{left:8px !important;right:8px;width:auto}
 }
+
+/* ------------------------------------------------------------------ */
+/* Tutor notes (1.194): the family report's boxes, a purple band and   */
+/* small tiles, one card per session                                   */
+/* ------------------------------------------------------------------ */
+.bftd-tn-filter{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 16px;margin:14px 0;padding:12px 14px;
+  background:var(--bftd-card);border:1px solid var(--bftd-line);border-radius:7px;max-width:1100px}
+.bftd-tn-filter label{font-size:13px}
+.bftd-tn-filter label > select,.bftd-tn-filter label > input{display:block;margin-top:2px}
+.bftd-tn-filter fieldset{border:0;margin:0;padding:0}
+.bftd-tn-filter legend{font-size:13px;margin-bottom:2px}
+.bftd-tn-chip{display:inline-block;margin-right:8px}
+.bftd-tn-count{max-width:1100px}
+.bftd-tn-empty{padding:20px;max-width:1060px;background:var(--bftd-sunk);border:1px dashed var(--bftd-line);border-radius:7px}
+.bftd-tn-card{max-width:1100px;margin:0 0 18px;background:#fff;border:1px solid var(--bftd-line);border-radius:10px;overflow:hidden}
+.bftd-tn-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:12px 18px;background:#6d4f86;color:#fff}
+.bftd-tn-head h2{margin:0;color:#fff;font:600 16px/1.3 var(--bftd-b)}
+.bftd-tn-head a{margin-left:auto;color:#fff;text-decoration:underline}
+.bftd-tn-body{padding:6px 18px 16px}
+.bftd-tn-body h3{margin:14px 0 8px;font:600 13px/1.3 var(--bftd-b);color:var(--bftd-muted)}
+.bftd-tn-tiles{display:flex;flex-wrap:wrap;gap:8px}
+.bftd-tn-tile{display:inline-flex;flex-direction:column;gap:4px;min-width:150px;max-width:260px;padding:8px 12px;
+  background:#fff;border:1px solid var(--bftd-line);border-radius:7px;font-size:13px;color:#1d2327}
+.bftd-tn-tile em{align-self:flex-start;font-style:normal;font-size:11px;padding:0 6px;border-radius:3px;background:var(--bftd-sunk);border:1px solid var(--bftd-line)}
+.bftd-tn-note{padding:10px 12px;margin:0 0 8px;border:1px solid var(--bftd-line);border-radius:7px;background:#fff}
+.bftd-tn-note strong{display:block;font-size:12px;color:var(--bftd-muted);margin-bottom:4px}
+.bftd-tn-note p{margin:0;font-size:13.5px;line-height:1.5}
+.bftd-tn-att{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 12px;border:1px solid var(--bftd-line);border-radius:7px;font-size:13px}
+.bftd-tn-pill{display:inline-block;padding:1px 9px;border-radius:9px;font:600 12px/1.6 var(--bftd-b);background:#eef4e2;color:#3b5517;border:1px solid #c9dba8}
+.bftd-tn-pill.is-late{background:#fff4e0;color:#7a4a00;border-color:#f0cf91}
+.bftd-tn-pill.is-missed{background:#fbe9e7;color:#8a1f1f;border-color:#efb7b0}
+.bftd-tn-pill.is-rescheduled,.bftd-tn-pill.is-pending{background:#eceef0;color:#3c434a;border-color:#c3c4c7}
+.bftd-tn-head .bftd-tn-pill{border-color:rgba(255,255,255,.6)}
