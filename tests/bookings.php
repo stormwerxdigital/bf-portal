@@ -22,6 +22,7 @@ function wp_remote_request($url, $args) {
   $m = $args['method']; $path = parse_url($url, PHP_URL_PATH); parse_str((string) parse_url($url, PHP_URL_QUERY), $q);
   $body = isset($args['body']) ? json_decode($args['body'], true) : null;
   $GLOBALS['CALLS'][] = array($m, $path, $body, $q, $args['headers']['Version']);
+  if ('POST' === $m && '/calendars/events/appointments' === $path && false !== strpos($body['startTime'] ?? '', 'T06:00')) return array('code' => 400, 'body' => json_encode(array('message' => 'The slot you have selected is no longer available.')));
   if ('POST' === $m && '/calendars/events/appointments' === $path) return array('code' => 201, 'body' => json_encode(array('id' => 'APPT' . $GLOBALS['NEXT']++)));
   if ('PUT' === $m && 0 === strpos($path, '/calendars/events/appointments/')) return $GLOBALS['FAIL_PUT'] ? array('code' => 422, 'body' => json_encode(array('message' => 'slot is not available'))) : array('code' => 200, 'body' => '{}');
   if ('GET' === $m && '/contacts/search/duplicate' === $path) { $id = $GLOBALS['DUP'][$q['email']] ?? ''; return array('code' => 200, 'body' => json_encode($id ? array('contact' => array('id' => $id)) : array('contact' => null))); }
@@ -124,7 +125,8 @@ $b = $posts[0][2];
 check('CAL-L' === $b['calendarId'] && 'C-MUM' === $b['contactId'] && 'U-L' === $b['assignedUserId'] && 'LOC42' === $b['locationId'], 'on the tutor\'s calendar, with the caregiver as the contact and the tutor assigned');
 check($D1 . 'T16:00:00-07:00' === $b['startTime'] && $D1 . 'T16:50:00-07:00' === $b['endTime'], 'at the session\'s time, our offset written out');
 check('Reading session: Ana Lee' === $b['title'] && 'https://meet.example.test/ana' === $b['address'] && 'confirmed' === $b['appointmentStatus'], 'with the student\'s name, and the joining link when no place is typed');
-check(true === $b['toNotify'] && true === $b['ignoreFreeSlotValidation'], 'GoHighLevel tells the contact about the next session, and does not refuse a time outside the calendar\'s open hours');
+check(true === $b['toNotify'], 'GoHighLevel tells the contact about the next session');
+check(false === $b['ignoreFreeSlotValidation'] && false === $b['ignoreDateRange'], 'and GoHighLevel\'s availability and booking rules decide whether the time can be booked (1.192)');
 check(false === $posts[1][2]['toNotify'], 'the sessions after it are booked quietly, so turning reminders on is one confirmation, not one per session (1.191)');
 check('2021-04-15' === $posts[0][4] && array($T, BFTD_Time::add_days($T, 60)) === $GLOBALS['OCC_RANGE'], 'sixty days ahead, with the calendar API\'s version');
 check(false !== strpos(implode(' ', $GLOBALS['AUDIT']), 'Sessions in GoHighLevel: 2 booked.'), 'and the history says so');
@@ -165,6 +167,32 @@ $s = run();
 check(array() === calls('POST', '/calendars/events/appointments') && 'Jo NoCalendar has no GoHighLevel calendar linked' === ($s['waiting'][$D9 . ' 16:00'] ?? ''), 'a session whose tutor has no calendar is not sent, and says why');
 $mark = BFTD_Bookings::occ_mark(40, occ($D9, '16:00', 'booked', 6));
 check(false !== strpos($mark, 'Not in GoHighLevel: Jo NoCalendar has no GoHighLevel calendar linked') && false !== strpos(BFTD_Bookings::occ_mark(40, occ($D8, '16:00')), 'In GoHighLevel'), 'the session list says which sessions GoHighLevel has, and why not');
+$GLOBALS['OCC'] = array(occ($D8, '16:00'), occ($D9, '06:00'));
+$s = run();
+check('GoHighLevel would not book it: The slot you have selected is no longer available.' === ($s['waiting'][$D9 . ' 06:00'] ?? ''), 'a time GoHighLevel\'s availability turns away is not booked, and that session says why, got ' . json_encode($s['waiting']));
+check(false !== strpos(BFTD_Bookings::occ_mark(40, occ($D9, '06:00')), 'Not in GoHighLevel: GoHighLevel would not book it'), 'in the session list too');
+$GLOBALS['FAIL_PUT'] = true;
+$GLOBALS['OCC'] = array(occ($D8, '16:00', 'moved'), occ($D9, '17:00', 'booked', 5, 50, $D8 . ' 16:00'));
+$s = run();
+check(0 === strpos($s['waiting'][$D9 . ' 17:00'] ?? '', 'GoHighLevel would not move it: slot is not available'), 'and a move it turns away says so on the session it was moved to');
+$GLOBALS['FAIL_PUT'] = false;
+$GLOBALS['OCC'] = array(occ($D8, '16:00'));
+run();
+/* A custom schedule: booked outside the tutor's GoHighLevel hours (1.192). */
+$pp = BFTD_Bookings::prefs(40);
+BFTD_Bookings::save_prefs(40, array_merge($pp, array('custom' => '1')));
+check(1 === BFTD_Bookings::prefs(40)['custom'], 'a student can be put on a custom schedule');
+$GLOBALS['OCC'] = array(occ($D8, '16:00'), occ($D15, '07:30'));
+$s = run();
+$cp = calls('POST', '/calendars/events/appointments');
+check(1 === count($cp) && true === $cp[0][2]['ignoreFreeSlotValidation'] && true === $cp[0][2]['ignoreDateRange'], 'and is then booked whatever GoHighLevel\'s hours say');
+BFTD_Bookings::save_prefs(40, array_merge($pp, array('custom' => '')));
+check(0 === BFTD_Bookings::prefs(40)['custom'], 'and taken off it again, back to GoHighLevel\'s availability');
+$GLOBALS['OCC'] = array(occ($D8, '16:00'));
+run();
+$GLOBALS['FAIL_PUT'] = false;
+$GLOBALS['OCC'] = array(occ($D8, '16:00'));
+run();
 
 /* ---- GoHighLevel refusing ---- */
 $GLOBALS['FAIL_PUT'] = true;

@@ -59,7 +59,7 @@ class BFTD_Bookings {
 
 	public static function prefs( $sid ) {
 		$p = get_post_meta( $sid, self::PREFS_KEY, true );
-		return wp_parse_args( is_array( $p ) ? $p : array(), array( 'notify' => 0, 'location' => '', 'notes' => '' ) );
+		return wp_parse_args( is_array( $p ) ? $p : array(), array( 'notify' => 0, 'location' => '', 'notes' => '', 'custom' => 0 ) );
 	}
 
 	/** From the student's form. The caregiver must be one of the student's. */
@@ -71,6 +71,8 @@ class BFTD_Bookings {
 			'notify'   => $notify,
 			'location' => sanitize_text_field( (string) ( $raw['location'] ?? '' ) ),
 			'notes'    => sanitize_textarea_field( (string) ( $raw['notes'] ?? '' ) ),
+			// A custom schedule: booked outside the tutor's GoHighLevel availability (1.192).
+			'custom'   => empty( $raw['custom'] ) ? 0 : 1,
 		);
 		$old = self::prefs( $sid );
 		if ( $old == $new ) return false;   // phpcs:ignore Universal.Operators.StrictComparisons -- same keys, any order
@@ -192,6 +194,7 @@ class BFTD_Bookings {
 				'title'    => $title,
 				'address'  => $where,
 				'from'     => (string) ( $o['from_key'] ?? '' ),
+				'custom'   => (int) self::prefs( $sid )['custom'],
 			);
 		}
 		return $out;
@@ -216,8 +219,14 @@ class BFTD_Bookings {
 			'appointmentStatus'        => 'confirmed',
 			'meetingLocationType'      => 'custom',
 			'address'                  => $w['address'],
-			'ignoreDateRange'          => true,
-			'ignoreFreeSlotValidation' => true,
+			// GoHighLevel's availability and booking rules decide (Karl, 1.192):
+			// a time outside the tutor's hours, or over the calendar's limits,
+			// is turned away there, and the session says why here. A student
+			// on a custom schedule is booked whatever GoHighLevel's hours say.
+			// The portal's own two rules (no two sessions at once, ten a day)
+			// apply either way, when the schedule is saved or a session moved.
+			'ignoreDateRange'          => ! empty( $w['custom'] ),
+			'ignoreFreeSlotValidation' => ! empty( $w['custom'] ),
 			'toNotify'                 => (bool) $notify,
 		);
 		if ( '' !== $w['user'] ) $b['assignedUserId'] = $w['user'];
@@ -280,13 +289,17 @@ class BFTD_Bookings {
 			if ( $had && self::same( $had, $w ) ) continue;
 			if ( $had && ! empty( $had['id'] ) ) {
 				list( , , $err ) = BFTD_GHL::request( 'PUT', '/calendars/events/appointments/' . rawurlencode( $had['id'] ), array(), self::body( $w ), self::VERSION );
-				if ( '' !== $err ) { $fail[] = $err; continue; }
+				if ( '' !== $err ) { $fail[] = $err; $state['waiting'][ $key ] = 'GoHighLevel would not move it: ' . $err; continue; }
 				$map[ $key ] = array_merge( $w, array( 'id' => $had['id'] ) );
 				$state['moved']++;
 			} else {
 				list( , $data, $err ) = BFTD_GHL::request( 'POST', '/calendars/events/appointments', array(), self::body( $w, $key === $next ), self::VERSION );
 				$id = (string) ( $data['id'] ?? $data['appointment']['id'] ?? $data['event']['id'] ?? '' );
-				if ( '' !== $err || '' === $id ) { $fail[] = '' !== $err ? $err : 'no appointment id came back'; continue; }
+				if ( '' !== $err || '' === $id ) {
+					$fail[] = '' !== $err ? $err : 'no appointment id came back';
+					$state['waiting'][ $key ] = 'GoHighLevel would not book it: ' . end( $fail );
+					continue;
+				}
 				$map[ $key ] = array_merge( $w, array( 'id' => $id ) );
 				$state['made']++;
 			}
@@ -400,6 +413,13 @@ class BFTD_Bookings {
 				<label class="bftd-label" for="bftd-booking-notes">Notes for the booking</label>
 				<textarea id="bftd-booking-notes" name="bftd_booking[notes]" rows="2"><?php echo esc_textarea( $p['notes'] ); ?></textarea>
 				<p class="description">Kept here with the schedule.</p>
+			</div>
+			<div class="bftd-field">
+				<span class="bftd-label">GoHighLevel availability</span>
+				<label><input type="checkbox" name="bftd_booking[custom]" value="1"<?php checked( ! empty( $p['custom'] ) ); ?>>
+					Custom schedule: book outside the tutor's GoHighLevel hours</label>
+				<p class="description">Left unticked, GoHighLevel's availability and booking rules decide, and a time it turns away
+					says so beside the session. Either way a tutor never has two sessions at once, or more than <?php echo (int) BFTD_Schedule::daily_cap(); ?> in a day.</p>
 			</div>
 		</div>
 		<?php if ( is_array( $state ) && ! empty( $state['when'] ) ) : ?>
