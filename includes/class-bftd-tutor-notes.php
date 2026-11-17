@@ -221,8 +221,7 @@ class BFTD_Tutor_Notes {
 			$say      = count( $list ) . ' ' . ( 1 === count( $list ) ? 'session' : 'sessions' );
 			$filtered = 'all' !== $f['range'] || $f['days'] || $f['tfrom'] || $f['tto'] || $f['status'] || $f['tutor'];
 			?>
-			<p class="bftd-tn-count"><strong><?php echo esc_html( $say ); ?></strong>
-				<?php echo esc_html( $filtered ? ' match these filters.' : ', all time.' ); ?>
+			<p class="bftd-tn-count"><strong><?php echo esc_html( $say ); ?></strong><?php echo esc_html( $filtered ? ' match these filters.' : ', all time.' ); ?>
 				<a href="<?php echo esc_url( (string) get_edit_post_link( $sid ) ); ?>">Open <?php echo esc_html( $students[ $sid ] ); ?></a></p>
 
 			<?php if ( ! $list ) : ?>

@@ -95,5 +95,7 @@ $src2 = file_get_contents(BFTD_PATH . 'includes/class-bftd-tutor-notes.php');
 check('all' === $T::filters(array(), '2026-11-16')['range'] && false !== strpos($src2, "array( 'all' => 'All time',"), 'all time by default, and called that (1.197)');
 check(false !== strpos($src2, "'No sessions recorded for ' . \$students[ \$sid ] . ' yet.'") && false !== strpos($src2, "'No sessions match these filters. Widen the range, or clear a filter.'"), 'a student with none says so, rather than blaming a filter that is not set');
 
+check(false !== strpos($src2, "<strong><?php echo esc_html( \$say ); ?></strong><?php echo esc_html( \$filtered ? ' match these filters.' : ', all time.' ); ?>"), 'the count reads "5 sessions, all time." with no space before the comma');
+
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);
