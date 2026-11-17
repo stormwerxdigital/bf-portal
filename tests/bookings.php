@@ -124,7 +124,8 @@ $b = $posts[0][2];
 check('CAL-L' === $b['calendarId'] && 'C-MUM' === $b['contactId'] && 'U-L' === $b['assignedUserId'] && 'LOC42' === $b['locationId'], 'on the tutor\'s calendar, with the caregiver as the contact and the tutor assigned');
 check($D1 . 'T16:00:00-07:00' === $b['startTime'] && $D1 . 'T16:50:00-07:00' === $b['endTime'], 'at the session\'s time, our offset written out');
 check('Reading session: Ana Lee' === $b['title'] && 'https://meet.example.test/ana' === $b['address'] && 'confirmed' === $b['appointmentStatus'], 'with the student\'s name, and the joining link when no place is typed');
-check(true === $b['toNotify'] && true === $b['ignoreFreeSlotValidation'], 'GoHighLevel tells the contact, and does not refuse a time outside the calendar\'s open hours');
+check(true === $b['toNotify'] && true === $b['ignoreFreeSlotValidation'], 'GoHighLevel tells the contact about the next session, and does not refuse a time outside the calendar\'s open hours');
+check(false === $posts[1][2]['toNotify'], 'the sessions after it are booked quietly, so turning reminders on is one confirmation, not one per session (1.191)');
 check('2021-04-15' === $posts[0][4] && array($T, BFTD_Time::add_days($T, 60)) === $GLOBALS['OCC_RANGE'], 'sixty days ahead, with the calendar API\'s version');
 check(false !== strpos(implode(' ', $GLOBALS['AUDIT']), 'Sessions in GoHighLevel: 2 booked.'), 'and the history says so');
 
@@ -136,6 +137,7 @@ BFTD_Bookings::save_prefs(40, array('notify' => 7, 'location' => '12 Oak St', 'n
 $s = run();
 $puts = calls('PUT');
 check(2 === count($puts) && '12 Oak St' === $puts[0][2]['address'] && '/calendars/events/appointments/APPT1' === $puts[0][1], 'a new place changes the appointments already made, not new ones');
+check(true === $puts[0][2]['toNotify'] && true === $puts[1][2]['toNotify'], 'and a change to a session is always told');
 
 $GLOBALS['OCC'] = array(occ($D1, '16:00', 'moved'), occ($D2, '17:00', 'booked', 5, 50, $D1 . ' 16:00'), occ($D8, '16:00'));
 $s = run();

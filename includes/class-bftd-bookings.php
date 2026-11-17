@@ -205,7 +205,7 @@ class BFTD_Bookings {
 		return true;
 	}
 
-	private static function body( $w ) {
+	private static function body( $w, $notify = true ) {
 		$b = array(
 			'calendarId'               => $w['calendar'],
 			'locationId'               => BFTD_GHL::location(),
@@ -218,7 +218,7 @@ class BFTD_Bookings {
 			'address'                  => $w['address'],
 			'ignoreDateRange'          => true,
 			'ignoreFreeSlotValidation' => true,
-			'toNotify'                 => true,
+			'toNotify'                 => (bool) $notify,
 		);
 		if ( '' !== $w['user'] ) $b['assignedUserId'] = $w['user'];
 		return $b;
@@ -269,6 +269,11 @@ class BFTD_Bookings {
 			}
 		}
 
+		// Only the next session is confirmed to the family; the rest are booked
+		// quietly, so turning reminders on is one email, not one per session
+		// (Karl, 1.191). A move is always told.
+		$next = $wanted ? (string) array_key_first( $wanted ) : '';
+
 		$fail = array();
 		foreach ( $wanted as $key => $w ) {
 			$had = $map[ $key ] ?? null;
@@ -279,7 +284,7 @@ class BFTD_Bookings {
 				$map[ $key ] = array_merge( $w, array( 'id' => $had['id'] ) );
 				$state['moved']++;
 			} else {
-				list( , $data, $err ) = BFTD_GHL::request( 'POST', '/calendars/events/appointments', array(), self::body( $w ), self::VERSION );
+				list( , $data, $err ) = BFTD_GHL::request( 'POST', '/calendars/events/appointments', array(), self::body( $w, $key === $next ), self::VERSION );
 				$id = (string) ( $data['id'] ?? $data['appointment']['id'] ?? $data['event']['id'] ?? '' );
 				if ( '' !== $err || '' === $id ) { $fail[] = '' !== $err ? $err : 'no appointment id came back'; continue; }
 				$map[ $key ] = array_merge( $w, array( 'id' => $id ) );
