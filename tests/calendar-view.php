@@ -1,0 +1,146 @@
+<?php
+/*
+ * The calendar, by day, week or month (1.193).
+ *
+ * Managers see every tutor; a tutor sees only their own sessions, whatever
+ * they ask for. What is shown is the portal's schedule, with appointments
+ * made in GoHighLevel itself alongside, in our wall time and never twice.
+ * Sessions are changed through the schedule's own action; a GoHighLevel
+ * appointment only by a manager or the tutor whose calendar it is on, and
+ * never one the portal made.
+ */
+require __DIR__ . '/wp-stubs.php';
+define('BFTD_PATH', dirname(__DIR__) . '/');
+if (!defined('MINUTE_IN_SECONDS')) define('MINUTE_IN_SECONDS', 60);
+if (!defined('DAY_IN_SECONDS')) define('DAY_IN_SECONDS', 86400);
+define('BFTD_GHL_TOKEN', 'pit-test');
+define('BFTD_GHL_LOCATION', 'LOC42');
+
+$GLOBALS['CALLS'] = array(); $GLOBALS['GHL_EVENTS'] = array(); $GLOBALS['APPT'] = array();
+function wp_remote_request($url, $args) {
+  $m = $args['method']; $path = parse_url($url, PHP_URL_PATH); parse_str((string) parse_url($url, PHP_URL_QUERY), $q);
+  $GLOBALS['CALLS'][] = array($m, $path, isset($args['body']) ? json_decode($args['body'], true) : null, $q);
+  if ('GET' === $m && '/calendars/events' === $path) return array('code' => 200, 'body' => json_encode(array('events' => $GLOBALS['GHL_EVENTS'][$q['calendarId']] ?? array())));
+  if ('GET' === $m && 0 === strpos($path, '/calendars/events/appointments/')) { $id = substr($path, strlen('/calendars/events/appointments/')); return isset($GLOBALS['APPT'][$id]) ? array('code' => 200, 'body' => json_encode(array('appointment' => $GLOBALS['APPT'][$id]))) : array('code' => 404, 'body' => json_encode(array('message' => 'Not found'))); }
+  if ('PUT' === $m) return array('code' => 200, 'body' => '{}');
+  return array('code' => 404, 'body' => '{}');
+}
+function wp_remote_retrieve_response_code($r) { return $r['code']; }
+function wp_remote_retrieve_body($r) { return $r['body']; }
+function calls($m) { return array_values(array_filter($GLOBALS['CALLS'], function ($c) use ($m) { return $c[0] === $m; })); }
+
+$GLOBALS['META'] = array(); $GLOBALS['T'] = array(); $GLOBALS['OPT'] = array(); $GLOBALS['AUDIT'] = array();
+function get_post_meta($id, $k = '', $s = false) { $v = $GLOBALS['META'][$id][$k] ?? null; return $s ? (null === $v ? '' : $v) : (null === $v ? array() : (array) $v); }
+function get_post_field($f, $id) { return array(40 => 'Ana Lee', 41 => 'Ben Ray')[$id] ?? ''; }
+function get_post_status($id) { return 41 === $id ? 'draft' : 'publish'; }
+function get_edit_post_link($id, $c = '') { return '/wp-admin/post.php?post=' . $id . '&action=edit'; }
+function get_transient($k) { return $GLOBALS['T'][$k] ?? false; }
+function set_transient($k, $v, $t = 0) { $GLOBALS['T'][$k] = $v; return true; }
+function get_option($k, $d = false) { return $GLOBALS['OPT'][$k] ?? $d; }
+if (!function_exists('update_option')) { function update_option($k, $v, $a = null) { $GLOBALS['OPT'][$k] = $v; return true; } }
+function add_action(...$a) {}
+if (!function_exists('sanitize_text_field')) { function sanitize_text_field($v) { return trim(strip_tags((string) $v)); } }
+$GLOBALS['STAFF'] = array(4 => 'Laurel Sanders', 6 => 'Candice Paluck');
+$GLOBALS['MANAGERS'] = array(4);
+function get_userdata($id) { return isset($GLOBALS['STAFF'][$id]) ? (object) array('ID' => $id, 'display_name' => $GLOBALS['STAFF'][$id]) : false; }
+function user_can($u, $cap, ...$a) { return 'edit_post' === $cap ? (in_array((int) $u, $GLOBALS['MANAGERS'], true) || (6 === (int) $u && 40 === (int) ($a[0] ?? 0))) : false; }
+class BFTD_Roles {
+  const STAFF_CAP = 'bftd_manage_students';
+  public static function can_manage($u = null) { return in_array((int) $u, $GLOBALS['MANAGERS'], true); }
+  public static function is_staff($u = null) { return isset($GLOBALS['STAFF'][(int) $u]); }
+  public static function staff_users() { $o = array(); foreach ($GLOBALS['STAFF'] as $id => $n) $o[] = (object) array('ID' => $id, 'display_name' => $n); return $o; }
+}
+class BFTD_Audit { public static function log($e, $a = array()) { $GLOBALS['AUDIT'][] = $e . ': ' . $a['summary']; } }
+class BFTD_Admin { const MENU_SLUG = 'bftd'; }
+$GLOBALS['OCC'] = array();
+class BFTD_Schedule {
+  public static function scheduled_students() { return array(40, 41); }
+  public static function occurrences($sid, $from = '', $to = '', $l = 200) { return $GLOBALS['OCC'][$sid] ?? array(); }
+  public static function minutes_of($hhmm) { $p = explode(':', $hhmm); return (int) $p[0] * 60 + (int) $p[1]; }
+}
+class BFTD_Bookings {
+  const MAP_KEY = '_bftd_ghl_appts'; const VERSION = '2021-04-15';
+  public static function offset_on($d) { return -420; }
+  public static function iso($date, $hhmm, $add = 0) { $l = strtotime($date . ' ' . $hhmm . ':00 UTC') + 60 * $add; return gmdate('Y-m-d\TH:i:s', $l) . '-07:00'; }
+}
+class BFTD_Calendars {
+  public static function links() { return array('CAL-L' => 4, 'CAL-C' => 6); }
+  public static function calendar_for($u) { $c = array_search((int) $u, self::links(), true); return false === $c ? '' : $c; }
+}
+require BFTD_PATH . 'includes/class-bftd-ghl.php';
+require BFTD_PATH . 'includes/class-bftd-calendar-view.php';
+
+$fail = 0;
+function check($ok, $msg) { global $fail; if ($ok) echo "  ok  $msg\n"; else { echo "FAIL  $msg\n"; $fail++; } }
+function o($date, $time, $tutor, $status = 'booked', $min = 50) { return array('key' => "$date $time", 'date' => $date, 'time' => $time, 'minutes' => $min, 'tutor' => $tutor, 'status' => $status); }
+
+/* ---- who sees whom ---- */
+check(array(4 => 'Laurel Sanders', 6 => 'Candice Paluck') === BFTD_Calendar_View::tutors_for(4), 'a manager sees every tutor');
+check(array(6 => 'Candice Paluck') === BFTD_Calendar_View::tutors_for(6), 'a tutor sees only themselves');
+
+$GLOBALS['OCC'][40] = array(o('2026-11-18', '16:00', 6), o('2026-11-19', '16:00', 6, 'held'), o('2026-11-20', '16:00', 6, 'cancelled'), o('2026-11-21', '16:00', 6, 'moved'), o('2026-11-30', '16:00', 6));
+$GLOBALS['OCC'][41] = array(o('2026-11-18', '09:00', 4, 'booked', 30));
+$GLOBALS['META'][40]['_bftd_ghl_appts'] = array('2026-11-18 16:00' => array('id' => 'PORTAL1'));
+
+$tut = BFTD_Calendar_View::events('2026-11-15', '2026-11-21', array(4, 6), 6);
+check(array('Ana Lee') === array_values(array_unique(array_column($tut, 'title'))), 'a tutor asking for everyone still gets only their own sessions');
+
+$GLOBALS['OCC'][41][] = o('2026-11-20', '11:00', 6);
+$cover = array_values(array_filter(BFTD_Calendar_View::events('2026-11-15', '2026-11-21', array(), 6), function ($e) { return 'Ben Ray' === $e['title']; }));
+check(1 === count($cover) && true === $cover[0]['can_edit'], 'a tutor can change a session they teach on a student they are not assigned to (1.193)');
+array_pop($GLOBALS['OCC'][41]);
+
+/* ---- what a manager sees ---- */
+$GLOBALS['GHL_EVENTS']['CAL-L'] = array(
+  array('id' => 'G1', 'title' => 'Reading assessment: Pat', 'startTime' => '2026-11-19T17:00:00Z', 'endTime' => '2026-11-19T18:00:00Z', 'appointmentStatus' => 'confirmed'),
+  array('id' => 'G2', 'title' => 'Gone', 'startTime' => '2026-11-19T19:00:00Z', 'endTime' => '2026-11-19T20:00:00Z', 'appointmentStatus' => 'cancelled'),
+);
+$GLOBALS['GHL_EVENTS']['CAL-C'] = array(
+  array('id' => 'PORTAL1', 'title' => 'Reading session: Ana Lee', 'startTime' => '2026-11-18T23:00:00Z', 'endTime' => '2026-11-18T23:50:00Z', 'appointmentStatus' => 'confirmed'),
+);
+$GLOBALS['T'] = array();   // what the tutor's view above read is not this one's
+$ev = BFTD_Calendar_View::events('2026-11-15', '2026-11-21', array(), 4);
+$by = array(); foreach ($ev as $e) $by[$e['kind'] . ' ' . $e['date'] . ' ' . $e['start']] = $e;
+check(isset($by['session 2026-11-18 09:00'], $by['session 2026-11-18 16:00'], $by['session 2026-11-19 16:00'], $by['session 2026-11-20 16:00']), 'every tutor\'s booked, taught and cancelled sessions, got ' . json_encode(array_keys($by)));
+check(!isset($by['session 2026-11-21 16:00']) && !isset($by['session 2026-11-30 16:00']), 'not the marker a move leaves behind, nor one outside the range');
+check('16:50' === $by['session 2026-11-18 16:00']['end'] && '09:30' === $by['session 2026-11-18 09:00']['end'], 'each with its end, from its length');
+check(true === $by['session 2026-11-18 16:00']['in_ghl'] && true === $by['session 2026-11-18 09:00']['draft'], 'saying which are in GoHighLevel, and which student is a draft');
+check(true === $by['session 2026-11-18 16:00']['can_edit'] && false === $by['session 2026-11-19 16:00']['can_edit'] && false === $by['session 2026-11-20 16:00']['can_edit'], 'a booked session can be changed; a taught or cancelled one cannot');
+check(isset($by['ghl 2026-11-19 10:00']) && '11:00' === $by['ghl 2026-11-19 10:00']['end'] && 4 === $by['ghl 2026-11-19 10:00']['tutor'], 'an appointment made in GoHighLevel is shown on its tutor, at our time (17:00 UTC is 10:00 here)');
+check(1 === count(array_filter($ev, function ($e) { return 'ghl' === $e['kind']; })), 'a cancelled one is not, and one the portal made is not shown twice');
+check(true === $by['ghl 2026-11-19 10:00']['can_edit'], 'a manager can change a GoHighLevel appointment');
+$tutG = BFTD_Calendar_View::ghl_events(array(4), '2026-11-15', '2026-11-21', 6);
+check(false === $tutG[0]['can_edit'], 'a tutor cannot change one on another tutor\'s calendar');
+$n = count(calls('GET')); BFTD_Calendar_View::events('2026-11-15', '2026-11-21', array(), 4);
+check($n === count(calls('GET')), 'GoHighLevel is asked again only after five minutes');
+
+/* ---- changing a GoHighLevel appointment ---- */
+$GLOBALS['APPT']['G1'] = array('id' => 'G1', 'calendarId' => 'CAL-L', 'title' => 'Reading assessment: Pat', 'startTime' => '2026-11-19T10:00:00-07:00', 'endTime' => '2026-11-19T11:00:00-07:00');
+$GLOBALS['APPT']['PORTAL1'] = array('id' => 'PORTAL1', 'calendarId' => 'CAL-C', 'startTime' => '2026-11-18T16:00:00-07:00', 'endTime' => '2026-11-18T16:50:00-07:00');
+$r = BFTD_Calendar_View::change_ghl('G1', 'move', '2026-11-20', '13:30', 6);
+check(is_wp_error($r) && array() === calls('PUT'), 'a tutor cannot move one on another tutor\'s calendar');
+$r = BFTD_Calendar_View::change_ghl('PORTAL1', 'cancel', '', '', 4);
+check(is_wp_error($r) && false !== strpos($r->get_error_message(), 'student') && array() === calls('PUT'), 'one the portal made is changed on the student\'s schedule, not here');
+$r = BFTD_Calendar_View::change_ghl('G1', 'move', '2026-11-20', '13:30', 4);
+$put = calls('PUT');
+check(true === $r && 1 === count($put) && '2026-11-20T13:30:00-07:00' === $put[0][2]['startTime'] && '2026-11-20T14:30:00-07:00' === $put[0][2]['endTime'], 'a manager moves it, and it keeps its hour');
+check(false === $put[0][2]['ignoreFreeSlotValidation'] && 'CAL-L' === $put[0][2]['calendarId'], 'following GoHighLevel\'s availability, on its own calendar');
+check(1 === (int) get_option('bftd_cal_ghl_v') && false !== strpos(implode(' ', $GLOBALS['AUDIT']), 'was moved to 2026-11-20 13:30 from the calendar'), 'the calendar reads it fresh, and it is in the history');
+$GLOBALS['CALLS'] = array();
+$r = BFTD_Calendar_View::change_ghl('G1', 'cancel', '', '', 4);
+check(true === $r && array('appointmentStatus' => 'cancelled') === calls('PUT')[0][2], 'and cancels it, never deletes it');
+$r = BFTD_Calendar_View::change_ghl('G1', 'move', 'soon', '', 4);
+check(is_wp_error($r), 'a move needs a real date and time');
+
+/* ---- where it is wired ---- */
+$src = file_get_contents(BFTD_PATH . 'includes/class-bftd-calendar-view.php');
+check(false !== strpos($src, "add_submenu_page( BFTD_Admin::MENU_SLUG, 'Calendar', 'Calendar', BFTD_Roles::STAFF_CAP, self::SLUG,") && false !== strpos($src, "<?php echo \$manage ? 'Calendar' : 'My schedule'; ?>"), 'a Calendar screen for staff, called My schedule for a tutor');
+check(substr_count($src, "check_ajax_referer( 'bftd_nonce', 'nonce' );") === 2 && false !== strpos($src, 'const MAX_DAYS = 42;'), 'both actions are signed, and a range is at most six weeks');
+$js = file_get_contents(BFTD_PATH . 'assets/js/bftd-calendar.js');
+check(false !== strpos($js, "action: 'bftd_schedule_except'") && false !== strpos($js, "action: 'bftd_calendar_ghl'") && false !== strpos($js, "action: 'bftd_calendar_events'"), 'the screen changes sessions through the schedule\'s own action');
+foreach (array("'day' === state.view", "'week' === state.view", 'drawMonth') as $v) check(false !== strpos($js, $v), 'and draws ' . $v);
+$sc = file_get_contents(BFTD_PATH . 'includes/class-bftd-schedule.php');
+check(false !== strpos($sc, "( isset( \$_POST['tutor'] ) && BFTD_Roles::can_manage() && BFTD_Roles::is_staff( absint( \$_POST['tutor'] ) ) ) ? absint( \$_POST['tutor'] ) : 0"), 'another tutor for one session is a manager\'s change, and only to a staff account');
+
+echo $fail ? "\nFAIL\n" : "\nPASS\n";
+exit($fail ? 1 : 0);

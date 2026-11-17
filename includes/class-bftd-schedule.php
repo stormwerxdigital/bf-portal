@@ -147,7 +147,7 @@ class BFTD_Schedule {
 	 * Cancel or move one occurrence. Keyed by the original date and time, so
 	 * a rule change never orphans an exception into the wrong slot.
 	 */
-	public static function set_exception( $student_id, $key, $action, $to_date = '', $to_time = '', $reason = '' ) {
+	public static function set_exception( $student_id, $key, $action, $to_date = '', $to_time = '', $reason = '', $to_minutes = 0, $to_tutor = 0 ) {
 		$all = self::exceptions( $student_id );
 
 		// A session already rescheduled is listed under its new date, but
@@ -167,9 +167,11 @@ class BFTD_Schedule {
 			$to = self::clean_date( $to_date );
 			if ( $to ) {
 				$slot  = self::occurrence_at( $student_id, $key );
-				$tutor = $slot ? (int) $slot['tutor'] : 0;
+				// A session can also be given another length, or another
+				// tutor, for that one date (1.193, from the calendar).
+				$tutor = (int) $to_tutor ? (int) $to_tutor : ( $slot ? (int) $slot['tutor'] : 0 );
 				$time  = preg_match( '/^\d{2}:\d{2}$/', (string) $to_time ) ? $to_time : ( $slot ? $slot['time'] : '' );
-				$mins  = $slot ? (int) $slot['minutes'] : 50;
+				$mins  = (int) $to_minutes >= 15 ? (int) $to_minutes : ( $slot ? (int) $slot['minutes'] : 50 );
 
 				if ( $tutor && $time ) {
 					$u    = get_userdata( $tutor );
@@ -207,6 +209,8 @@ class BFTD_Schedule {
 				'date'    => self::clean_date( $to_date ),
 				'time'    => preg_match( '/^\d{2}:\d{2}$/', (string) $to_time ) ? $to_time : '',
 				'reason'  => sanitize_text_field( $reason ),
+				'minutes' => 'move' === $action && (int) $to_minutes >= 15 ? min( 600, (int) $to_minutes ) : 0,
+				'tutor'   => 'move' === $action ? absint( $to_tutor ) : 0,
 				'by'      => get_current_user_id(),
 				'at'      => BFTD_Time::mysql(),
 			);
@@ -675,6 +679,8 @@ class BFTD_Schedule {
 								'time'   => $x['time'] ? $x['time'] : $rule['time'],
 								'status' => 'booked',
 								'from_key' => $key,
+								'minutes'  => ! empty( $x['minutes'] ) ? (int) $x['minutes'] : $rule['minutes'],
+								'tutor'    => ! empty( $x['tutor'] ) ? (int) $x['tutor'] : $rule['tutor'],
 							) );
 						}
 					}
@@ -925,6 +931,13 @@ class BFTD_Schedule {
 	/* AJAX                                                                */
 	/* ------------------------------------------------------------------ */
 
+	/** Is this session one the current tutor teaches? Checked with the signature, like guard(). */
+	public static function own_session( $student_id, $key ) {
+		check_ajax_referer( 'bftd_nonce', 'nonce' );
+		$me = get_current_user_id();
+		return $student_id && $key && $me && BFTD_Roles::is_staff( $me ) && self::tutor_for_key( $student_id, $key ) === $me;
+	}
+
 	private static function guard( $student_id ) {
 		check_ajax_referer( 'bftd_nonce', 'nonce' );
 		$student_id = (int) $student_id;
@@ -978,9 +991,13 @@ class BFTD_Schedule {
 	}
 
 	public static function ajax_exception() {
-		$student_id = self::guard( isset( $_POST['student_id'] ) ? $_POST['student_id'] : 0 );
+		$key = isset( $_POST['key'] ) ? sanitize_text_field( wp_unslash( $_POST['key'] ) ) : '';
+		// A tutor can change their own sessions, including one they are
+		// covering for a student they are not assigned to (Karl, 1.193).
+		$student_id = self::own_session( isset( $_POST['student_id'] ) ? (int) $_POST['student_id'] : 0, $key )
+			? (int) $_POST['student_id']
+			: self::guard( isset( $_POST['student_id'] ) ? $_POST['student_id'] : 0 );
 
-		$key    = isset( $_POST['key'] ) ? sanitize_text_field( wp_unslash( $_POST['key'] ) ) : '';
 		$action = isset( $_POST['what'] ) ? sanitize_key( wp_unslash( $_POST['what'] ) ) : '';
 		if ( ! $key || ! in_array( $action, array( 'cancel', 'move', 'clear' ), true ) ) {
 			wp_send_json_error( array( 'message' => 'Nothing to change there.' ), 400 );
@@ -990,7 +1007,10 @@ class BFTD_Schedule {
 			$student_id, $key, $action,
 			isset( $_POST['date'] ) ? wp_unslash( $_POST['date'] ) : '',
 			isset( $_POST['time'] ) ? wp_unslash( $_POST['time'] ) : '',
-			isset( $_POST['reason'] ) ? wp_unslash( $_POST['reason'] ) : ''
+			isset( $_POST['reason'] ) ? wp_unslash( $_POST['reason'] ) : '',
+			isset( $_POST['minutes'] ) ? absint( $_POST['minutes'] ) : 0,
+			// Another tutor for one session is a manager's change (1.193).
+			( isset( $_POST['tutor'] ) && BFTD_Roles::can_manage() && BFTD_Roles::is_staff( absint( $_POST['tutor'] ) ) ) ? absint( $_POST['tutor'] ) : 0
 		);
 
 		if ( is_wp_error( $done ) ) {

@@ -1487,3 +1487,81 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
 html.mce-fullscreen #adminmenumain,
 html.mce-fullscreen #wpadminbar{display:none}
 html.mce-fullscreen div.mce-fullscreen{left:0 !important;top:0 !important;right:0 !important;width:auto !important;z-index:100050}
+
+/* ------------------------------------------------------------------ */
+/* The calendar (1.193)                                                */
+/* ------------------------------------------------------------------ */
+.bftd-calv{position:relative}
+.bftd-calv-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0}
+.bftd-calv-nav{display:inline-flex;align-items:center;gap:6px}
+.bftd-calv-label{min-width:180px;text-align:center;font:600 15px/1.3 var(--bftd-b)}
+.bftd-calv-ghl{font-size:13px}
+.bftd-calv-body{display:flex;gap:16px;align-items:flex-start}
+.bftd-calv-grid{flex:1;min-width:0;overflow-x:auto;background:var(--bftd-card);border:1px solid var(--bftd-line);border-radius:7px}
+.bftd-calv-grid[aria-busy="true"]{opacity:.6}
+.bftd-calv-side{width:210px;flex:none;background:var(--bftd-card);border:1px solid var(--bftd-line);border-radius:7px;padding:10px 14px}
+.bftd-calv-side h2{font-size:14px;margin:4px 0 6px}
+.bftd-calv-tutor{display:flex;align-items:center;gap:6px;margin:6px 0;font-size:13px}
+.bftd-calv-msg{padding:14px;margin:0;color:var(--bftd-muted)}
+.bftd-calv-head,.bftd-calv-times{display:grid}
+.bftd-calv-head{position:sticky;top:0;z-index:2;background:var(--bftd-sunk);border-bottom:1px solid var(--bftd-line)}
+.bftd-calv-head span{padding:8px 6px;text-align:center;font:600 13px/1.3 var(--bftd-b)}
+.bftd-calv-head span.is-today button{color:var(--bftd-purple);text-decoration:underline}
+.bftd-calv-hours span{display:block;box-sizing:border-box;padding:2px 6px 0 0;text-align:right;font-size:11px;color:var(--bftd-muted);border-top:1px solid var(--bftd-line)}
+.bftd-calv-col{position:relative;border-left:1px solid var(--bftd-line);
+  background-image:repeating-linear-gradient(to bottom,var(--bftd-line) 0,var(--bftd-line) 1px,transparent 1px,transparent 48px)}
+.bftd-calv-col.is-today{background-color:var(--bftd-purple-wash)}
+/* One colour per tutor, and a pattern or border, not colour alone, for what happened. */
+.bftd-calv-ev{display:block;width:100%;box-sizing:border-box;text-align:left;cursor:pointer;overflow:hidden;
+  border:1px solid rgba(0,0,0,.18);border-left-width:4px;border-radius:4px;padding:2px 5px;margin:0 0 2px;
+  font:400 12px/1.3 var(--bftd-b);color:#1d2327;background:#e8e2f0}
+.bftd-calv-col .bftd-calv-ev{position:absolute;margin:0}
+.bftd-calv-ev:focus-visible{outline:2px solid var(--bftd-purple);outline-offset:1px}
+.bftd-calv-ev-t{font-weight:600}
+.bftd-calv-ev-n,.bftd-calv-ev-w{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bftd-calv-ev-w{color:#50575e;font-size:11px}
+.bftd-calv-ev[data-c="0"]{border-left-color:#6b4c8a;background:#efe9f6}
+.bftd-calv-ev[data-c="1"]{border-left-color:#2e6b8a;background:#e5f0f6}
+.bftd-calv-ev[data-c="2"]{border-left-color:#5c7a29;background:#eef4e2}
+.bftd-calv-ev[data-c="3"]{border-left-color:#a35a14;background:#f8eee2}
+.bftd-calv-ev[data-c="4"]{border-left-color:#8a2e5a;background:#f6e5ee}
+.bftd-calv-ev[data-c="5"]{border-left-color:#2e8a7a;background:#e3f4f1}
+.bftd-calv-ev[data-c="6"]{border-left-color:#5a5a8a;background:#ececf6}
+.bftd-calv-ev[data-c="7"]{border-left-color:#8a7a2e;background:#f5f2e0}
+.bftd-calv-swatch{display:inline-block;width:10px;height:10px;border-radius:2px;background:#6b4c8a}
+.bftd-calv-swatch[data-i="1"]{background:#2e6b8a}
+.bftd-calv-swatch[data-i="2"]{background:#5c7a29}
+.bftd-calv-swatch[data-i="3"]{background:#a35a14}
+.bftd-calv-swatch[data-i="4"]{background:#8a2e5a}
+.bftd-calv-swatch[data-i="5"]{background:#2e8a7a}
+.bftd-calv-swatch[data-i="6"]{background:#5a5a8a}
+.bftd-calv-swatch[data-i="7"]{background:#8a7a2e}
+.bftd-calv-ev.is-held{opacity:.75}
+.bftd-calv-ev.is-held .bftd-calv-ev-t:after{content:" taught";font-weight:400}
+.bftd-calv-ev.is-cancelled{background:repeating-linear-gradient(135deg,#f6f7f7 0,#f6f7f7 6px,#eceeef 6px,#eceeef 12px);color:#50575e}
+.bftd-calv-ev.is-cancelled .bftd-calv-ev-n{text-decoration:line-through}
+.bftd-calv-ev.is-ghl{border-style:dashed;background:#fff}
+.bftd-calv-ev.is-draft .bftd-calv-ev-n:after{content:" (draft)";font-style:italic}
+.bftd-calv-mhead,.bftd-calv-month{display:grid;grid-template-columns:repeat(7,minmax(110px,1fr))}
+.bftd-calv-mhead span{padding:8px 6px;text-align:center;font:600 13px/1.3 var(--bftd-b);background:var(--bftd-sunk);border-bottom:1px solid var(--bftd-line)}
+.bftd-calv-cell{min-height:104px;padding:4px;border-right:1px solid var(--bftd-line);border-bottom:1px solid var(--bftd-line)}
+.bftd-calv-cell.is-other{background:var(--bftd-sunk)}
+.bftd-calv-cell.is-today{background:var(--bftd-purple-wash)}
+.bftd-calv-cell > .bftd-calv-goday{display:block;margin-bottom:3px;font-weight:600}
+.bftd-calv-more{font-size:12px}
+.bftd-calv-key{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px}
+.bftd-calv-k{padding:1px 8px;border:1px solid rgba(0,0,0,.18);border-left-width:4px;border-radius:4px;background:#efe9f6;border-left-color:#6b4c8a}
+.bftd-calv-k.is-held{opacity:.75}
+.bftd-calv-k.is-cancelled{background:repeating-linear-gradient(135deg,#f6f7f7 0,#f6f7f7 6px,#eceeef 6px,#eceeef 12px);text-decoration:line-through}
+.bftd-calv-k.is-ghl{border-style:dashed;background:#fff}
+.bftd-calv-pop{position:absolute;z-index:20;width:320px;box-sizing:border-box;padding:12px 14px;background:#fff;border:1px solid var(--bftd-line);
+  border-radius:7px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.bftd-calv-pop h2{margin:0 0 6px;font-size:15px}
+.bftd-calv-edit label{display:block;margin:6px 0;font-size:13px}
+.bftd-calv-edit input,.bftd-calv-edit select{display:block;width:100%;margin-top:2px}
+.bftd-calv-said{color:#8a1f1f;font-size:13px;min-height:1em;margin:6px 0}
+@media (max-width:782px){
+  .bftd-calv-body{flex-direction:column}
+  .bftd-calv-side{width:auto}
+  .bftd-calv-pop{left:8px !important;right:8px;width:auto}
+}
