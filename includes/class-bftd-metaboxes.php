@@ -760,6 +760,8 @@ class BFTD_MetaBoxes {
 				A slot that breaks either rule is not added, and you will be told which one, on what date, and why.
 			</p>
 
+			<?php if ( class_exists( 'BFTD_Bookings' ) ) BFTD_Bookings::render_box( $post ); ?>
+
 			<h4>The next sessions</h4>
 			<div class="bftd-occ-wrap"><?php echo BFTD_Schedule::render_occurrence_list( $post->ID ); ?></div>
 			<p class="description">
@@ -1626,7 +1628,7 @@ class BFTD_MetaBoxes {
 	 */
 	/** The top-level POST keys a form of ours carries its fields under. */
 	public static function our_post_keys() {
-		return array( 'bftd', 'bftd_rows', 'bftd_sched', 'bftd_visible', 'bftd_items' );
+		return array( 'bftd', 'bftd_rows', 'bftd_sched', 'bftd_visible', 'bftd_items', 'bftd_booking' );
 	}
 
 	/**
@@ -1722,6 +1724,11 @@ class BFTD_MetaBoxes {
 			// to do and is respected; the two must not be read as the same.
 			if ( isset( $_POST['bftd_sched'] )
 				&& BFTD_Schedule::save_rules( $post_id, wp_unslash( $_POST['bftd_sched'] ) ) ) {
+				$changed++;
+			}
+			// Who GoHighLevel reminds, and where (1.189). Sent once the save is done.
+			if ( isset( $_POST['bftd_booking'] ) && class_exists( 'BFTD_Bookings' )
+				&& BFTD_Bookings::save_prefs( $post_id, wp_unslash( $_POST['bftd_booking'] ) ) ) {
 				$changed++;
 			}
 			$changed += self::save_items_for_student( $post_id );

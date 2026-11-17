@@ -214,6 +214,9 @@ class BFTD_Schedule {
 					: 'The ' . $key . ' session was cancelled.' ),
 		) );
 
+		// GoHighLevel's copy follows (1.189).
+		do_action( 'bftd_schedule_changed', $student_id );
+
 		return true;
 	}
 
@@ -1148,6 +1151,7 @@ class BFTD_Schedule {
 				'booked'    => 'Booked',
 			);
 			echo '<span class="bftd-occ-status">' . esc_html( $labels[ $o['status'] ] ) . '</span>';
+			if ( class_exists( 'BFTD_Bookings' ) ) echo BFTD_Bookings::occ_mark( $student_id, $o ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in occ_mark
 
 			if ( $o['reason'] ) echo '<span class="bftd-occ-why">' . esc_html( $o['reason'] ) . '</span>';
 
