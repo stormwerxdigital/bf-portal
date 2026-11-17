@@ -91,5 +91,9 @@ check(false !== strpos(file_get_contents(BFTD_PATH . 'includes/class-bftd-studen
 
 check(1 === preg_match('#<fieldset class="bftd-tn-time"><legend>Time of day</legend>\s*<label>from <input type="time" name="tfrom".*?</label>\s*<label>until <input type="time" name="tto"#s', file_get_contents(BFTD_PATH . 'includes/class-bftd-tutor-notes.php')), 'from and until are one filter, kept together (1.195)');
 
+$src2 = file_get_contents(BFTD_PATH . 'includes/class-bftd-tutor-notes.php');
+check('all' === $T::filters(array(), '2026-11-16')['range'] && false !== strpos($src2, "array( 'all' => 'All time',"), 'all time by default, and called that (1.197)');
+check(false !== strpos($src2, "'No sessions recorded for ' . \$students[ \$sid ] . ' yet.'") && false !== strpos($src2, "'No sessions match these filters. Widen the range, or clear a filter.'"), 'a student with none says so, rather than blaming a filter that is not set');
+
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

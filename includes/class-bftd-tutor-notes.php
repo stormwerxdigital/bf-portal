@@ -181,7 +181,7 @@ class BFTD_Tutor_Notes {
 				<?php if ( $sid ) : ?>
 					<label>Showing
 						<select name="range">
-							<?php foreach ( array( 'all' => 'Every session', '7' => 'The last 7 days', '30' => 'The last 30 days', '90' => 'The last 90 days', 'month' => 'This month', 'custom' => 'Between these dates' ) as $k => $l ) : ?>
+							<?php foreach ( array( 'all' => 'All time', '7' => 'The last 7 days', '30' => 'The last 30 days', '90' => 'The last 90 days', 'month' => 'This month', 'custom' => 'Between these dates' ) as $k => $l ) : ?>
 								<option value="<?php echo esc_attr( $k ); ?>"<?php selected( $f['range'], $k ); ?>><?php echo esc_html( $l ); ?></option>
 							<?php endforeach; ?>
 						</select></label>
@@ -217,15 +217,18 @@ class BFTD_Tutor_Notes {
 				echo '<p class="description">Choose a student to read their sessions.</p></div>';
 				return;
 			}
-			$list = self::entries( $sid, $f );
-			$say  = count( $list ) . ' ' . ( 1 === count( $list ) ? 'session' : 'sessions' );
+			$list     = self::entries( $sid, $f );
+			$say      = count( $list ) . ' ' . ( 1 === count( $list ) ? 'session' : 'sessions' );
+			$filtered = 'all' !== $f['range'] || $f['days'] || $f['tfrom'] || $f['tto'] || $f['status'] || $f['tutor'];
 			?>
 			<p class="bftd-tn-count"><strong><?php echo esc_html( $say ); ?></strong>
-				<?php if ( 'all' !== $f['range'] || $f['days'] || $f['tfrom'] || $f['tto'] || $f['status'] || $f['tutor'] ) echo esc_html( ' match these filters.' ); ?>
+				<?php echo esc_html( $filtered ? ' match these filters.' : ', all time.' ); ?>
 				<a href="<?php echo esc_url( (string) get_edit_post_link( $sid ) ); ?>">Open <?php echo esc_html( $students[ $sid ] ); ?></a></p>
 
 			<?php if ( ! $list ) : ?>
-				<p class="bftd-tn-empty">No sessions here. Widen the range, or clear a filter.</p>
+				<p class="bftd-tn-empty"><?php echo esc_html( $filtered
+					? 'No sessions match these filters. Widen the range, or clear a filter.'
+					: 'No sessions recorded for ' . $students[ $sid ] . ' yet.' ); ?></p>
 			<?php endif; ?>
 			<?php foreach ( $list as $e ) self::card( $e ); ?>
 		</div>
