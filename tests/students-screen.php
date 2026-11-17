@@ -235,6 +235,10 @@ foreach (array(true, false) as $mg) {
 }
 $GLOBALS['MANAGE'] = true;
 $css = file_get_contents(BFTD_PATH . 'assets/css/bftd-admin.css');
+/* The row's actions are small buttons with space between, not words split by pipes (1.195). */
+check(1 === preg_match('/\.bftd-stu-acts\{display:flex;flex-wrap:wrap;gap:5px 6px;/', $css) && false === strpos($css, '.bftd-stu-acts a:not(:last-child):after{content:" | "'), 'the row\'s actions are spaced buttons, not words split by pipes');
+check(1 === preg_match('/\.bftd-stu-acts a\{display:inline-flex;align-items:center;min-height:24px;padding:0 9px;white-space:nowrap;/', $css), 'each a box of its own that never breaks across a line');
+
 check(false !== strpos($css, '.bftd-stu-scroll{overflow-x:auto;') && false !== strpos($css, '@media (min-width:783px){ .bftd-stu-t{min-width:1100px} }') && false !== strpos($css, '@media (max-width:782px){ .bftd-stu-scroll{overflow:visible} }'),
   'it scrolls rather than squeezing its columns, except on a phone, where rows are cards');
 /* The student record's own state, in its own column, in the same pills the

@@ -192,8 +192,10 @@ class BFTD_Tutor_Notes {
 							<label class="bftd-tn-chip"><input type="checkbox" name="days[]" value="<?php echo esc_attr( $n ); ?>"<?php checked( in_array( (string) $n, $f['days'], true ) ); ?>> <?php echo esc_html( substr( $day, 0, 3 ) ); ?></label>
 						<?php endforeach; ?>
 					</fieldset>
-					<label>Starting from <input type="time" name="tfrom" value="<?php echo esc_attr( $f['tfrom'] ); ?>"></label>
-					<label>until <input type="time" name="tto" value="<?php echo esc_attr( $f['tto'] ); ?>"></label>
+					<fieldset class="bftd-tn-time"><legend>Time of day</legend>
+						<label>from <input type="time" name="tfrom" value="<?php echo esc_attr( $f['tfrom'] ); ?>"></label>
+						<label>until <input type="time" name="tto" value="<?php echo esc_attr( $f['tto'] ); ?>"></label>
+					</fieldset>
 					<fieldset><legend>What happened</legend>
 						<?php foreach ( self::statuses() as $k => $l ) : ?>
 							<label class="bftd-tn-chip"><input type="checkbox" name="status[]" value="<?php echo esc_attr( $k ); ?>"<?php checked( in_array( $k, $f['status'], true ) ); ?>> <?php echo esc_html( $l ); ?></label>

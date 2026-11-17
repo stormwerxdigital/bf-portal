@@ -89,5 +89,7 @@ check(false !== strpos($src, "add_submenu_page( BFTD_Admin::MENU_SLUG, 'Tutor no
 check(false !== strpos($src, 'BFTD_Access::visible_student_ids( $me )') && false !== strpos($src, 'BFTD_Access::can_staff_view( $f[\'student\'], $me )'), 'and a tutor sees only students they can open');
 check(false !== strpos(file_get_contents(BFTD_PATH . 'includes/class-bftd-students.php'), "page=bftd-tutor-notes&student="), 'reached from each student on the Students list');
 
+check(1 === preg_match('#<fieldset class="bftd-tn-time"><legend>Time of day</legend>\s*<label>from <input type="time" name="tfrom".*?</label>\s*<label>until <input type="time" name="tto"#s', file_get_contents(BFTD_PATH . 'includes/class-bftd-tutor-notes.php')), 'from and until are one filter, kept together (1.195)');
+
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);
