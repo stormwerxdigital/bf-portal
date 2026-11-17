@@ -54,6 +54,8 @@ class BFTD_Tutor_Notes {
 			'tto'     => $time( $q['tto'] ?? '' ),
 			'status'  => array_values( array_intersect( array_map( 'strval', (array) ( $q['status'] ?? array() ) ), array_keys( self::statuses() ) ) ),
 			'tutor'   => absint( $q['tutor'] ?? 0 ),
+			// Only sessions with something not entered (1.199).
+			'gaps'    => empty( $q['gaps'] ) ? 0 : 1,
 		);
 		// A quick range sets the dates; typing a date makes it a custom range.
 		$back = array( '7' => 6, '30' => 29, '90' => 89 );
@@ -79,7 +81,42 @@ class BFTD_Tutor_Notes {
 		if ( $f['tto'] && ( '' === $s['time'] || $s['time'] > $f['tto'] ) ) return false;
 		if ( $f['status'] && ! in_array( $s['status'], $f['status'], true ) ) return false;
 		if ( $f['tutor'] && (int) $s['tutor'] !== $f['tutor'] ) return false;
+		if ( ! empty( $f['gaps'] ) && empty( $s['missing'] ) ) return false;
 		return true;
+	}
+
+	/**
+	 * What this report tracks that was not entered for a session, so the gap
+	 * is seen rather than the box quietly left out (Karl, 1.199).
+	 *
+	 * Every session needs a date, a time, a tutor and what happened. One that
+	 * went ahead (attended, or a late start) needs its activities, the
+	 * tutor's notes, what was read and the matrices; a late start, why. A
+	 * missed or rescheduled one needs who cancelled it and why, and is not
+	 * asked for activities or reading, because there were none.
+	 *
+	 * @return array key => what is missing, in words
+	 */
+	public static function missing( $e ) {
+		$out = array();
+		if ( '' === $e['date'] ) $out['date'] = 'No date';
+		if ( '' === $e['time'] ) $out['time'] = 'No time';
+		if ( ! $e['tutor'] ) $out['tutor'] = 'No tutor';
+		if ( ! isset( self::statuses()[ $e['status'] ] ) ) $out['status'] = 'What happened was not recorded';
+		if ( in_array( $e['status'], array( 'held', 'late' ), true ) ) {
+			$noted = '' !== $e['notes'];
+			foreach ( $e['activities'] as $a ) if ( '' !== $a['note'] ) $noted = true;
+			if ( ! $e['activities'] ) $out['activities'] = 'No activities';
+			if ( ! $noted ) $out['notes'] = 'No tutor notes';
+			if ( ! $e['texts'] ) $out['texts'] = 'No stories or texts read';
+			if ( ! $e['matrices'] ) $out['matrices'] = 'No morphology matrices';
+		}
+		if ( 'late' === $e['status'] && '' === $e['why'] ) $out['why'] = 'No reason for the late start';
+		if ( in_array( $e['status'], array( 'missed', 'rescheduled' ), true ) ) {
+			if ( '' === $e['missed_by'] ) $out['missed_by'] = 'Who cancelled was not recorded';
+			if ( '' === $e['missed_why'] ) $out['missed_why'] = 'No reason given';
+		}
+		return $out;
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -118,7 +155,7 @@ class BFTD_Tutor_Notes {
 		}
 		$by = (int) $get( 'delivered_by' );
 		if ( ! $by ) $by = (int) get_post_field( 'post_author', $session_id );
-		return array(
+		$e = array(
 			'id'        => (int) $session_id,
 			'number'    => 'publish' === get_post_status( $session_id ) ? (int) BFTD_CPT::lesson_number( $session_id ) : 0,
 			'draft'     => 'publish' !== get_post_status( $session_id ),
@@ -136,6 +173,8 @@ class BFTD_Tutor_Notes {
 			'texts'     => $texts,
 			'matrices'  => $matrices,
 		);
+		$e['missing'] = self::missing( $e );
+		return $e;
 	}
 
 	/** Every session of a student that passes the filters, newest first. */
@@ -207,6 +246,7 @@ class BFTD_Tutor_Notes {
 								<option value="<?php echo (int) $u->ID; ?>"<?php selected( $f['tutor'], (int) $u->ID ); ?>><?php echo esc_html( $u->display_name ); ?></option>
 							<?php endforeach; ?>
 						</select></label>
+					<label class="bftd-tn-chip"><input type="checkbox" name="gaps" value="1"<?php checked( $f['gaps'] ); ?>> Only sessions with something not entered</label>
 					<p><button class="button button-primary">Show</button>
 						<a class="button-link" href="<?php echo esc_url( self::url( $sid ) ); ?>">Clear</a></p>
 				<?php endif; ?>
@@ -219,10 +259,14 @@ class BFTD_Tutor_Notes {
 			}
 			$list     = self::entries( $sid, $f );
 			$say      = count( $list ) . ' ' . ( 1 === count( $list ) ? 'session' : 'sessions' );
-			$filtered = 'all' !== $f['range'] || $f['days'] || $f['tfrom'] || $f['tto'] || $f['status'] || $f['tutor'];
+			$filtered = 'all' !== $f['range'] || $f['days'] || $f['tfrom'] || $f['tto'] || $f['status'] || $f['tutor'] || $f['gaps'];
+			$gaps     = count( array_filter( $list, function ( $e ) { return ! empty( $e['missing'] ); } ) );
 			?>
 			<p class="bftd-tn-count"><strong><?php echo esc_html( $say ); ?></strong><?php echo esc_html( $filtered ? ' match these filters.' : ', all time.' ); ?>
 				<a href="<?php echo esc_url( (string) get_edit_post_link( $sid ) ); ?>">Open <?php echo esc_html( $students[ $sid ] ); ?></a></p>
+			<?php if ( $gaps ) : ?>
+				<p class="bftd-tn-gapsum"><span class="bftd-tn-flag">Not entered</span> <?php echo esc_html( $gaps . ' of these ' . count( $list ) . ' ' . ( 1 === count( $list ) ? 'session has' : 'sessions have' ) . ' something not entered.' ); ?></p>
+			<?php endif; ?>
 
 			<?php if ( ! $list ) : ?>
 				<p class="bftd-tn-empty"><?php echo esc_html( $filtered
@@ -234,28 +278,42 @@ class BFTD_Tutor_Notes {
 		<?php
 	}
 
-	/** One session, in the report's boxes. */
+	/**
+	 * One session, in the report's boxes. Anything tracked here that was not
+	 * entered is flagged where it would be, "Not entered", rather than its
+	 * box being left out (Karl, 1.199).
+	 */
 	public static function card( $e ) {
 		$st    = self::statuses();
+		$miss  = $e['missing'] ?? array();
 		$who   = $e['tutor'] ? get_userdata( $e['tutor'] ) : null;
+		$went  = in_array( $e['status'], array( 'held', 'late' ), true );
 		$head  = array();
-		$head[] = $e['date'] ? BFTD_Time::day( $e['date'], 'D j M Y' ) : 'No date';
+		$head[] = $e['date'] ? BFTD_Time::day( $e['date'], 'D j M Y' ) : '';
 		if ( $e['time'] ) $head[] = BFTD_Schedule::pretty_time( $e['time'] );
 		if ( $who ) $head[] = $who->display_name;
+		$gap = function ( $key ) use ( $miss ) {
+			if ( isset( $miss[ $key ] ) ) echo '<div class="bftd-tn-missing"><span class="bftd-tn-flag">Not entered</span> ' . esc_html( $miss[ $key ] ) . '</div>';
+		};
 		?>
-		<section class="bftd-tn-card" id="session-<?php echo (int) $e['id']; ?>">
+		<section class="bftd-tn-card<?php echo $miss ? ' has-gaps' : ''; ?>" id="session-<?php echo (int) $e['id']; ?>">
 			<header class="bftd-tn-head">
 				<h2><?php echo esc_html( $e['number'] ? 'Session ' . $e['number'] : ( $e['draft'] ? 'Session (draft)' : 'Session' ) ); ?></h2>
-				<span><?php echo esc_html( implode( ' · ', $head ) ); ?></span>
+				<span><?php echo esc_html( implode( ' · ', array_filter( $head ) ) ); ?></span>
 				<?php if ( isset( $st[ $e['status'] ] ) ) : ?><span class="bftd-tn-pill is-<?php echo esc_attr( $e['status'] ); ?>"><?php echo esc_html( $st[ $e['status'] ] ); ?></span><?php endif; ?>
+				<?php foreach ( array( 'date', 'time', 'tutor' ) as $k ) : if ( isset( $miss[ $k ] ) ) : ?>
+					<span class="bftd-tn-flag"><?php echo esc_html( $miss[ $k ] ); ?></span>
+				<?php endif; endforeach; ?>
 				<a href="<?php echo esc_url( (string) get_edit_post_link( $e['id'] ) ); ?>">Open the session</a>
 			</header>
 			<div class="bftd-tn-body">
-				<?php if ( $e['activities'] ) : ?>
+				<?php if ( $e['activities'] || $went ) : ?>
 					<h3>Activities</h3>
-					<div class="bftd-tn-tiles">
-						<?php foreach ( $e['activities'] as $a ) : ?><span class="bftd-tn-tile"><?php echo esc_html( $a['name'] ); ?></span><?php endforeach; ?>
-					</div>
+					<?php if ( $e['activities'] ) : ?>
+						<div class="bftd-tn-tiles">
+							<?php foreach ( $e['activities'] as $a ) : ?><span class="bftd-tn-tile"><?php echo esc_html( $a['name'] ); ?></span><?php endforeach; ?>
+						</div>
+					<?php endif; $gap( 'activities' ); ?>
 				<?php endif; ?>
 
 				<?php
@@ -263,39 +321,48 @@ class BFTD_Tutor_Notes {
 				if ( '' !== $e['notes'] ) $notes[] = array( '', $e['notes'] );
 				foreach ( $e['activities'] as $a ) if ( '' !== $a['note'] ) $notes[] = array( $a['name'], $a['note'] );
 				?>
-				<?php if ( $notes ) : ?>
+				<?php if ( $notes || isset( $miss['notes'] ) ) : ?>
 					<h3>Tutor notes</h3>
 					<?php foreach ( $notes as $n ) : ?>
 						<div class="bftd-tn-note"><?php if ( '' !== $n[0] ) echo '<strong>' . esc_html( $n[0] ) . '</strong>'; ?>
 							<p><?php echo nl2br( esc_html( $n[1] ) ); ?></p></div>
-					<?php endforeach; ?>
+					<?php endforeach; $gap( 'notes' ); ?>
 				<?php endif; ?>
 
 				<h3>Attendance</h3>
-				<div class="bftd-tn-att">
-					<span class="bftd-tn-pill is-<?php echo esc_attr( $e['status'] ); ?>"><?php echo esc_html( $st[ $e['status'] ] ?? 'Not recorded' ); ?></span>
-					<?php if ( '' !== $e['why'] ) echo '<span>' . esc_html( $e['why'] ) . '</span>'; ?>
-					<?php if ( '' !== $e['missed_by'] ) echo '<span>Cancelled by ' . esc_html( $e['missed_by'] ) . '</span>'; ?>
-					<?php if ( '' !== $e['missed_why'] ) echo '<span>' . esc_html( $e['missed_why'] ) . '</span>'; ?>
-					<?php if ( 'date' === $e['madeup'] && $e['madeup_on'] ) echo '<span>Made up on ' . esc_html( BFTD_Time::day( $e['madeup_on'], 'j M Y' ) ) . '</span>'; ?>
-					<?php if ( 'tba' === $e['madeup'] ) echo '<span>Made up: to be arranged</span>'; ?>
-					<?php if ( 'extended' === $e['madeup'] ) echo '<span>Made up by extending sessions</span>'; ?>
-				</div>
-
-				<?php if ( $e['texts'] ) : ?>
-					<h3>What we read</h3>
-					<div class="bftd-tn-tiles">
-						<?php foreach ( $e['texts'] as $t ) : ?>
-							<span class="bftd-tn-tile"><strong><?php echo esc_html( $t['title'] ); ?></strong><?php if ( '' !== $t['level'] ) echo '<em>' . esc_html( $t['level'] ) . '</em>'; ?></span>
-						<?php endforeach; ?>
+				<?php if ( isset( $miss['status'] ) ) : $gap( 'status' ); else : ?>
+					<div class="bftd-tn-att">
+						<span class="bftd-tn-pill is-<?php echo esc_attr( $e['status'] ); ?>"><?php echo esc_html( $st[ $e['status'] ] ); ?></span>
+						<?php if ( '' !== $e['why'] ) echo '<span>' . esc_html( $e['why'] ) . '</span>'; ?>
+						<?php if ( '' !== $e['missed_by'] ) echo '<span>Cancelled by ' . esc_html( $e['missed_by'] ) . '</span>'; ?>
+						<?php if ( '' !== $e['missed_why'] ) echo '<span>' . esc_html( $e['missed_why'] ) . '</span>'; ?>
+						<?php if ( 'date' === $e['madeup'] && $e['madeup_on'] ) echo '<span>Made up on ' . esc_html( BFTD_Time::day( $e['madeup_on'], 'j M Y' ) ) . '</span>'; ?>
+						<?php if ( 'tba' === $e['madeup'] ) echo '<span>Made up: to be arranged</span>'; ?>
+						<?php if ( 'extended' === $e['madeup'] ) echo '<span>Made up by extending sessions</span>'; ?>
+						<?php foreach ( array( 'why', 'missed_by', 'missed_why' ) as $k ) : if ( isset( $miss[ $k ] ) ) : ?>
+							<span class="bftd-tn-flag">Not entered: <?php echo esc_html( lcfirst( $miss[ $k ] ) ); ?></span>
+						<?php endif; endforeach; ?>
 					</div>
 				<?php endif; ?>
 
-				<?php if ( $e['matrices'] ) : ?>
+				<?php if ( $e['texts'] || $went ) : ?>
+					<h3>What we read</h3>
+					<?php if ( $e['texts'] ) : ?>
+						<div class="bftd-tn-tiles">
+							<?php foreach ( $e['texts'] as $t ) : ?>
+								<span class="bftd-tn-tile"><strong><?php echo esc_html( $t['title'] ); ?></strong><?php if ( '' !== $t['level'] ) echo '<em>' . esc_html( $t['level'] ) . '</em>'; ?></span>
+							<?php endforeach; ?>
+						</div>
+					<?php endif; $gap( 'texts' ); ?>
+				<?php endif; ?>
+
+				<?php if ( $e['matrices'] || $went ) : ?>
 					<h3>Morphology matrices studied</h3>
-					<div class="bftd-tn-tiles">
-						<?php foreach ( $e['matrices'] as $m ) : ?><span class="bftd-tn-tile"><?php echo esc_html( $m ); ?></span><?php endforeach; ?>
-					</div>
+					<?php if ( $e['matrices'] ) : ?>
+						<div class="bftd-tn-tiles">
+							<?php foreach ( $e['matrices'] as $m ) : ?><span class="bftd-tn-tile"><?php echo esc_html( $m ); ?></span><?php endforeach; ?>
+						</div>
+					<?php endif; $gap( 'matrices' ); ?>
 				<?php endif; ?>
 			</div>
 		</section>

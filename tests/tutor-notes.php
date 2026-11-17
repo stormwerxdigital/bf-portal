@@ -83,6 +83,26 @@ check(false !== strpos($html, 'Session 15') && false !== strpos($html, 'Laurel S
 ob_start(); $T::card($all[0]); $miss = ob_get_clean();
 check(false !== strpos($miss, 'Cancelled by Nadine Encinas') && false !== strpos($miss, 'Made up on') && false === strpos($miss, '<h3>Activities</h3>'), 'a missed session shows its attendance, and no empty boxes');
 
+/* ---- what was not entered (1.199) ---- */
+$byId = array(); foreach ($all as $x) $byId[$x['id']] = $x;
+check(array() === $byId[101]['missing'], 'a session with everything entered flags nothing');
+check(array('activities', 'notes', 'texts', 'matrices') === array_keys($byId[102]['missing']), 'a late start with nothing written up flags its activities, notes, texts read and matrices, got ' . json_encode(array_keys($byId[102]['missing'])));
+check('No stories or texts read' === $byId[102]['missing']['texts'], 'in words: no stories or texts read');
+check(array() === $byId[103]['missing'], 'a missed session is not asked for activities or reading, and has who cancelled and why');
+$bare = array('date' => '', 'time' => '', 'tutor' => 0, 'status' => '', 'why' => '', 'missed_by' => '', 'missed_why' => '', 'activities' => array(), 'notes' => '', 'texts' => array(), 'matrices' => array());
+check(array('date', 'time', 'tutor', 'status') === array_keys($T::missing($bare)), 'every session needs a date, a time, a tutor and what happened');
+check(array('why') === array_keys(array_intersect_key($T::missing(array_merge($bare, array('status' => 'late'))), array('why' => 1))), 'a late start needs its reason');
+check(isset($T::missing(array_merge($bare, array('status' => 'missed')))['missed_by'], $T::missing(array_merge($bare, array('status' => 'rescheduled')))['missed_why']), 'a missed or rescheduled one needs who cancelled and why');
+$onlyAct = array_merge($bare, array('status' => 'held', 'activities' => array(array('name' => 'X', 'note' => 'Wrote this'))));
+check(!isset($T::missing($onlyAct)['notes']), 'a note written on an activity counts as tutor notes');
+ob_start(); $T::card($byId[102]); $g = ob_get_clean();
+check(4 === substr_count($g, 'class="bftd-tn-missing"') && false !== strpos($g, 'Not entered</span> No stories or texts read') && false !== strpos($g, 'Not entered</span> No morphology matrices'), 'the card shows each gap where its box would be');
+$o = array_map(function ($h) use ($g) { return strpos($g, '<h3>' . $h . '</h3>'); }, array('Activities', 'Tutor notes', 'Attendance', 'What we read', 'Morphology matrices studied'));
+check(!in_array(false, $o, true) && $o === (function ($x) { sort($x); return $x; })($o), 'in the same order as the boxes');
+ob_start(); $T::card(array_merge($byId[102], array('missing' => $T::missing(array_merge($byId[102], array('date' => '', 'status' => '')))), array('date' => '', 'status' => ''))); $g2 = ob_get_clean();
+check(false !== strpos($g2, '<span class="bftd-tn-flag">No date</span>') && false !== strpos($g2, 'Not entered</span> What happened was not recorded'), 'a missing date is flagged in the band, and what happened in Attendance');
+check(array(102) === array_column($T::entries(40, $T::filters(array('gaps' => '1'), '2026-11-16')), 'id'), 'and the report can show only sessions with something not entered');
+
 /* ---- staff only ---- */
 $src = file_get_contents(BFTD_PATH . 'includes/class-bftd-tutor-notes.php');
 check(false !== strpos($src, "add_submenu_page( BFTD_Admin::MENU_SLUG, 'Tutor notes', 'Tutor notes', BFTD_Roles::STAFF_CAP,"), 'a staff screen: families cannot open it');

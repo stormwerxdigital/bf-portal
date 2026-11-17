@@ -1606,3 +1606,8 @@ html.mce-fullscreen div.mce-fullscreen{left:0 !important;top:0 !important;right:
 .bftd-tn-pill.is-missed{background:#fbe9e7;color:#8a1f1f;border-color:#efb7b0}
 .bftd-tn-pill.is-rescheduled,.bftd-tn-pill.is-pending{background:#eceef0;color:#3c434a;border-color:#c3c4c7}
 .bftd-tn-head .bftd-tn-pill{border-color:rgba(255,255,255,.6)}
+/* Something tracked here that was not entered (1.199). Amber, and the words
+   say it, so it is not colour alone. */
+.bftd-tn-flag{display:inline-block;padding:1px 8px;border-radius:9px;font:600 12px/1.6 var(--bftd-b);background:#fff4e0;color:#6e3d00;border:1px solid #f0cf91}
+.bftd-tn-missing{padding:10px 12px;border:1px dashed #e0b25c;border-radius:7px;background:#fffaf0;font-size:13px;color:#6e3d00}
+.bftd-tn-gapsum{max-width:1100px}
