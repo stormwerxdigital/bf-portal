@@ -106,27 +106,77 @@ class BFTD_Calendars {
 	}
 
 	/**
-	 * A suggested tutor for each calendar not linked yet: the staff account
-	 * here with the email of somebody GoHighLevel has on that calendar. Only
-	 * a suggestion; nothing is linked until it is saved.
+	 * A suggested tutor for each calendar not linked yet. Only a suggestion;
+	 * nothing is linked until it is saved.
+	 *
+	 * The tutor is the staff account here that is somebody GoHighLevel has on
+	 * the calendar: the same email, or failing that the same name (1.188:
+	 * GoHighLevel has the team at bftutoring.ca, the portal at
+	 * bftutoring.com). A tutor on several calendars is suggested for the one
+	 * named after them ("Reading Specialist - Laurel", and "Candace" for
+	 * Candice), and for none when no name says which.
 	 *
 	 * @param array $read  as read() returns
 	 * @param array $staff email => portal user id, staff accounts only
+	 * @param array $names portal user id => display name; staff_names() when null
 	 * @return array calendar id => user id
 	 */
-	public static function suggest( $read, $staff ) {
-		$out   = array();
-		$taken = array_flip( self::links() );
+	public static function suggest( $read, $staff, $names = null ) {
+		$names  = null === $names ? self::staff_names() : $names;
+		$byname = array();
+		foreach ( $names as $uid => $n ) {
+			$k = BFTD_GHL::name_key( $n );
+			if ( '' !== $k ) $byname[ $k ] = (int) $uid;
+		}
+		$links = self::links();
+		$taken = array_flip( $links );
+
+		$cands = array();   // user id => calendar ids
 		foreach ( $read['calendars'] as $cid => $cal ) {
+			if ( isset( $links[ $cid ] ) ) continue;
 			foreach ( $cal['members'] as $gid ) {
 				$email = $read['users'][ $gid ]['email'] ?? '';
-				if ( '' === $email || ! isset( $staff[ $email ] ) ) continue;
-				$uid = (int) $staff[ $email ];
-				if ( isset( $taken[ $uid ] ) || in_array( $uid, $out, true ) ) continue;
-				$out[ $cid ] = $uid;
-				break;
+				$gname = BFTD_GHL::name_key( $read['users'][ $gid ]['name'] ?? '' );
+				$uid   = 0;
+				if ( '' !== $email && isset( $staff[ $email ] ) ) $uid = (int) $staff[ $email ];
+				elseif ( '' !== $gname && isset( $byname[ $gname ] ) ) $uid = $byname[ $gname ];
+				if ( ! $uid || isset( $taken[ $uid ] ) ) continue;
+				$cands[ $uid ][] = $cid;
 			}
 		}
+
+		$out = array();
+		foreach ( $cands as $uid => $cids ) {
+			$cids = array_values( array_unique( $cids ) );
+			if ( count( $cids ) > 1 ) {
+				$first = explode( ' ', BFTD_GHL::name_key( $names[ $uid ] ?? '' ) )[0];
+				$cids  = array_values( array_filter( $cids, function ( $cid ) use ( $read, $first ) {
+					return self::names_person( $read['calendars'][ $cid ]['name'], $first );
+				} ) );
+			}
+			if ( 1 === count( $cids ) && ! isset( $out[ $cids[0] ] ) ) $out[ $cids[0] ] = (int) $uid;
+		}
+		return $out;
+	}
+
+	/**
+	 * Does a calendar's name have this first name in it? Exactly, or with
+	 * one letter different for a name of four letters or more ("Candace",
+	 * "Candice"), where one letter is not most of the name.
+	 */
+	public static function names_person( $calendar, $first ) {
+		if ( '' === $first ) return false;
+		foreach ( explode( ' ', BFTD_GHL::name_key( $calendar ) ) as $w ) {
+			if ( $w === $first ) return true;
+			if ( strlen( $first ) >= 4 && strlen( $w ) === strlen( $first ) && $w[0] === $first[0] && 1 === levenshtein( $w, $first ) ) return true;
+		}
+		return false;
+	}
+
+	/** Staff accounts here: user id => display name. */
+	public static function staff_names() {
+		$out = array();
+		foreach ( BFTD_Roles::staff_users() as $u ) $out[ (int) $u->ID ] = (string) $u->display_name;
 		return $out;
 	}
 
@@ -367,8 +417,8 @@ class BFTD_Calendars {
 		$ours    = self::offset();
 		?>
 		<p class="bftd-lede">Each tutor books into their own GoHighLevel calendar, and GoHighLevel sends the reminders. Link each tutor's
-			calendar here. A suggestion comes from the person GoHighLevel has on the calendar, matched by email; nothing is linked until
-			you save.</p>
+			calendar here. A suggestion comes from the person GoHighLevel has on the calendar, matched by email or by name, and for
+			someone on several calendars, the one named after them; nothing is linked until you save.</p>
 		<p><?php echo esc_html( count( $read['calendars'] ) ); ?> calendars in GoHighLevel, <?php echo esc_html( count( array_intersect_key( $links, $read['calendars'] ) ) ); ?> linked to a tutor.
 			<button class="button-link" name="bftd_cal_refresh" value="1">Read GoHighLevel again</button></p>
 

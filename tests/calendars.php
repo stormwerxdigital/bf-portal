@@ -42,6 +42,7 @@ if (!function_exists('update_option')) { function update_option($k, $v, $a = nul
 function set_transient($k, $v, $t = 0) { $GLOBALS['T'][$k] = $v; return true; }
 function get_transient($k) { return $GLOBALS['T'][$k] ?? false; }
 function add_action(...$a) {}
+function remove_accents($s) { return $s; }
 function add_settings_error($s, $c, $m, $t = 'error') { $GLOBALS['NOTES'][] = $t . ': ' . $m; }
 if (!function_exists('sanitize_text_field')) { function sanitize_text_field($v) { return trim(strip_tags((string) $v)); } }
 if (!function_exists('wp_unslash')) { function wp_unslash($v) { return $v; } }
@@ -71,9 +72,30 @@ check($n === count($GLOBALS['CALLS']), 'and kept ten minutes rather than read on
 /* ---- suggestions ---- */
 $s = BFTD_Calendars::suggest($r, BFTD_Calendars::staff_by_email());
 check(5 === ($s['CAL-L'] ?? 0) && 6 === ($s['CAL-C'] ?? 0), 'each tutor calendar is suggested for the staff account with the same email, whatever its capitals');
-check(!isset($s['CAL-M']), 'a tutor is suggested for one calendar only, the first of theirs');
+check(!isset($s['CAL-M']), 'a tutor on several calendars is suggested for the one named after them, not Meeting');
 check(!isset($s['CAL-X']), 'and a calendar with nobody on it gets no suggestion');
 check(!isset($s['CAL-Z']), 'nor one whose person in GoHighLevel has no staff account here');
+
+/* GoHighLevel has the team at bftutoring.ca, the portal at bftutoring.com (1.188). */
+$ca = $r;
+foreach ($ca['users'] as $gid => $u) $ca['users'][$gid]['email'] = str_replace('example.test', 'example.ca', $u['email']);
+$ca['calendars']['CAL-C']['name'] = 'Reading Specialist - Candace';
+$s2 = BFTD_Calendars::suggest($ca, BFTD_Calendars::staff_by_email());
+check(5 === ($s2['CAL-L'] ?? 0) && 6 === ($s2['CAL-C'] ?? 0) && !isset($s2['CAL-M']) && !isset($s2['CAL-Z']), 'with no email in common, the same name still suggests the tutor, for their own calendar, got ' . json_encode($s2));
+$ca['calendars']['CAL-L']['name'] = 'Reading Specialist';
+$s3 = BFTD_Calendars::suggest($ca, BFTD_Calendars::staff_by_email());
+check(!isset($s3['CAL-L']) && !isset($s3['CAL-M']) && 6 === ($s3['CAL-C'] ?? 0), 'and someone on several calendars none of which is named after them gets no suggestion, rather than a guess');
+check(BFTD_Calendars::names_person('Reading Specialist - Candace', 'candice') && !BFTD_Calendars::names_person('Reading Specialist - Candace', 'laurel'), 'a calendar is named after someone allowing one letter\'s difference');
+check(BFTD_Calendars::names_person('Reading Specialist - Jo', 'jo') && !BFTD_Calendars::names_person('Ja Meeting', 'jo'), 'a short name matches exactly, but one letter off is not the same name when the name is two letters');
+$both = $ca; $both['calendars']['CAL-L']['name'] = 'Reading Specialist - Laurel'; $both['calendars']['CAL-M']['name'] = 'Laurel meetings';
+check(!isset(BFTD_Calendars::suggest($both, BFTD_Calendars::staff_by_email())['CAL-L']), 'and when two of their calendars are named after them, neither is guessed');
+$GLOBALS['OPT'][BFTD_Calendars::LINKS] = array('CAL-C' => 6);
+$s4 = BFTD_Calendars::suggest($r, BFTD_Calendars::staff_by_email());
+check(!isset($s4['CAL-C']) && 5 === ($s4['CAL-L'] ?? 0), 'a calendar or tutor already linked is not suggested again');
+$GLOBALS['OPT'][BFTD_Calendars::LINKS] = array('CAL-L' => 6);
+$s5 = BFTD_Calendars::suggest($r, BFTD_Calendars::staff_by_email());
+check(!isset($s5['CAL-L']) && 5 === ($s5['CAL-M'] ?? 0), 'a calendar linked to someone else is never suggested for another tutor, got ' . json_encode($s5));
+unset($GLOBALS['OPT'][BFTD_Calendars::LINKS]);
 
 /* ---- linking ---- */
 list($changed, $refused) = BFTD_Calendars::save_links(array('CAL-L' => 5, 'CAL-C' => 6, 'CAL-M' => 5, 'NOPE' => 6, 'CAL-X' => 99));
