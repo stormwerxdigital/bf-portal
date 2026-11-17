@@ -189,6 +189,8 @@ check(false !== strpos($sc, "do_action( 'bftd_schedule_changed', \$student_id );
 $mb = file_get_contents(BFTD_PATH . 'includes/class-bftd-metaboxes.php');
 check(false !== strpos($mb, "BFTD_Bookings::save_prefs( \$post_id, wp_unslash( \$_POST['bftd_booking'] ) )") && false !== strpos($mb, "'bftd_booking' );") && false !== strpos($mb, 'BFTD_Bookings::render_box( $post );'), 'the student\'s form saves who is reminded, in the schedule box');
 $bk = file_get_contents(BFTD_PATH . 'includes/class-bftd-bookings.php');
+check(false !== strpos($bk, "add_action( 'save_post', array( __CLASS__, 'on_save' ), 100, 2 );") && false === strpos($bk, "add_action( 'save_post_'"), 'it runs after the student\'s form is saved, so the choice just made is the one sent (save_post_bftd_student runs before it)');
+check(false !== strpos($bk, "if ( ! \$post || BFTD_CPT::STUDENT !== \$post->post_type ) return;"), 'and only for students');
 check(0 === preg_match("/request\\( 'DELETE'/", $bk), 'and nothing is deleted from GoHighLevel: a session is cancelled, so its history stays');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";

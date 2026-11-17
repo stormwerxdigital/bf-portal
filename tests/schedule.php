@@ -101,5 +101,18 @@ $after = BFTD_Schedule::bank($student)['used'];
 if ($after !== $before) { echo "FAIL: cancelling a lesson changed the used count\n"; $fail++; }
 else echo "Cancelling does not consume a lesson: correct\n";
 
+/* A session already rescheduled can be cancelled, or moved again (1.190). */
+BFTD_Schedule::set_exception($student, '2026-01-19 16:00', 'move', '2026-01-20', '17:00', 'Dentist');
+$moved = array_values(array_filter(BFTD_Schedule::occurrences($student, '2026-01-19', '2026-01-21'), function ($o) { return '2026-01-20 17:00' === $o['key']; }));
+if (1 !== count($moved) || 'booked' !== $moved[0]['status']) { echo "FAIL: the move did not book the new time\n"; $fail++; }
+BFTD_Schedule::set_exception($student, '2026-01-20 17:00', 'move', '2026-01-22', '15:00', 'Dentist again');
+$keys = array(); foreach (BFTD_Schedule::occurrences($student, '2026-01-19', '2026-01-23') as $o) $keys[$o['key']] = $o['status'];
+if (isset($keys['2026-01-20 17:00']) || 'booked' !== ($keys['2026-01-22 15:00'] ?? '')) { echo "FAIL: moving a rescheduled session again left it where it was: " . json_encode($keys) . "\n"; $fail++; }
+else echo "Moving a rescheduled session again moves it: correct\n";
+BFTD_Schedule::set_exception($student, '2026-01-22 15:00', 'cancel', '', '', 'Ill');
+$keys = array(); foreach (BFTD_Schedule::occurrences($student, '2026-01-19', '2026-01-23') as $o) $keys[$o['key']] = $o['status'];
+if (isset($keys['2026-01-22 15:00']) || 'cancelled' !== ($keys['2026-01-19 16:00'] ?? '')) { echo "FAIL: cancelling a rescheduled session left it booked: " . json_encode($keys) . "\n"; $fail++; }
+else echo "Cancelling a rescheduled session cancels it: correct\n";
+
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

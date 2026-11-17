@@ -150,6 +150,16 @@ class BFTD_Schedule {
 	public static function set_exception( $student_id, $key, $action, $to_date = '', $to_time = '', $reason = '' ) {
 		$all = self::exceptions( $student_id );
 
+		// A session already rescheduled is listed under its new date, but
+		// what decides it is the change filed under its original date. So a
+		// cancel or a second move of it changes that one (1.190: before, it
+		// was filed under the new date, which nothing reads, and the session
+		// stayed booked).
+		if ( 'clear' !== $action && ! isset( $all[ $key ] ) ) {
+			$here = self::occurrence_at( $student_id, $key );
+			if ( $here && ! empty( $here['from_key'] ) ) $key = $here['from_key'];
+		}
+
 		// A move is a booking like any other, so it meets the same two rules:
 		// the day has a ceiling, and the tutor cannot be in two places at
 		// once. The clash is checked first because it is the absolute one.

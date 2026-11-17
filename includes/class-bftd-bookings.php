@@ -44,7 +44,10 @@ class BFTD_Bookings {
 	const VERSION = '2021-04-15';
 
 	public static function init() {
-		add_action( 'save_post_' . BFTD_CPT::STUDENT, array( __CLASS__, 'on_save' ), 100, 2 );
+		// save_post, not save_post_bftd_student: WordPress runs the type's own
+		// hook first, before the form is saved on save_post, so the sync saw
+		// the choice from the save before (1.190, found in the live test).
+		add_action( 'save_post', array( __CLASS__, 'on_save' ), 100, 2 );
 		add_action( 'bftd_schedule_changed', array( __CLASS__, 'sync_student' ) );
 		add_action( BFTD_GHL::CRON, array( __CLASS__, 'sync_all' ) );
 		add_action( 'wp_trash_post', array( __CLASS__, 'on_trash' ) );
@@ -328,6 +331,7 @@ class BFTD_Bookings {
 	}
 
 	public static function on_save( $sid, $post ) {
+		if ( ! $post || BFTD_CPT::STUDENT !== $post->post_type ) return;
 		if ( wp_is_post_revision( $sid ) || wp_is_post_autosave( $sid ) || 'auto-draft' === $post->post_status ) return;
 		self::sync_student( $sid );
 	}
@@ -396,7 +400,7 @@ class BFTD_Bookings {
 		<?php if ( is_array( $state ) && ! empty( $state['when'] ) ) : ?>
 			<p class="<?php echo '' !== $state['error'] ? 'bftd-cal-warn' : 'description'; ?>"><?php
 				echo esc_html( '' !== $state['error'] ? $state['error'] : 'In step with GoHighLevel.' );
-				echo esc_html( ' Last sent ' . BFTD_Time::format( 'j M Y, g:i a', (int) $state['when'] ) . '.' );
+				echo esc_html( ' Checked ' . BFTD_Time::format( 'j M Y, g:i a', (int) $state['when'] ) . '.' );
 			?></p>
 		<?php endif; ?>
 		<?php
