@@ -52,6 +52,7 @@ class BFTD_Settings {
 			'crm'     => 'CRM connection',
 			'link'    => 'Link students',
 			'family'  => 'Caregivers and tutors',
+			'calendars' => 'Calendars',
 			'people'  => 'People and access',
 			'perms'   => 'Roles and permissions',
 		);
@@ -235,6 +236,7 @@ class BFTD_Settings {
 			case 'crm': self::save_crm(); break;
 			case 'link': if ( ! self::save_links() ) return; break;
 			case 'family': if ( ! self::save_family() ) return; break;
+			case 'calendars': if ( ! BFTD_Calendars::save() ) return; break;
 			case 'portal': self::save_portal(); break;
 			case 'login':  self::save_login();  break;
 			case 'banner': self::save_banner(); break;
@@ -580,6 +582,7 @@ class BFTD_Settings {
 					case 'crm': self::tab_crm(); break;
 					case 'link': self::tab_link(); break;
 					case 'family': self::tab_family(); break;
+					case 'calendars': BFTD_Calendars::render_tab(); break;
 					case 'portal': self::tab_portal(); break;
 					case 'login':  self::tab_login();  break;
 					case 'banner': self::tab_banner(); break;

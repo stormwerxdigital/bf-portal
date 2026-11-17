@@ -1389,6 +1389,8 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
 .bftd-stu-crm.is-linked{background:var(--bftd-stone-pale);border-color:var(--bftd-stone-line);color:var(--bftd-stone-deep)}
 .bftd-stu-crm:hover,.bftd-stu-crm:focus{text-decoration:underline}
 .bftd-link-table tr:target td{background:#fff6d6}
+/* GoHighLevel's time zone not giving our time (1.187). */
+.bftd-cal-warn{padding:8px 12px;border-left:4px solid #dba617;background:#fcf9e8;max-width:860px}
 /* Each tutor's table scrolls sideways rather than squeezing its columns
    (1.184). Not on a phone, where the rows are already stacked cards. */
 .bftd-stu-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
