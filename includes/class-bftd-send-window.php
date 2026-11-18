@@ -115,6 +115,19 @@ class BFTD_Send_Window {
 		) ) );
 	}
 
+	/** Has everything about this student already gone to GoHighLevel? */
+	public static function in_step( $sid ) {
+		return self::inputs( $sid ) === (string) get_post_meta( $sid, self::SENT_KEY, true );
+	}
+
+	/**
+	 * Say this student's current state has been sent. For a quiet delete
+	 * (1.201), which reaches GoHighLevel itself, so it is not held.
+	 */
+	public static function mark_sent( $sid ) {
+		update_post_meta( $sid, self::SENT_KEY, self::inputs( $sid ) );
+	}
+
 	/** Does GoHighLevel have, or should it have, anything for this student? */
 	public static function in_play( $sid ) {
 		$map = get_post_meta( $sid, BFTD_Bookings::MAP_KEY, true );
@@ -200,7 +213,7 @@ class BFTD_Send_Window {
 		self::save_pending( $p );
 		if ( function_exists( 'wp_next_scheduled' ) && ! wp_next_scheduled( self::EVENT, array( $at ) ) ) wp_schedule_single_event( $at, self::EVENT, array( $at ) );
 		BFTD_Audit::log( 'schedule_queued', array( 'summary' => 'Schedule changes for ' . count( $mine ) . ' ' . ( 1 === count( $mine ) ? 'student' : 'students' )
-			. ' confirmed by ' . self::name( $uid ) . ', to be sent at ' . self::when( $at ) . ', inside the hours families are told.' ) );
+			. ' confirmed by ' . self::name( $uid ) . ', to be sent at ' . self::when( $at, $now ) . ', inside the hours families are told.' ) );
 		return array( 'queued', $at, count( $mine ) );
 	}
 

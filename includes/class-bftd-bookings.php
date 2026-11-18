@@ -191,7 +191,10 @@ class BFTD_Bookings {
 				'title'    => $title,
 				'address'  => $where,
 				'from'     => (string) ( $o['from_key'] ?? '' ),
-				'custom'   => (int) self::prefs( $sid )['custom'],
+				// A one-time session is booked at whatever time was picked,
+				// outside the tutor's GoHighLevel hours too (Karl, 1.201); the
+				// portal still stops it running over another session.
+				'custom'   => ( self::prefs( $sid )['custom'] || ! empty( $o['once'] ) ) ? 1 : 0,
 			);
 		}
 		return $out;
@@ -330,6 +333,37 @@ class BFTD_Bookings {
 		return $state;
 	}
 
+	/**
+	 * Delete one session's appointment in GoHighLevel, now and quietly
+	 * (1.201). Deleted, not cancelled: no status change for a workflow to
+	 * act on, and nothing sent. The appointment is found under the session's
+	 * key, or under the date it was moved from if the move has not been sent.
+	 * Already gone in GoHighLevel counts as done.
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function delete_quietly( $sid, $o ) {
+		$map = get_post_meta( $sid, self::MAP_KEY, true );
+		$map = is_array( $map ) ? $map : array();
+		$at  = '';
+		foreach ( array( (string) $o['key'], (string) ( $o['from_key'] ?? '' ) ) as $k ) {
+			if ( '' !== $k && isset( $map[ $k ] ) ) { $at = $k; break; }
+		}
+		if ( '' === $at ) return true;   // never sent, so nothing there to delete
+
+		$id = (string) ( $map[ $at ]['id'] ?? '' );
+		if ( '' !== $id && BFTD_GHL::configured() ) {
+			list( $code, , $err ) = BFTD_GHL::request( 'DELETE', '/calendars/events/' . rawurlencode( $id ), array(), null, self::VERSION );
+			if ( '' !== $err && 404 !== (int) $code ) {
+				return new WP_Error( 'bftd_ghl_delete', 'GoHighLevel would not delete the appointment, so the session is still booked: ' . $err );
+			}
+		}
+		unset( $map[ $at ] );
+		update_post_meta( $sid, self::MAP_KEY, $map );
+		BFTD_Audit::log( 'crm_booked', array( 'post_id' => $sid, 'student_id' => $sid, 'summary' => 'Sessions in GoHighLevel: 1 deleted, with no notification.' ) );
+		return true;
+	}
+
 	/* ------------------------------------------------------------------ */
 	/* On the student's Sessions and schedule box                          */
 	/* ------------------------------------------------------------------ */
@@ -381,7 +415,8 @@ class BFTD_Bookings {
 				<label><input type="checkbox" name="bftd_booking[custom]" value="1"<?php checked( ! empty( $p['custom'] ) ); ?>>
 					Custom schedule: book outside the tutor's GoHighLevel hours</label>
 				<p class="description">Left unticked, GoHighLevel's availability and booking rules decide, and a time it turns away
-					says so beside the session. Either way a tutor never has two sessions at once, or more than <?php echo (int) BFTD_Schedule::daily_cap(); ?> in a day.</p>
+					says so beside the session. One-time sessions are always booked at the time picked. Either way a tutor never has
+				two sessions at once, or more than <?php echo (int) BFTD_Schedule::daily_cap(); ?> in a day.</p>
 			</div>
 		</div>
 		<?php

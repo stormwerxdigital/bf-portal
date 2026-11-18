@@ -26,6 +26,7 @@ function wp_remote_request($url, $args) {
   if ('POST' === $m && '/calendars/events/appointments' === $path) return array('code' => 201, 'body' => json_encode(array('id' => 'APPT' . $GLOBALS['NEXT']++)));
   if ('PUT' === $m && 0 === strpos($path, '/calendars/events/appointments/')) return $GLOBALS['FAIL_PUT'] ? array('code' => 422, 'body' => json_encode(array('message' => 'slot is not available'))) : array('code' => 200, 'body' => '{}');
   if ('GET' === $m && '/contacts/search/duplicate' === $path) { $id = $GLOBALS['DUP'][$q['email']] ?? ''; return array('code' => 200, 'body' => json_encode($id ? array('contact' => array('id' => $id)) : array('contact' => null))); }
+  if ('DELETE' === $m && 0 === strpos($path, '/calendars/events/')) return !empty($GLOBALS['FAIL_DEL']) ? array('code' => 500, 'body' => json_encode(array('message' => 'try later'))) : (!empty($GLOBALS['GONE']) ? array('code' => 404, 'body' => '{}') : array('code' => 200, 'body' => '{"succeded":true}'));
   if ('POST' === $m && '/contacts/' === $path) return array('code' => 201, 'body' => json_encode(array('contact' => array('id' => 'NEWC'))));
   return array('code' => 404, 'body' => '{}');
 }
@@ -194,6 +195,29 @@ $GLOBALS['FAIL_PUT'] = false;
 $GLOBALS['OCC'] = array(occ($D8, '16:00'));
 run();
 
+/* ---- one-time sessions, and deleting quietly (1.201) ---- */
+$GLOBALS['OCC'] = array(occ($D8, '16:00'), array_merge(occ($D15, '07:30'), array('once' => true)));
+$s = run();
+$cp = calls('POST', '/calendars/events/appointments');
+check(1 === count($cp) && true === $cp[0][2]['ignoreFreeSlotValidation'] && true === $cp[0][2]['ignoreDateRange'], 'a one-time session is booked at the time picked, whatever GoHighLevel\'s hours say');
+$id15 = $GLOBALS['META'][40][BFTD_Bookings::MAP_KEY][$D15 . ' 07:30']['id'];
+$GLOBALS['CALLS'] = array();
+$r = BFTD_Bookings::delete_quietly(40, occ($D15, '07:30'));
+$del = calls('DELETE');
+check(true === $r && 1 === count($del) && '/calendars/events/' . $id15 === $del[0][1] && array() === calls('PUT') && array() === calls('POST'), 'deleting a session deletes its appointment in GoHighLevel, with no status change and nothing sent');
+check(!isset($GLOBALS['META'][40][BFTD_Bookings::MAP_KEY][$D15 . ' 07:30']) && isset($GLOBALS['META'][40][BFTD_Bookings::MAP_KEY][$D8 . ' 16:00']), 'and only that one is let go');
+$GLOBALS['CALLS'] = array();
+check(true === BFTD_Bookings::delete_quietly(40, occ($D9, '16:00')) && array() === $GLOBALS['CALLS'], 'one never sent to GoHighLevel needs nothing asked of it');
+$id8 = $GLOBALS['META'][40][BFTD_Bookings::MAP_KEY][$D8 . ' 16:00']['id'];
+$GLOBALS['FAIL_DEL'] = true; $GLOBALS['CALLS'] = array();
+$r = BFTD_Bookings::delete_quietly(40, occ($D9, '17:00', 'booked', 5, 50, $D8 . ' 16:00'));
+check(is_wp_error($r) && isset($GLOBALS['META'][40][BFTD_Bookings::MAP_KEY][$D8 . ' 16:00']) && '/calendars/events/' . $id8 === calls('DELETE')[0][1], 'a move not yet sent is found under the date it left; and if GoHighLevel will not delete it, it is kept, and says so');
+$GLOBALS['FAIL_DEL'] = false; $GLOBALS['GONE'] = true;
+check(true === BFTD_Bookings::delete_quietly(40, occ($D8, '16:00')) && !isset($GLOBALS['META'][40][BFTD_Bookings::MAP_KEY][$D8 . ' 16:00']), 'one already gone from GoHighLevel counts as deleted');
+$GLOBALS['GONE'] = false;
+$GLOBALS['OCC'] = array(occ($D8, '16:00'));
+run();
+
 /* ---- GoHighLevel refusing ---- */
 $GLOBALS['FAIL_PUT'] = true;
 BFTD_Bookings::save_prefs(40, array('notify' => 8, 'location' => 'Library', 'notes' => ''));
@@ -224,7 +248,7 @@ $sw = file_get_contents(BFTD_PATH . 'includes/class-bftd-send-window.php');
 check(false !== strpos($sw, "add_action( 'save_post', array( __CLASS__, 'on_save' ), 100, 2 );") && false === strpos($sw, "add_action( 'save_post_'"), 'a change is noted after the student\'s form is saved, so the choice just made is the one held (save_post_bftd_student runs before it)');
 check(false !== strpos($sw, "if ( ! \$post || BFTD_CPT::STUDENT !== \$post->post_type ) return;"), 'and only for students');
 check(false === strpos($bk, "add_action("), 'and nothing in the mirror sends by itself any more: only on confirm, in hours (1.200)');
-check(0 === preg_match("/request\\( 'DELETE'/", $bk), 'and nothing is deleted from GoHighLevel: a session is cancelled, so its history stays');
+check(1 === preg_match_all("/request\\( 'DELETE'/", $bk) && false !== strpos($bk, 'public static function delete_quietly('), 'a session is only deleted from GoHighLevel when somebody deletes it; one dropped from the schedule is cancelled, so its history stays (1.201)');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

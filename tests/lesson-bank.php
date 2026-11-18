@@ -85,8 +85,8 @@ $GLOBALS['SESSION_META'] = array(
 );
 
 $b = BFTD_Schedule::bank($s);
-printf("saved purchased 8: purchased %d, used %d, remaining %d, booked %d, over %d\n",
-  $b['purchased'], $b['used'], $b['remaining'], $b['booked'], $b['over']);
+printf("saved purchased 8: purchased %d, used %d, remaining %d, booked %d\n",
+  $b['purchased'], $b['used'], $b['remaining'], $b['booked']);
 check($b['purchased'] === 8, 'the saved figure is what the tiles show by default');
 check($b['used'] === 3, 'used counts the lessons actually recorded');
 check($b['remaining'] === 5, 'remaining is purchased minus used');
@@ -101,11 +101,11 @@ $GLOBALS['SESSION_META'][803]['status'] = 'held';
 
 /* --- the override: a figure typed but not saved --- */
 $b20 = BFTD_Schedule::bank($s, 20);
-printf("typed 20:          purchased %d, remaining %d, over %d\n", $b20['purchased'], $b20['remaining'], $b20['over']);
+printf("typed 20:          purchased %d, remaining %d\n", $b20['purchased'], $b20['remaining']);
 check($b20['purchased'] === 20, 'a typed figure is used instead of the saved one');
 check($b20['remaining'] === 17, 'and remaining follows it immediately');
 check($b20['used'] === $b['used'], 'while used is untouched, because it is a fact about lessons taught');
-check($b20['booked'] > $b['booked'], 'and booked follows it, because the schedule runs as far as the lessons reach');
+check($b20['booked'] === $b['booked'], 'and booked does not move, because sessions are booked whatever has been paid for (1.201)');
 
 /* The saved value must not have been changed by asking. */
 check((int) BFTD_Fields::get($s,'student','lessons_bank') === 8, 'asking about a figure does not save it');
@@ -116,28 +116,32 @@ check(BFTD_Schedule::bank($s, 2)['remaining'] === 0, 'remaining never goes below
 check(BFTD_Schedule::bank($s, -5)['purchased'] === 0, 'a negative figure is read as none');
 check(BFTD_Schedule::bank($s, null)['purchased'] === 8, 'and passing nothing falls back to the saved figure');
 
-/* --- the schedule stops when the lessons run out --- */
-/* This is the whole model: there is no end date on a weekly slot, so what
-   ends it is the bank. A pattern that ran to a horizon would tell a family
-   who bought eight that fifty seven lessons were booked. */
-check($b['booked'] === $b['remaining'], 'a running weekly slot books exactly the lessons left, got ' . $b['booked'] . ' of ' . $b['remaining']);
-check($b['booked'] <= $b['remaining'], 'and can never book more than are paid for');
-check($b['unbooked'] === 0, 'so none are left with nowhere to go');
-check($b['last_date'] !== '', 'and there is a date the bank runs out on');
+/* --- booked whatever has been paid for (Karl, 1.201) --- */
+/* Until 1.201 the pattern stopped where the paid sessions ran out, so a
+   session could not be booked ahead of payment. Now a weekly booking runs on
+   (to its end date, if it has one) and the bank says how far the paid
+   sessions reach, and that some booked ones are past it. */
+check($b['booked'] > $b['remaining'], 'a running weekly booking is not cut off at the sessions paid for, got ' . $b['booked'] . ' booked of ' . $b['remaining'] . ' remaining');
+check($b['unpaid'] === $b['booked'] - $b['remaining'], 'and the ones past what is paid for are counted, so the screen can say so');
+check($b['unbooked'] === 0, 'none paid for are left with nowhere to go');
+$occ = BFTD_Schedule::occurrences($s, BFTD_Time::today());
+$booked = array_values(array_filter($occ, function ($o) { return 'booked' === $o['status']; }));
+check($b['last_date'] === $booked[$b['remaining'] - 1]['date'], 'and the date shown is the last booked session the paid ones cover');
 
-/* Buying more extends the schedule, with nothing else to update. */
+/* Buying more moves that date, and books nothing new. */
 $more = BFTD_Schedule::bank($s, 20);
-check($more['booked'] === 17, 'buying more lessons books more of them, got ' . $more['booked']);
-check($more['last_date'] > $b['last_date'], 'and the run out date moves further away');
+check($more['booked'] === $b['booked'] && $more['last_date'] > $b['last_date'], 'buying more moves how far the paid sessions reach, with the bookings unchanged');
 
-/* Buying fewer shortens it. */
-$fewer = BFTD_Schedule::bank($s, 5);
-check($fewer['booked'] === 2, 'and buying fewer shortens the schedule, got ' . $fewer['booked']);
-
-/* Nothing paid for means nothing booked. Truthful, if stark. */
+/* Nothing paid for still books. */
 $none = BFTD_Schedule::bank($s, 0);
-check($none['booked'] === 0, 'no lessons paid for means no lessons booked');
-check($none['last_date'] === '', 'and no run out date to show');
+check($none['booked'] === $b['booked'] && $none['unpaid'] === $none['booked'], 'with nothing paid for, the sessions stay booked, all of them unpaid');
+check($none['last_date'] === '', 'and no paid-through date to show');
+
+/* A weekly booking can end on a date. */
+$GLOBALS['META'][$s]['_bftd_schedule_rules'][0]['until'] = BFTD_Time::add_days(BFTD_Time::today(), 21);
+$ended = BFTD_Schedule::bank($s);
+check($ended['booked'] >= 3 && $ended['booked'] <= 4, 'a weekly booking stops at its end date, got ' . $ended['booked']);
+$GLOBALS['META'][$s]['_bftd_schedule_rules'][0]['until'] = '';
 
 /* --- paid for, but nowhere to go --- */
 $idle = 11;
@@ -244,8 +248,8 @@ check(BFTD_Schedule::used_count($S) === BFTD_Schedule::taught_count($S) + BFTD_S
 $sched = file_get_contents(BFTD_PATH . 'includes/class-bftd-schedule.php');
 check(0 === preg_match('/count\(\s*self::taught_dates\(/', $sched),
   'nothing counts the date map any more');
-check(2 === preg_match_all('/self::used_count\(/', $sched),
-  'both places that work out the bank ask the same method');
+check(1 === preg_match_all('/self::used_count\(/', $sched),
+  'the bank asks the one method (the second place, the trim at the paid boundary, went in 1.201)');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

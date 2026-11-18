@@ -184,7 +184,7 @@ class BFTD_Calendar_View {
 		if ( ! BFTD_Roles::is_staff( $viewer ) || ! BFTD_GHL::configured() ) wp_send_json_error( array( 'message' => 'Not for this account.' ), 403 );
 		$id   = sanitize_text_field( wp_unslash( $_POST['id'] ?? '' ) );
 		$what = sanitize_key( wp_unslash( $_POST['what'] ?? '' ) );
-		if ( ! preg_match( '/^[A-Za-z0-9_-]+$/', $id ) || ! in_array( $what, array( 'move', 'cancel' ), true ) ) {
+		if ( ! preg_match( '/^[A-Za-z0-9_-]+$/', $id ) || ! in_array( $what, array( 'move', 'cancel', 'delete' ), true ) ) {
 			wp_send_json_error( array( 'message' => 'Nothing to change there.' ), 400 );
 		}
 		$r = self::change_ghl( $id, $what, sanitize_text_field( wp_unslash( $_POST['date'] ?? '' ) ), sanitize_text_field( wp_unslash( $_POST['time'] ?? '' ) ), $viewer );
@@ -207,6 +207,14 @@ class BFTD_Calendar_View {
 			foreach ( is_array( $map ) ? $map : array() as $m ) {
 				if ( ( $m['id'] ?? '' ) === $id ) return new WP_Error( 'bftd_ours', 'That one is on a student\'s schedule: change it there, or as a session here.' );
 			}
+		}
+		if ( 'delete' === $what ) {
+			// Deleted outright, telling nobody (1.201).
+			list( $code, , $err ) = BFTD_GHL::request( 'DELETE', '/calendars/events/' . rawurlencode( $id ), array(), null, BFTD_Bookings::VERSION );
+			if ( '' !== $err && 404 !== (int) $code ) return new WP_Error( 'bftd_ghl', 'GoHighLevel did not delete it: ' . $err );
+			update_option( self::CACHE . 'v', (int) get_option( self::CACHE . 'v', 0 ) + 1, false );
+			BFTD_Audit::log( 'crm_appointment_changed', array( 'summary' => 'GoHighLevel appointment "' . sanitize_text_field( (string) ( $ev['title'] ?? '' ) ) . '" was deleted from the calendar, with nobody told.' ) );
+			return true;
 		}
 		if ( 'cancel' === $what ) {
 			$body = array( 'appointmentStatus' => 'cancelled' );

@@ -229,7 +229,8 @@
 				+ '<label>Reason <input type="text" name="reason" placeholder="For example: family away"></label>'
 				+ '<p class="bftd-calv-said" role="alert"></p>'
 				+ '<p><button type="submit" class="button button-primary">Save changes</button> '
-				+ '<button type="button" class="button bftd-calv-cancel">Cancel this session</button></p></form>';
+				+ '<button type="button" class="button bftd-calv-cancel">Cancel this session</button> '
+				+ '<button type="button" class="button-link bftd-calv-delete">Delete, telling nobody</button></p></form>';
 		}
 		h += '<p>' + ( e.url ? '<a href="' + esc( e.url ) + '">Open ' + esc( e.student ) + '</a> &middot; ' : '' ) + '<button type="button" class="button-link bftd-calv-close">Close</button></p>';
 		pop.innerHTML = h;
@@ -263,6 +264,10 @@
 		form.addEventListener( 'submit', function ( ev ) { ev.preventDefault(); send( 'move' ); } );
 		form.querySelector( '.bftd-calv-cancel' ).addEventListener( 'click', function () {
 			if ( window.confirm( 'Cancel ' + e.title + ' on ' + dayName( e.date ) + '?' ) ) send( 'cancel' );
+		} );
+		// Gone with no cancellation on record and no message to anyone (1.201).
+		form.querySelector( '.bftd-calv-delete' ).addEventListener( 'click', function () {
+			if ( window.confirm( 'Delete ' + e.title + ' on ' + dayName( e.date ) + '? Nobody is told, and it is not recorded as cancelled.' ) ) send( 'delete' );
 		} );
 	}
 

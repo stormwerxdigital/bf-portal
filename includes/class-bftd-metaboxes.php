@@ -715,29 +715,34 @@ class BFTD_MetaBoxes {
 			// it the moment the purchased figure changes.
 			?>
 			<p class="bftd-bank-note" <?php echo $bank['last_date'] ? '' : 'hidden'; ?>>
-				The sessions paid for run out after
+				The sessions paid for cover bookings up to
 				<strong class="bftd-runs-out"><?php echo esc_html( $bank['last_date'] ? BFTD_Time::day( $bank['last_date'] ) : '' ); ?></strong>.
-				Add more under Student details and the schedule carries on from there.
 			</p>
 
-			<div class="notice notice-warning inline bftd-bank-unbooked" <?php echo $bank['unbooked'] ? '' : 'hidden'; ?>><p>
-				<strong><span class="bftd-unbooked-n"><?php echo esc_html( (string) $bank['unbooked'] ); ?></span> paid for sessions have nowhere to go.</strong>
-				There is no weekly slot for them, so nothing is booked. Add a row below and they will be scheduled.
+			<div class="notice notice-warning inline bftd-bank-unpaid" <?php echo $bank['unpaid'] ? '' : 'hidden'; ?>><p>
+				<strong>Some booked sessions are not paid for yet.</strong>
+				They stay booked. Add the sessions bought under Student details when the family pays.
 			</p></div>
 
-			<h4>The weekly pattern</h4>
+			<div class="notice notice-warning inline bftd-bank-unbooked" <?php echo $bank['unbooked'] ? '' : 'hidden'; ?>><p>
+				<strong><span class="bftd-unbooked-n"><?php echo esc_html( (string) $bank['unbooked'] ); ?></span> paid for sessions are not booked yet.</strong>
+				Add a booking below.
+			</p></div>
+
+			<h4>Bookings</h4>
 			<p class="description">
-				One row per regular slot. A student who comes three times a week has three rows.
-				There is no end date: the pattern runs until the sessions paid for run out, and carries on
-				by itself when more are bought.
+				One row per booking: pick the date and time, then whether it is one time or every week from that date.
+				A weekly booking runs until its end date, or with none, until it is changed. Sessions are booked
+				whatever has been paid for; the tiles above say how far the paid sessions reach.
 			</p>
 
 			<table class="widefat bftd-sched-rules">
 				<thead><tr>
-					<th style="width:150px;">Day</th>
+					<th style="width:160px;">Date</th>
 					<th style="width:120px;">Time</th>
-					<th style="width:100px;">Minutes</th>
-					<th style="width:150px;">Starting</th>
+					<th style="width:90px;">Minutes</th>
+					<th style="width:130px;">Repeats</th>
+					<th style="width:160px;">Ends</th>
 					<th>Tutor</th>
 					<th style="width:30px;"></th>
 				</tr></thead>
@@ -749,7 +754,7 @@ class BFTD_MetaBoxes {
 				</tbody>
 			</table>
 			<p>
-				<button type="button" class="button bftd-sched-add">Add a slot</button>
+				<button type="button" class="button bftd-sched-add">Add a booking</button>
 				<span class="description">Dates below refresh as you type.</span>
 			</p>
 			<script type="text/template" class="bftd-sched-tpl"><?php self::schedule_row( '__i__', array(), $tutors, $post->ID ); ?></script>
@@ -832,21 +837,42 @@ class BFTD_MetaBoxes {
 	}
 
 	private static function schedule_row( $i, $r, $tutors, $post_id = 0 ) {
-		$r = wp_parse_args( $r, array( 'id' => '', 'day' => '1', 'time' => '16:00', 'minutes' => 50, 'from' => '', 'tutor' => 0 ) );
+		// A new row is one time; weekly is chosen per booking (1.201). A row
+		// saved before there was a choice is a weekly slot.
+		$repeat = isset( $r['repeat'] ) ? $r['repeat'] : ( $r ? 'weekly' : 'once' );
+		$r = wp_parse_args( $r, array( 'id' => '', 'day' => '1', 'time' => '16:00', 'minutes' => 50, 'from' => '', 'tutor' => 0, 'until' => '' ) );
 		$n = 'bftd_sched[' . $i . ']';
+		$once = 'once' === $repeat;
+
+		// The weekday now comes from the date. An older weekly slot whose
+		// starting date was not on its weekday shows its first real date,
+		// which books exactly the same sessions.
+		$date = (string) $r['from'];
+		if ( ! $once && '' !== $date && is_numeric( $r['day'] ) ) {
+			$at = strtotime( $date . ' 12:00:00 UTC' );
+			while ( (string) gmdate( 'N', $at ) !== (string) $r['day'] ) $at += DAY_IN_SECONDS;
+			$date = gmdate( 'Y-m-d', $at );
+		}
+		$days = BFTD_Schedule::weekdays();
 		?>
-		<tr class="bftd-sched-row">
+		<tr class="bftd-sched-row<?php echo $once ? ' is-once' : ''; ?>">
 			<td>
 				<input type="hidden" name="<?php echo $n; ?>[id]" value="<?php echo esc_attr( $r['id'] ); ?>">
-				<select name="<?php echo $n; ?>[day]" class="bftd-s-day">
-					<?php foreach ( BFTD_Schedule::weekdays() as $k => $label ) : ?>
-						<option value="<?php echo esc_attr( $k ); ?>" <?php selected( (string) $r['day'], (string) $k ); ?>><?php echo esc_html( $label ); ?></option>
-					<?php endforeach; ?>
+				<input type="hidden" name="<?php echo $n; ?>[day]" value="<?php echo esc_attr( $r['day'] ); ?>" class="bftd-s-day">
+				<input type="date" name="<?php echo $n; ?>[from]" value="<?php echo esc_attr( $date ); ?>" class="bftd-s-from" aria-label="Date">
+				<?php if ( ! $once && '' === $date && isset( $days[ (string) $r['day'] ] ) ) : ?>
+					<span class="description bftd-s-every">Every <?php echo esc_html( $days[ (string) $r['day'] ] ); ?></span>
+				<?php endif; ?>
+			</td>
+			<td><input type="time" name="<?php echo $n; ?>[time]" value="<?php echo esc_attr( $r['time'] ); ?>" class="bftd-s-time" aria-label="Time"></td>
+			<td><input type="number" min="15" step="5" name="<?php echo $n; ?>[minutes]" value="<?php echo (int) $r['minutes']; ?>" class="small-text bftd-s-min" aria-label="Minutes"></td>
+			<td>
+				<select name="<?php echo $n; ?>[repeat]" class="bftd-s-repeat" aria-label="Repeats">
+					<option value="once" <?php selected( $once ); ?>>One time</option>
+					<option value="weekly" <?php selected( ! $once ); ?>>Every week</option>
 				</select>
 			</td>
-			<td><input type="time" name="<?php echo $n; ?>[time]" value="<?php echo esc_attr( $r['time'] ); ?>" class="bftd-s-time"></td>
-			<td><input type="number" min="15" step="5" name="<?php echo $n; ?>[minutes]" value="<?php echo (int) $r['minutes']; ?>" class="small-text bftd-s-min"></td>
-			<td><input type="date" name="<?php echo $n; ?>[from]" value="<?php echo esc_attr( $r['from'] ); ?>" class="bftd-s-from"></td>
+			<td><input type="date" name="<?php echo $n; ?>[until]" value="<?php echo esc_attr( $r['until'] ); ?>" class="bftd-s-until" aria-label="Ends"<?php echo $once ? ' hidden' : ''; ?>></td>
 			<td><?php self::tutor_picker( $n . '[tutor]', $tutors, $r['tutor'], $post_id ); ?></td>
 			<td><button type="button" class="button-link bftd-sched-rm" aria-label="Remove this slot">&times;</button></td>
 		</tr>

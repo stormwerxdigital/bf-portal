@@ -480,10 +480,13 @@ function bftdThumb( id, thumb, full ) {
 		$wrap.find( '.bftd-sched-row' ).each( function () {
 			var $r = $( this );
 			out.push( {
+				id:      $r.find( 'input[name$="[id]"]' ).val(),
 				day:     $r.find( '.bftd-s-day' ).val(),
 				time:    $r.find( '.bftd-s-time' ).val(),
 				minutes: $r.find( '.bftd-s-min' ).val(),
 				from:    $r.find( '.bftd-s-from' ).val(),
+				repeat:  $r.find( '.bftd-s-repeat' ).val(),
+				until:   $r.find( '.bftd-s-until' ).val(),
 				tutor:   $r.find( '.bftd-s-tutor' ).val()
 			} );
 		} );
@@ -531,6 +534,13 @@ function bftdThumb( id, thumb, full ) {
 			if ( spare > 0 ) $n.removeAttr( 'hidden' ); else $n.attr( 'hidden', true );
 		}
 
+		// Booked past what is paid for (1.201): allowed, and said.
+		var $u = $wrap.find( '.bftd-bank-unpaid' );
+		if ( $u.length ) {
+			var over = Math.max( 0, ( parseInt( bank.booked, 10 ) || 0 ) - ( parseInt( bank.remaining, 10 ) || 0 ) );
+			if ( over > 0 ) $u.removeAttr( 'hidden' ); else $u.attr( 'hidden', true );
+		}
+
 		var $r = $wrap.find( '.bftd-bank-note' );
 		if ( $r.length ) {
 			if ( bank.last_label ) {
@@ -564,13 +574,7 @@ function bftdThumb( id, thumb, full ) {
 		tile( $wrap, 'purchased' ).text( purchased );
 		tile( $wrap, 'remaining' ).text( remaining );
 
-		// Booked can never exceed remaining now that the schedule stops at
-		// the paid for boundary, so clamping it is stating an invariant
-		// rather than guessing. Without this the tiles contradict each other
-		// for the half second before the server answers.
-		var booked = num( tile( $wrap, 'booked' ) );
-		if ( booked > remaining ) tile( $wrap, 'booked' ).text( remaining );
-
+		// Booked may run past remaining since 1.201, so it is not clamped.
 		// How many actually land on a slot, and the date the bank runs dry,
 		// depend on the weekly pattern, which only the server knows. The
 		// tiles above answer instantly; these catch up a moment later.
@@ -607,6 +611,18 @@ function bftdThumb( id, thumb, full ) {
 
 	$( document ).on( 'change input', '.bftd-sched-rules input, .bftd-sched-rules select', function () {
 		refresh( $( this ).closest( '.bftd-sched' ) );
+	} );
+
+	/* One time or every week (1.201): only a weekly booking has an end date. */
+	$( document ).on( 'change', '.bftd-s-repeat', function () {
+		var $r = $( this ).closest( '.bftd-sched-row' ), once = 'once' === $( this ).val();
+		$r.toggleClass( 'is-once', once );
+		$r.find( '.bftd-s-until' ).prop( 'hidden', once );
+	} );
+
+	/* The date sets the weekday; the "Every Monday" of an older slot goes. */
+	$( document ).on( 'change', '.bftd-s-from', function () {
+		if ( $( this ).val() ) $( this ).siblings( '.bftd-s-every' ).remove();
 	} );
 
 	$( document ).on( 'click', '.bftd-sched-add', function ( e ) {
@@ -891,6 +907,25 @@ function bftdThumb( id, thumb, full ) {
 		// Same dialog, opened on the cancel path: the reason field is the
 		// thing that matters, and cancelling is one click from here.
 		$modal().find( '.bftd-resched-reason' ).trigger( 'focus' );
+	} );
+
+	/* Delete, quietly (1.201): no cancellation on record, nobody told. */
+	$( document ).on( 'click', '.bftd-occ-delete', function () {
+		var $row = $( this ).closest( '.bftd-occ-row' );
+		var $w = $( this ).closest( '.bftd-sched' );
+		if ( ! window.confirm( 'Delete the ' + bftdTrim( $row.find( '.bftd-occ-date' ).text() ) + ' session? Nobody is told, and it is not recorded as cancelled.' ) ) return;
+		except( $w, $row.data( 'key' ), 'delete' ).done( function ( res ) {
+			// A one-time booking's row is gone on the server, so it goes from
+			// the form too, or saving the student would book it again.
+			var gone = res && res.success && res.data ? res.data.removed : '';
+			if ( ! gone ) return;
+			$w.find( '.bftd-sched-row' ).filter( function () {
+				return $( this ).find( 'input[name$="[id]"]' ).val() === gone;
+			} ).remove();
+			reindex( $w );
+		} ).fail( function ( xhr ) {
+			$w.find( '.bftd-occ-wrap' ).prepend( $( '<p class="bftd-occ-warn"></p>' ).text( refusal( xhr ) ) );
+		} );
 	} );
 
 	$( document ).on( 'click', '.bftd-occ-undo', function () {

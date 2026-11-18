@@ -61,25 +61,66 @@ class BFTD_Schedule {
 		return is_array( $rules ) ? $rules : array();
 	}
 
+	/**
+	 * One booking row, cleaned (1.201).
+	 *
+	 * A row is a date and a time, and then a choice: once, or every week from
+	 * that date. Weekly is opted into per booking (Karl, 1.201); a row saved
+	 * before there was a choice was a weekly slot, so a row with no choice on
+	 * it still reads as weekly. The weekday comes from the date; only an old
+	 * weekly row with no starting date keeps the day it was saved with.
+	 * A weekly row may end on a date; with none it runs on.
+	 */
+	public static function clean_rule( $row, $id ) {
+		if ( ! is_array( $row ) ) return null;
+
+		$time = isset( $row['time'] ) ? sanitize_text_field( $row['time'] ) : '';
+		if ( ! preg_match( '/^\d{2}:\d{2}$/', $time ) ) return null;
+
+		$repeat = ( isset( $row['repeat'] ) && 'once' === $row['repeat'] ) ? 'once' : 'weekly';
+		$from   = self::clean_date( isset( $row['from'] ) ? $row['from'] : '' );
+		if ( 'once' === $repeat && ! $from ) return null;   // a one-time session needs its date
+
+		// A row from the booking form (it says once or weekly) takes its
+		// weekday from its date. A row in the older shape, a weekday and a
+		// "starting" date that need not fall on it, keeps its weekday, and its
+		// date moves to the first one on that weekday: the same sessions.
+		$day = isset( $row['day'] ) ? (string) absint( $row['day'] ) : '';
+		if ( $from && ( isset( $row['repeat'] ) || ! array_key_exists( $day, self::weekdays() ) ) ) {
+			$day = (string) gmdate( 'N', strtotime( $from . ' 12:00:00 UTC' ) );
+		} elseif ( $from ) {
+			$at = strtotime( $from . ' 12:00:00 UTC' );
+			while ( (string) gmdate( 'N', $at ) !== $day ) $at += 86400;
+			$from = gmdate( 'Y-m-d', $at );
+		}
+		if ( ! array_key_exists( $day, self::weekdays() ) ) return null;
+
+		$until = 'weekly' === $repeat ? self::clean_date( isset( $row['until'] ) ? $row['until'] : '' ) : '';
+		if ( $until && $from && $until < $from ) $until = '';
+
+		return array(
+			'id'      => $id,
+			'day'     => $day,
+			'time'    => $time,
+			'minutes' => max( 15, (int) ( isset( $row['minutes'] ) ? $row['minutes'] : 50 ) ),
+			'from'    => $from,
+			'tutor'   => absint( isset( $row['tutor'] ) ? $row['tutor'] : 0 ),
+			'repeat'  => $repeat,
+			'until'   => $until,
+		);
+	}
+
+	/** Weekly unless the row says once; rows from before 1.201 have no say. */
+	public static function is_once( $rule ) {
+		return isset( $rule['repeat'] ) && 'once' === $rule['repeat'];
+	}
+
 	public static function save_rules( $student_id, $raw ) {
 		$out = array();
 		foreach ( (array) $raw as $row ) {
-			if ( ! is_array( $row ) ) continue;
-
-			$day = isset( $row['day'] ) ? (string) absint( $row['day'] ) : '';
-			if ( ! array_key_exists( $day, self::weekdays() ) ) continue;
-
-			$time = isset( $row['time'] ) ? sanitize_text_field( $row['time'] ) : '';
-			if ( ! preg_match( '/^\d{2}:\d{2}$/', $time ) ) continue;
-
-			$out[] = array(
-				'id'       => isset( $row['id'] ) && $row['id'] ? sanitize_text_field( $row['id'] ) : 'r' . wp_generate_password( 8, false, false ),
-				'day'      => $day,
-				'time'     => $time,
-				'minutes'  => max( 15, (int) ( isset( $row['minutes'] ) ? $row['minutes'] : 50 ) ),
-				'from'     => self::clean_date( isset( $row['from'] ) ? $row['from'] : '' ),
-				'tutor'    => absint( isset( $row['tutor'] ) ? $row['tutor'] : 0 ),
-			);
+			$id   = is_array( $row ) && ! empty( $row['id'] ) ? sanitize_text_field( $row['id'] ) : 'r' . wp_generate_password( 8, false, false );
+			$rule = self::clean_rule( $row, $id );
+			if ( $rule ) $out[] = $rule;
 		}
 
 		// Nobody teaches more than a day holds. Slots that would break the
@@ -118,7 +159,9 @@ class BFTD_Schedule {
 		$days = self::weekdays();
 		$bits = array();
 		foreach ( $rules as $r ) {
-			$bits[] = $days[ $r['day'] ] . 's at ' . self::pretty_time( $r['time'] );
+			$bits[] = self::is_once( $r )
+				? 'once on ' . BFTD_Time::day( $r['from'] ) . ' at ' . self::pretty_time( $r['time'] )
+				: $days[ $r['day'] ] . 's at ' . self::pretty_time( $r['time'] );
 		}
 		$bits = array_unique( $bits );
 		if ( 1 === count( $bits ) ) return $bits[0];
@@ -240,6 +283,62 @@ class BFTD_Schedule {
 			if ( $o['key'] === $key ) return $o;
 		}
 		return null;
+	}
+
+	/**
+	 * Delete one booked session, quietly (Karl, 1.201).
+	 *
+	 * Not a cancellation: nothing is left behind to say it was cancelled, it
+	 * spends nothing, and nobody is told. Its GoHighLevel appointment is
+	 * deleted there first and at once, at any hour, with no notification;
+	 * if GoHighLevel will not delete it, nothing here changes either, so the
+	 * two never disagree. A one-time session loses its row; one date of a
+	 * weekly pattern is struck out of it.
+	 *
+	 * Deleting is not a change for families, so it is not held in the banner:
+	 * a student who was in step with GoHighLevel before stays in step after.
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function delete_occurrence( $student_id, $key ) {
+		$o = self::occurrence_at( $student_id, $key );
+		if ( ! $o || 'booked' !== $o['status'] ) {
+			return new WP_Error( 'bftd_not_booked', 'That session is not booked, so there is nothing to delete.' );
+		}
+
+		$in_step = class_exists( 'BFTD_Send_Window' ) && BFTD_Send_Window::in_step( $student_id );
+
+		if ( class_exists( 'BFTD_Bookings' ) ) {
+			$gone = BFTD_Bookings::delete_quietly( $student_id, $o );
+			if ( is_wp_error( $gone ) ) return $gone;
+		}
+
+		$origin = ! empty( $o['from_key'] ) ? $o['from_key'] : $o['key'];
+		$all    = self::exceptions( $student_id );
+		if ( ! empty( $o['once'] ) ) {
+			$rules = array();
+			foreach ( self::rules( $student_id ) as $r ) {
+				if ( (string) ( $r['id'] ?? '' ) !== (string) $o['rule'] ) $rules[] = $r;
+			}
+			update_post_meta( $student_id, self::RULES_KEY, $rules );
+			unset( $all[ $origin ] );
+		} else {
+			$all[ $origin ] = array(
+				'action' => 'delete', 'date' => '', 'time' => '', 'reason' => '', 'minutes' => 0, 'tutor' => 0,
+				'by' => get_current_user_id(), 'at' => BFTD_Time::mysql(),
+			);
+		}
+		update_post_meta( $student_id, self::EXCEPT_KEY, $all );
+
+		BFTD_Audit::log( 'session_deleted', array(
+			'post_id'    => $student_id,
+			'student_id' => $student_id,
+			'summary'    => 'The ' . $o['key'] . ' session was deleted, with nobody told.',
+		) );
+
+		if ( $in_step ) BFTD_Send_Window::mark_sent( $student_id );
+		do_action( 'bftd_schedule_changed', $student_id );
+		return true;
 	}
 
 	/** Which tutor owns the occurrence behind this key. */
@@ -552,58 +651,12 @@ class BFTD_Schedule {
 			$out[ $i ]['tutor']       = self::effective_tutor( $student_id, $o['tutor'] );
 		}
 
-		return self::within_bank( $student_id, $out );
-	}
-
-	/**
-	 * A weekly pattern has no end date. What ends it is running out of paid
-	 * for lessons, so that is what ends it here.
-	 *
-	 * Before this, a rule ran to a four hundred day horizon and a family who
-	 * bought eight lessons had fifty seven of them booked, which is not a
-	 * schedule, it is a guess. Now the pattern produces exactly as many
-	 * lessons ahead as have been paid for and stops. Buy ten more and ten
-	 * more appear, with no second field to keep in step and no way for the
-	 * two to disagree.
-	 *
-	 * Lessons already taught are history and are never trimmed. Cancelled and
-	 * moved markers stay too, because they explain what happened to a date
-	 * somebody is looking at.
-	 */
-	private static function within_bank( $student_id, $occurrences ) {
-		$left = self::unspent( $student_id );
-		$today = BFTD_Time::today();
-
-		$out  = array();
-		$kept = 0;
-
-		foreach ( $occurrences as $o ) {
-			$future_booking = ( 'booked' === $o['status'] && $o['date'] >= $today );
-
-			if ( ! $future_booking ) { $out[] = $o; continue; }
-			if ( $kept >= $left ) continue;
-
-			$kept++;
-			$out[] = $o;
-		}
-
+		// Booked whatever has been paid for (Karl, 1.201). Until then a weekly
+		// pattern stopped where the paid sessions ran out, which also meant a
+		// session could not be booked for a family who had not paid ahead. The
+		// bank now says how far the paid sessions reach (bank()), and a
+		// weekly row ends where its own end date says, if it has one.
 		return $out;
-	}
-
-	/**
-	 * Lessons paid for and not yet taught.
-	 *
-	 * Deliberately does not call bank(), because bank() counts booked
-	 * lessons and booked lessons are now decided by this number. Working it
-	 * out from the two facts it depends on keeps that from becoming a circle.
-	 */
-	private static function unspent( $student_id ) {
-		$purchased = ( null === self::$assume_purchased )
-			? (int) BFTD_Fields::get( $student_id, 'student', 'lessons_bank' )
-			: (int) self::$assume_purchased;
-		$offset    = (int) get_post_meta( $student_id, self::OFFSET_KEY, true );
-		$used      = self::used_count( $student_id ) + $offset;
-		return max( 0, $purchased - $used );
 	}
 
 	/**
@@ -649,6 +702,9 @@ class BFTD_Schedule {
 			foreach ( $rules as $rule ) {
 				if ( $rule['day'] !== $dow ) continue;
 				if ( $rule['from'] && $date < $rule['from'] ) continue;
+				$once = self::is_once( $rule );
+				if ( $once && $date !== $rule['from'] ) continue;
+				if ( ! empty( $rule['until'] ) && $date > $rule['until'] ) continue;
 
 				$key  = $date . ' ' . $rule['time'];
 				$slot = array(
@@ -660,7 +716,12 @@ class BFTD_Schedule {
 					'status'  => 'booked',
 					'session' => 0,
 					'reason'  => '',
+					'rule'    => isset( $rule['id'] ) ? (string) $rule['id'] : '',
+					'once'    => $once,
 				);
+
+				// Deleted: gone, with no cancelled marker left behind (1.201).
+				if ( isset( $exceptions[ $key ] ) && 'delete' === $exceptions[ $key ]['action'] ) continue;
 
 				if ( isset( $exceptions[ $key ] ) ) {
 					$x = $exceptions[ $key ];
@@ -867,19 +928,16 @@ class BFTD_Schedule {
 
 		$remaining = max( 0, $purchased - $used );
 
-		// The schedule now stops at the paid for boundary, so booked can
-		// never exceed remaining and there is no overbooking to warn about.
-		// What is worth knowing instead is the date the bank runs dry, which
-		// is when the family needs to be asked about the next block.
+		// Sessions are booked whatever has been paid for (1.201), so booked
+		// can run past remaining. What is worth knowing is the last booked
+		// session the paid ones cover, which is when the family needs asking
+		// about the next block, and whether anything booked runs past it.
 		$booked = 0;
 		$last   = '';
-		$slots  = self::assuming_purchased( $purchased_override, function () use ( $student_id ) {
-			return self::occurrences( $student_id, BFTD_Time::today() );
-		} );
-		foreach ( $slots as $o ) {
+		foreach ( self::occurrences( $student_id, BFTD_Time::today() ) as $o ) {
 			if ( 'booked' !== $o['status'] ) continue;
 			$booked++;
-			$last = $o['date'];
+			if ( $booked <= $remaining ) $last = $o['date'];
 		}
 
 		return array(
@@ -888,11 +946,13 @@ class BFTD_Schedule {
 			'used'       => $used,
 			'booked'     => $booked,
 			'remaining'  => $remaining,
+			// The last booked session the paid ones cover.
 			'last_date'  => $last,
 			'last_label' => $last ? BFTD_Time::day( $last ) : '',
-			// Paid for but with no slot to fall on, because the weekly
-			// pattern does not reach that far or there is no pattern at all.
+			// Paid for but with no booking to fall on.
 			'unbooked'   => max( 0, $remaining - $booked ),
+			// Booked, but past what has been paid for.
+			'unpaid'     => max( 0, $booked - $remaining ),
 		);
 	}
 
@@ -974,18 +1034,9 @@ class BFTD_Schedule {
 	private static function sanitize_preview( $raw ) {
 		$out = array();
 		foreach ( (array) $raw as $row ) {
-			$day  = isset( $row['day'] ) ? (string) absint( $row['day'] ) : '';
-			$time = isset( $row['time'] ) ? sanitize_text_field( $row['time'] ) : '';
-			if ( ! array_key_exists( $day, self::weekdays() ) ) continue;
-			if ( ! preg_match( '/^\d{2}:\d{2}$/', $time ) ) continue;
-			$out[] = array(
-				'id'      => 'preview',
-				'day'     => $day,
-				'time'    => $time,
-				'minutes' => max( 15, (int) ( isset( $row['minutes'] ) ? $row['minutes'] : 50 ) ),
-				'from'    => self::clean_date( isset( $row['from'] ) ? $row['from'] : '' ),
-				'tutor'   => absint( isset( $row['tutor'] ) ? $row['tutor'] : 0 ),
-			);
+			// The same cleaning as a save, so the preview is what saving books.
+			$rule = self::clean_rule( $row, is_array( $row ) && ! empty( $row['id'] ) ? sanitize_text_field( $row['id'] ) : 'preview' );
+			if ( $rule ) $out[] = $rule;
 		}
 		return $out;
 	}
@@ -999,11 +1050,16 @@ class BFTD_Schedule {
 			: self::guard( isset( $_POST['student_id'] ) ? $_POST['student_id'] : 0 );
 
 		$action = isset( $_POST['what'] ) ? sanitize_key( wp_unslash( $_POST['what'] ) ) : '';
-		if ( ! $key || ! in_array( $action, array( 'cancel', 'move', 'clear' ), true ) ) {
+		if ( ! $key || ! in_array( $action, array( 'cancel', 'move', 'clear', 'delete' ), true ) ) {
 			wp_send_json_error( array( 'message' => 'Nothing to change there.' ), 400 );
 		}
 
-		$done = self::set_exception(
+		// A one-time booking deleted takes its row with it; the form is told
+		// which, so saving the student does not book it again.
+		$was     = 'delete' === $action ? self::occurrence_at( $student_id, $key ) : null;
+		$removed = $was && ! empty( $was['once'] ) ? (string) $was['rule'] : '';
+
+		$done = 'delete' === $action ? self::delete_occurrence( $student_id, $key ) : self::set_exception(
 			$student_id, $key, $action,
 			isset( $_POST['date'] ) ? wp_unslash( $_POST['date'] ) : '',
 			isset( $_POST['time'] ) ? wp_unslash( $_POST['time'] ) : '',
@@ -1024,7 +1080,8 @@ class BFTD_Schedule {
 		wp_send_json_success( array(
 			'html' => self::render_occurrence_list( $student_id, 14, $purchased ),
 			'bank' => self::bank( $student_id, $purchased ),
-			'next' => self::next_lesson_label( $student_id ),
+			'next'    => self::next_lesson_label( $student_id ),
+			'removed' => $removed,
 		) );
 	}
 
@@ -1163,7 +1220,7 @@ class BFTD_Schedule {
 
 		ob_start();
 		if ( ! $list ) {
-			echo '<p class="description">No sessions scheduled. Add a weekly slot above and the dates appear here.</p>';
+			echo '<p class="description">No sessions booked. Add a booking above and the dates appear here.</p>';
 			return ob_get_clean();
 		}
 
@@ -1191,6 +1248,7 @@ class BFTD_Schedule {
 			} elseif ( 'booked' === $o['status'] ) {
 				echo '<button type="button" class="button-link bftd-occ-move">Reschedule</button>';
 				echo '<button type="button" class="button-link bftd-occ-cancel">Cancel</button>';
+				echo '<button type="button" class="button-link bftd-occ-delete" title="Removes it with no record of a cancellation, and tells nobody">Delete</button>';
 			} else {
 				echo '<button type="button" class="button-link bftd-occ-undo">Undo</button>';
 			}
