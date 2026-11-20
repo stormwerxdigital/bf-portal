@@ -29,7 +29,7 @@
 	var tutorBoxes = Array.prototype.slice.call( root.querySelectorAll( '.bftd-calv-tutor input' ) );
 	var DAYS   = [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ];
 	var MONTHS = [ 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' ];
-	var HOUR   = 88;           // pixels an hour takes in the day and week views: tall enough for the time, type, student and tutor of a 50 minute session (1.203)
+	var HOUR   = 96;           // pixels an hour takes in the day and week views: a 50 minute session fits its time and type, a two line name, and the tutor (1.203.1)
 	var tutorIds = Object.keys( C.tutors || {} ).map( Number );
 
 	var state = { view: 'week', date: C.today, events: [], closed: {} };
@@ -144,11 +144,12 @@
 			+ ( 'cancelled' === e.status ? ', cancelled' : 'held' === e.status ? ', taught' : 'moved' === e.status ? ', rescheduled to ' + e.moved_to : '' ) + ( 'ghl' === e.kind ? ', made in GoHighLevel' : '' );
 		return '<button type="button" class="' + cls + '" data-c="' + colour( e.tutor ) + '" data-i="' + state.events.indexOf( e ) + '"'
 			+ ( timed ? ' style="' + timed + '"' : '' ) + ' aria-label="' + esc( says ) + '" title="' + esc( says ) + '">'
-			+ '<span class="bftd-calv-ev-t">' + esc( clock( e.start ) ) + '</span> '
-			+ ( e.type_label ? '<span class="bftd-calv-ev-y">' + esc( e.type_label ) + '</span>' : '' )
+			// Time and type on one line, so the name has room (1.203.1).
+			+ '<span class="bftd-calv-ev-t">' + esc( clock( e.start ) ) + ( e.type_label ? '<span class="bftd-calv-ev-y"> &middot; ' + esc( e.type_label ) + '</span>' : '' ) + '</span>'
 			+ '<span class="bftd-calv-ev-n">' + esc( e.title ) + '</span>'
 			+ ( 'moved' === e.status && e.moved_to ? '<span class="bftd-calv-ev-w">Moved to ' + esc( e.moved_to ) + '</span>' : '' )
-			+ ( C.manage && who ? '<span class="bftd-calv-ev-w">' + esc( who ) + '</span>' : '' )
+			// The tutor only when more than one is shown: each has their own colour (1.203.1).
+			+ ( C.manage && who && shownTutors().length > 1 ? '<span class="bftd-calv-ev-w">' + esc( who ) + '</span>' : '' )
 			+ '</button>';
 	}
 
