@@ -298,8 +298,12 @@ class BFTD_Calendars {
 	public static function check_timezone() {
 		$ours = self::offset();
 		$out  = array( 'when' => time(), 'state' => 'off', 'zone' => '', 'theirs' => null, 'ours' => $ours, 'suggest' => array(), 'error' => '' );
-		if ( null === $ours || ! BFTD_GHL::configured() ) { update_option( self::CHECKED, $out, false ); return $out; }
+		if ( ! BFTD_GHL::configured() ) { update_option( self::CHECKED, $out, false ); return $out; }
 		list( , $data, $err ) = BFTD_GHL::request( 'GET', '/locations/' . rawurlencode( BFTD_GHL::location() ), array(), null, '2021-07-28' );
+		// Where the business is, from its business info, for the statutory
+		// holidays nothing is booked on (Karl, 1.203).
+		if ( '' === $err ) self::remember_place( (array) ( $data['location'] ?? array() ) );
+		if ( null === $ours ) { update_option( self::CHECKED, $out, false ); return $out; }
 		$zone = (string) ( $data['location']['timezone'] ?? '' );
 		if ( '' !== $err || '' === $zone ) {
 			$out['state'] = 'error';
@@ -324,6 +328,24 @@ class BFTD_Calendars {
 		}
 		update_option( self::CHECKED, $out, false );
 		return $out;
+	}
+
+	/**
+	 * Keep the business's country and province or state, from GoHighLevel's
+	 * location: its business address first, the location's own after.
+	 */
+	public static function remember_place( $loc ) {
+		$biz     = (array) ( $loc['business'] ?? array() );
+		$country = (string) ( $biz['country'] ?? '' ) ?: (string) ( $loc['country'] ?? '' );
+		$state   = (string) ( $biz['state'] ?? '' ) ?: (string) ( $loc['state'] ?? '' );
+		if ( '' === $country && '' === $state ) return;
+		list( $c, $s ) = BFTD_Stat_Holidays::place_codes( $country, $state );
+		$new = array( 'country' => $c, 'state' => $s, 'label' => trim( $state . ', ' . $country, ', ' ) );
+		$was = BFTD_Stat_Holidays::place();
+		if ( ( $was['country'] ?? '' ) !== $c || ( $was['state'] ?? '' ) !== $s ) {
+			BFTD_Audit::log( 'business_place', array( 'summary' => 'The business is in ' . $new['label'] . ', from GoHighLevel. ' . ( BFTD_Stat_Holidays::known()[ $c . '-' . $s ] ?? null ? 'Its statutory holidays are closed to bookings.' : 'The portal has no statutory holiday list for it yet.' ) ) );
+		}
+		update_option( BFTD_Stat_Holidays::PLACE, $new + array( 'when' => time() ), false );
 	}
 
 	/** The check, in a sentence or two. */
@@ -385,6 +407,18 @@ class BFTD_Calendars {
 		if ( ! BFTD_Roles::can_manage() ) return false;
 		if ( ! empty( $_POST['bftd_cal_refresh'] ) ) { self::read( true ); return false; }
 
+		// Our school year's breaks (1.203), saved whether or not GoHighLevel answers.
+		if ( isset( $_POST['bftd_school'] ) ) {
+			$before = BFTD_Stat_Holidays::school_years();
+			$after  = BFTD_Stat_Holidays::save_school_years( wp_unslash( $_POST['bftd_school'] ) );
+			if ( $before !== $after ) {
+				BFTD_Audit::log( 'school_year_set', array( 'summary' => 'The school year breaks were changed: ' . ( $after ? implode( '; ', array_map( function ( $y, $row ) {
+					return $y . ' to ' . ( $y + 1 ) . ' Christmas ' . ( $row['xmas_from'] ?: 'not set' ) . ' to ' . ( $row['xmas_to'] ?: 'not set' ) . ', spring break ' . ( $row['spring_from'] ?: 'not set' ) . ' to ' . ( $row['spring_to'] ?: 'not set' );
+				}, array_keys( $after ), $after ) ) : 'none' ) . '.' ) );
+			}
+		}
+		if ( ! BFTD_GHL::configured() ) return true;
+
 		$off = isset( $_POST['bftd_tz_offset'] ) ? sanitize_text_field( wp_unslash( $_POST['bftd_tz_offset'] ) ) : '';
 		$off = ( '' !== $off && in_array( (int) $off, self::offsets(), true ) ) ? (string) (int) $off : '';
 		if ( (string) get_option( self::OFFSET, '' ) !== $off ) {
@@ -401,14 +435,55 @@ class BFTD_Calendars {
 		return true;
 	}
 
+	/**
+	 * Our school year (Karl, 1.203): each year's Christmas holidays and
+	 * spring break, closed to bookings. One row per school year, the next
+	 * one entered ahead of time, plus an empty row to add another.
+	 */
+	public static function render_school_year() {
+		$years = BFTD_Stat_Holidays::school_years();
+		$now   = (int) substr( BFTD_Time::today(), 0, 4 );
+		$rows  = $years;
+		$next  = $years ? max( array_keys( $years ) ) + 1 : ( (int) substr( BFTD_Time::today(), 5, 2 ) >= 8 ? $now : $now - 1 );
+		$rows[ $next ] = array();
+		?>
+		<h3 style="margin-top:28px">Our school year</h3>
+		<p>Brilliant Futures' own school year, not a school district's. The Christmas holidays and spring break move every year, so enter
+			each year's dates here, the first and last day of each break. Nothing can be booked in either break, and weekly bookings skip them.
+			Leave a year's dates empty and save to remove it.</p>
+		<table class="widefat striped bftd-school-years" style="max-width:900px">
+			<thead><tr>
+				<th>School year</th><th>Christmas holidays, first day</th><th>Last day</th><th>Spring break, first day</th><th>Last day</th>
+			</tr></thead>
+			<tbody>
+			<?php $i = 0; foreach ( $rows as $y => $row ) : $n = 'bftd_school[' . $i++ . ']'; ?>
+				<tr>
+					<td><label class="screen-reader-text" for="bftd-school-<?php echo (int) $i; ?>">School year starting</label>
+						<select id="bftd-school-<?php echo (int) $i; ?>" name="<?php echo esc_attr( $n ); ?>[year]">
+							<?php for ( $opt = $now - 1; $opt <= $now + 3; $opt++ ) : ?>
+								<option value="<?php echo (int) $opt; ?>"<?php selected( (int) $y, $opt ); ?>><?php echo esc_html( $opt . ' to ' . ( $opt + 1 ) ); ?></option>
+							<?php endfor; ?>
+						</select></td>
+					<?php foreach ( array( 'xmas_from', 'xmas_to', 'spring_from', 'spring_to' ) as $k ) : ?>
+						<td><input type="date" name="<?php echo esc_attr( $n . '[' . $k . ']' ); ?>" value="<?php echo esc_attr( (string) ( $row[ $k ] ?? '' ) ); ?>" aria-label="<?php echo esc_attr( str_replace( '_', ' ', $k ) ); ?>"></td>
+					<?php endforeach; ?>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+		<?php
+	}
+
 	public static function render_tab() {
 		if ( ! BFTD_GHL::configured() ) {
 			echo '<p><strong>Not set up yet.</strong> GoHighLevel has to be connected first, under CRM connection.</p>';
+			self::render_school_year();
 			return;
 		}
 		$read = self::read();
 		if ( ! $read['ok'] ) {
 			echo '<div class="notice notice-error inline"><p>GoHighLevel did not answer: ' . esc_html( $read['error'] ) . '</p></div>';
+			self::render_school_year();
 			return;
 		}
 		$links   = self::links();
@@ -464,6 +539,33 @@ class BFTD_Calendars {
 		<?php $c = get_option( self::CHECKED ); ?>
 		<p class="<?php echo is_array( $c ) && 'differs' === $c['state'] ? 'bftd-cal-warn' : 'description'; ?>"><?php echo esc_html( self::say( $c ) ); ?>
 			<?php if ( is_array( $c ) && ! empty( $c['when'] ) ) echo esc_html( ' Checked ' . BFTD_Time::format( 'j M Y, g:i a', (int) $c['when'] ) . '.' ); ?></p>
+
+		<h3 style="margin-top:28px">Days closed to bookings</h3>
 		<?php
+		$place = BFTD_Stat_Holidays::place();
+		$list  = BFTD_Stat_Holidays::list_for_place();
+		?>
+		<p>Nothing can be booked on a Sunday, or on a statutory holiday where the business is. Where it is comes from the business
+			address in GoHighLevel, read every hour with the time zone check.</p>
+		<?php if ( ! $place ) : ?>
+			<p class="bftd-cal-warn">GoHighLevel's business address has not been read yet, so only Sundays are closed. It is read on the next hourly check, or when this tab is saved.</p>
+		<?php elseif ( ! $list ) : ?>
+			<p class="bftd-cal-warn">The business is in <?php echo esc_html( $place['label'] ); ?>, and the portal has no statutory holiday list for it yet, so only Sundays are closed.</p>
+		<?php else : ?>
+			<p class="description">The business is in <?php echo esc_html( $place['label'] ); ?>. The next statutory holidays, closed to bookings:</p>
+			<ul class="ul-disc">
+				<?php
+				$today = BFTD_Time::today();
+				$n     = 0;
+				foreach ( BFTD_Stat_Holidays::between( $today, BFTD_Time::add_days( $today, 400 ) ) as $ymd => $name ) {
+					if ( '' === BFTD_Stat_Holidays::holiday_here( $ymd ) ) continue;
+					echo '<li>' . esc_html( $name . ', ' . BFTD_Time::day( $ymd, 'D j M Y' ) ) . '</li>';
+					if ( ++$n >= 4 ) break;
+				}
+				?>
+			</ul>
+		<?php endif; ?>
+		<?php
+		self::render_school_year();
 	}
 }

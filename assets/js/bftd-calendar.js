@@ -24,19 +24,23 @@
 	var pop    = root.querySelector( '.bftd-calv-pop' );
 	var showGhl    = root.querySelector( '.bftd-calv-showghl' );
 	var showCancel = root.querySelector( '.bftd-calv-showcancel' );
+	var showMoved  = root.querySelector( '.bftd-calv-showmoved' );
+	var showDraft  = root.querySelector( '.bftd-calv-showdraft' );
 	var tutorBoxes = Array.prototype.slice.call( root.querySelectorAll( '.bftd-calv-tutor input' ) );
 	var DAYS   = [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ];
 	var MONTHS = [ 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' ];
-	var HOUR   = 48;           // pixels an hour takes in the day and week views
+	var HOUR   = 88;           // pixels an hour takes in the day and week views: tall enough for the time, type, student and tutor of a 50 minute session (1.203)
 	var tutorIds = Object.keys( C.tutors || {} ).map( Number );
 
-	var state = { view: 'week', date: C.today, events: [] };
+	var state = { view: 'week', date: C.today, events: [], closed: {} };
 	try {
 		var saved = JSON.parse( localStorage.getItem( 'bftd_calv' ) || '{}' );
 		if ( saved.view ) state.view = saved.view;
 		if ( saved.off ) tutorBoxes.forEach( function ( b ) { b.checked = saved.off.indexOf( Number( b.value ) ) < 0; } );
 		if ( 'ghl' in saved ) showGhl.checked = !! saved.ghl;
 		if ( 'cancel' in saved ) showCancel.checked = !! saved.cancel;
+		if ( 'moved' in saved ) showMoved.checked = !! saved.moved;
+		if ( 'draft' in saved ) showDraft.checked = !! saved.draft;
 	} catch ( e ) {}
 	viewEl.value = state.view;
 
@@ -45,7 +49,7 @@
 			localStorage.setItem( 'bftd_calv', JSON.stringify( {
 				view: state.view,
 				off: tutorBoxes.filter( function ( b ) { return ! b.checked; } ).map( function ( b ) { return Number( b.value ); } ),
-				ghl: showGhl.checked, cancel: showCancel.checked
+				ghl: showGhl.checked, cancel: showCancel.checked, moved: showMoved.checked, draft: showDraft.checked
 			} ) );
 		} catch ( e ) {}
 	}
@@ -112,6 +116,7 @@
 			grid.removeAttribute( 'aria-busy' );
 			if ( ! res || ! res.success ) { grid.innerHTML = '<p class="bftd-calv-msg">' + esc( res && res.data && res.data.message || 'The sessions could not be loaded.' ) + '</p>'; return; }
 			state.events = res.data.events || [];
+			state.closed = res.data.closed || {};
 			draw();
 		} ).catch( function () {
 			if ( mine !== asked ) return;
@@ -124,20 +129,25 @@
 		return state.events.filter( function ( e ) {
 			if ( 'ghl' === e.kind && ! showGhl.checked ) return false;
 			if ( 'cancelled' === e.status && ! showCancel.checked ) return false;
+			if ( 'moved' === e.status && ! showMoved.checked ) return false;
+			if ( e.draft && ! showDraft.checked ) return false;   // draft students' bookings (1.203)
 			return true;
 		} );
 	}
 
 	/* ---- drawing ---- */
 	function chip( e, timed ) {
-		var cls = 'bftd-calv-ev is-' + ( 'ghl' === e.kind ? 'ghl' : e.status ) + ( e.draft ? ' is-draft' : '' );
+		var cls = 'bftd-calv-ev is-' + ( 'ghl' === e.kind ? 'ghl' : e.status ) + ( e.draft ? ' is-draft' : '' ) + ( 'assessment' === e.type ? ' is-assessment' : '' );
 		var who = C.tutors[ e.tutor ] || '';
 		var says = e.title + ', ' + clock( e.start ) + ' to ' + clock( e.end ) + ( who ? ', ' + who : '' )
-			+ ( 'cancelled' === e.status ? ', cancelled' : 'held' === e.status ? ', taught' : '' ) + ( 'ghl' === e.kind ? ', made in GoHighLevel' : '' );
+			+ ( e.type_label ? ', ' + e.type_label : '' )
+			+ ( 'cancelled' === e.status ? ', cancelled' : 'held' === e.status ? ', taught' : 'moved' === e.status ? ', rescheduled to ' + e.moved_to : '' ) + ( 'ghl' === e.kind ? ', made in GoHighLevel' : '' );
 		return '<button type="button" class="' + cls + '" data-c="' + colour( e.tutor ) + '" data-i="' + state.events.indexOf( e ) + '"'
-			+ ( timed ? ' style="' + timed + '"' : '' ) + ' aria-label="' + esc( says ) + '">'
+			+ ( timed ? ' style="' + timed + '"' : '' ) + ' aria-label="' + esc( says ) + '" title="' + esc( says ) + '">'
 			+ '<span class="bftd-calv-ev-t">' + esc( clock( e.start ) ) + '</span> '
+			+ ( e.type_label ? '<span class="bftd-calv-ev-y">' + esc( e.type_label ) + '</span>' : '' )
 			+ '<span class="bftd-calv-ev-n">' + esc( e.title ) + '</span>'
+			+ ( 'moved' === e.status && e.moved_to ? '<span class="bftd-calv-ev-w">Moved to ' + esc( e.moved_to ) + '</span>' : '' )
 			+ ( C.manage && who ? '<span class="bftd-calv-ev-w">' + esc( who ) + '</span>' : '' )
 			+ '</button>';
 	}
@@ -158,14 +168,18 @@
 		var list = visible(), lo = 7 * 60, hi = 20 * 60;
 		list.forEach( function ( e ) { lo = Math.min( lo, Math.floor( mins( e.start ) / 60 ) * 60 ); hi = Math.max( hi, Math.ceil( Math.max( mins( e.end ), mins( e.start ) + 15 ) / 60 ) * 60 ); } );
 		var h = '<div class="bftd-calv-head" style="grid-template-columns:64px repeat(' + days.length + ',minmax(120px,1fr))"><span></span>';
-		days.forEach( function ( s ) { h += '<span class="' + ( s === C.today ? 'is-today' : '' ) + '"><button type="button" class="button-link bftd-calv-goday" data-d="' + s + '">' + esc( dayName( s ) ) + '</button></span>'; } );
+		days.forEach( function ( s ) {
+			var shut = state.closed[ s ];
+			h += '<span class="' + ( s === C.today ? 'is-today' : '' ) + ( shut ? ' is-closed' : '' ) + '"><button type="button" class="button-link bftd-calv-goday" data-d="' + s + '">' + esc( dayName( s ) ) + '</button>'
+				+ ( shut && 'Sunday' !== shut ? '<small class="bftd-calv-why">' + esc( shut ) + '</small>' : '' ) + '</span>';
+		} );
 		h += '</div><div class="bftd-calv-times" style="grid-template-columns:64px repeat(' + days.length + ',minmax(120px,1fr))"><div class="bftd-calv-hours">';
 		for ( var m = lo; m < hi; m += 60 ) h += '<span style="height:' + HOUR + 'px">' + esc( clock( ( m / 60 < 10 ? '0' : '' ) + m / 60 + ':00' ) ) + '</span>';
 		h += '</div>';
 		days.forEach( function ( s ) {
 			var today = list.filter( function ( e ) { return e.date === s; } );
 			lanes( today );
-			h += '<div class="bftd-calv-col' + ( s === C.today ? ' is-today' : '' ) + '" style="height:' + ( ( hi - lo ) / 60 * HOUR ) + 'px">';
+			h += '<div class="bftd-calv-col' + ( s === C.today ? ' is-today' : '' ) + ( state.closed[ s ] ? ' is-closed' : '' ) + '" style="height:' + ( ( hi - lo ) / 60 * HOUR ) + 'px">';
 			today.forEach( function ( e ) {
 				var top = ( mins( e.start ) - lo ) / 60 * HOUR, len = Math.max( 22, ( Math.max( mins( e.end ), mins( e.start ) + 15 ) - mins( e.start ) ) / 60 * HOUR - 2 );
 				var w = 100 / e._lanes;
@@ -183,8 +197,10 @@
 		var h = '<div class="bftd-calv-mhead">' + DAYS.map( function ( n ) { return '<span>' + n + '</span>'; } ).join( '' ) + '</div><div class="bftd-calv-month">';
 		for ( var i = 0; i < 42; i++ ) {
 			var s = add( r[0], i ), day = list.filter( function ( e ) { return e.date === s; } );
-			h += '<div class="bftd-calv-cell' + ( s.slice( 0, 7 ) !== month ? ' is-other' : '' ) + ( s === C.today ? ' is-today' : '' ) + '">'
-				+ '<button type="button" class="button-link bftd-calv-goday" data-d="' + s + '" aria-label="' + esc( dayName( s ) ) + '">' + d( s ).getUTCDate() + '</button>';
+			var shut = state.closed[ s ];
+			h += '<div class="bftd-calv-cell' + ( s.slice( 0, 7 ) !== month ? ' is-other' : '' ) + ( s === C.today ? ' is-today' : '' ) + ( shut ? ' is-closed' : '' ) + '">'
+				+ '<button type="button" class="button-link bftd-calv-goday" data-d="' + s + '" aria-label="' + esc( dayName( s ) + ( shut ? ', ' + shut : '' ) ) + '">' + d( s ).getUTCDate() + '</button>'
+				+ ( shut && 'Sunday' !== shut ? '<small class="bftd-calv-why">' + esc( shut ) + '</small>' : '' );
 			day.slice( 0, 4 ).forEach( function ( e ) { h += chip( e, '' ); } );
 			if ( day.length > 4 ) h += '<button type="button" class="button-link bftd-calv-goday bftd-calv-more" data-d="' + s + '">' + ( day.length - 4 ) + ' more</button>';
 			h += '</div>';
@@ -217,6 +233,8 @@
 		var length = mins( e.end ) - mins( e.start );
 		var h = '<h2 id="bftd-calv-pop-title">' + esc( e.title ) + '</h2>'
 			+ '<p>' + esc( dayName( e.date ) + ', ' + clock( e.start ) + ' to ' + clock( e.end ) ) + ( who ? '<br>' + esc( who ) : '' ) + '</p>';
+		if ( e.type_label ) h += '<p class="description">' + esc( e.type_label ) + '</p>';
+		if ( 'moved' === e.status ) h += '<p class="description">Rescheduled to ' + esc( e.moved_to ) + '.</p>';
 		if ( 'ghl' === e.kind ) h += '<p class="description">Made in GoHighLevel, not on a student\'s schedule.</p>';
 		else if ( 'held' === e.status ) h += '<p class="description">Taught.</p>';
 		else if ( 'cancelled' === e.status ) h += '<p class="description">Cancelled.</p>';
@@ -289,11 +307,51 @@
 	root.querySelector( '.bftd-calv-next' ).addEventListener( 'click', function () { step( 1 ); } );
 	root.querySelector( '.bftd-calv-today' ).addEventListener( 'click', function () { state.date = C.today; load(); } );
 	viewEl.addEventListener( 'change', function () { state.view = viewEl.value; remember(); load(); } );
-	[ showGhl, showCancel ].forEach( function ( x ) { x.addEventListener( 'change', function () { remember(); draw(); } ); } );
+	[ showGhl, showCancel, showMoved, showDraft ].forEach( function ( x ) { x.addEventListener( 'change', function () { remember(); draw(); } ); } );
 	tutorBoxes.forEach( function ( b ) { b.addEventListener( 'change', function () { remember(); load(); } ); } );
 	var all = root.querySelector( '.bftd-calv-all' ), none = root.querySelector( '.bftd-calv-none' );
 	if ( all ) all.addEventListener( 'click', function () { tutorBoxes.forEach( function ( b ) { b.checked = true; } ); remember(); load(); } );
 	if ( none ) none.addEventListener( 'click', function () { tutorBoxes.forEach( function ( b ) { b.checked = false; } ); remember(); load(); } );
+
+	/* ---- adding a booking (1.203): in the side panel, covering nothing ---- */
+	var addBtn = root.querySelector( '.bftd-calv-addbtn' ), addForm = root.querySelector( '.bftd-calv-add' );
+	if ( addBtn && addForm ) {
+		var addSaid = addForm.querySelector( '.bftd-calv-said' ), untilBox = addForm.querySelector( '.bftd-calv-add-until' );
+		function openAdd( open ) {
+			addForm.hidden = ! open;
+			addBtn.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+			if ( open ) {
+				if ( ! addForm.elements.date.value ) addForm.elements.date.value = state.closed[ state.date ] ? '' : state.date;
+				addForm.elements.student_id.focus();
+			}
+		}
+		addBtn.addEventListener( 'click', function () { openAdd( addForm.hidden ); } );
+		addForm.querySelector( '.bftd-calv-add-close' ).addEventListener( 'click', function () { openAdd( false ); addBtn.focus(); } );
+		addForm.elements.repeat.addEventListener( 'change', function () { untilBox.hidden = 'weekly' !== addForm.elements.repeat.value; } );
+		// Say at once when the date picked is closed; the server refuses it anyway.
+		addForm.elements.date.addEventListener( 'change', function () {
+			var v = addForm.elements.date.value;
+			addSaid.textContent = v && 0 === d( v ).getUTCDay() ? 'Nothing is booked on a Sunday. Pick another date.'
+				: ( v && state.closed[ v ] ? 'Nothing is booked on ' + state.closed[ v ] + '. Pick another date.' : '' );
+		} );
+		addForm.addEventListener( 'submit', function ( ev ) {
+			ev.preventDefault();
+			var f = addForm.elements;
+			var data = { action: 'bftd_calendar_book', student_id: f.student_id.value, type: f.type.value, date: f.date.value, time: f.time.value,
+				minutes: f.minutes.value, repeat: f.repeat.value, until: 'weekly' === f.repeat.value ? f.until.value : '' };
+			if ( f.tutor ) data.tutor = f.tutor.value;
+			addSaid.textContent = 'Booking…';
+			post( data ).then( function ( res ) {
+				if ( res && res.success ) {
+					addSaid.textContent = 'Booked. Confirm it in the banner when you are done, and the family is told.';
+					state.date = data.date; load();
+					document.dispatchEvent( new Event( 'bftd:schedule-changed' ) );
+					return;
+				}
+				addSaid.textContent = res && res.data && res.data.message ? res.data.message : 'That was not booked.';
+			} ).catch( function () { addSaid.textContent = 'That was not booked. Check the connection and try again.'; } );
+		} );
+	}
 
 	load();
 }() );

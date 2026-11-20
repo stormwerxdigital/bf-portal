@@ -487,6 +487,7 @@ function bftdThumb( id, thumb, full ) {
 				from:    $r.find( '.bftd-s-from' ).val(),
 				repeat:  $r.find( '.bftd-s-repeat' ).val(),
 				until:   $r.find( '.bftd-s-until' ).val(),
+				type:    $r.find( '.bftd-s-type' ).val(),
 				tutor:   $r.find( '.bftd-s-tutor' ).val()
 			} );
 		} );

@@ -321,6 +321,8 @@ class BFTD_Oversight {
 		foreach ( (array) BFTD_Schedule::occurrences( $student_id, $win['from'], $win['to'], 400 ) as $slot ) {
 			if ( $slot['date'] < $win['from'] || $slot['date'] > $win['to'] ) continue;
 			if ( in_array( $slot['status'], array( 'cancelled', 'moved' ), true ) ) continue;
+			// A reading assessment is written up as a diagnostic, not a session (1.203).
+			if ( ! BFTD_Schedule::counts( $slot ) ) continue;
 
 			$out['due']++;
 			if ( empty( $by_date[ $slot['date'] ] ) ) {

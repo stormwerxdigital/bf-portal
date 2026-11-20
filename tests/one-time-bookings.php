@@ -62,8 +62,10 @@ function booked($sid, $from = null) {
 }
 
 $T  = BFTD_Time::today();
-$D3 = BFTD_Time::add_days($T, 3);
-$D10 = BFTD_Time::add_days($T, 10);
+/* Nothing is booked on a Sunday (1.203), so these dates step past one. */
+function open_day($d) { return '7' === gmdate('N', strtotime($d . ' 12:00:00 UTC')) ? BFTD_Time::add_days($d, 1) : $d; }
+$D3 = open_day(BFTD_Time::add_days($T, 3));
+$D10 = open_day(BFTD_Time::add_days($T, 10));
 $dow = function ($d) { return (string) gmdate('N', strtotime($d . ' 12:00:00 UTC')); };
 
 /* ---- a row, cleaned ---- */

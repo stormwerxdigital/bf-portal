@@ -107,7 +107,33 @@ class BFTD_Schedule {
 			'tutor'   => absint( isset( $row['tutor'] ) ? $row['tutor'] : 0 ),
 			'repeat'  => $repeat,
 			'until'   => $until,
+			'type'    => self::clean_type( isset( $row['type'] ) ? $row['type'] : '' ),
 		);
+	}
+
+	/**
+	 * What a booking is (Karl, 1.203): a tutoring session, the default, or
+	 * a reading assessment. A reading assessment takes the tutor's time like
+	 * any booking, but is not one of the sessions the family buys: it is not
+	 * counted as booked against what is paid for, and a session record on
+	 * its date does not mark it taught.
+	 */
+	public static function types() {
+		return array( 'tutoring' => 'Tutoring session', 'assessment' => 'Reading assessment' );
+	}
+
+	public static function clean_type( $t ) {
+		return 'assessment' === $t ? 'assessment' : 'tutoring';
+	}
+
+	public static function type_label( $t ) {
+		$all = self::types();
+		return $all[ self::clean_type( $t ) ];
+	}
+
+	/** Does this booking count among the sessions a family buys? */
+	public static function counts( $o ) {
+		return 'assessment' !== ( isset( $o['type'] ) ? $o['type'] : 'tutoring' );
 	}
 
 	/** Weekly unless the row says once; rows from before 1.201 have no say. */
@@ -115,12 +141,52 @@ class BFTD_Schedule {
 		return isset( $rule['repeat'] ) && 'once' === $rule['repeat'];
 	}
 
+	/**
+	 * Why this booking cannot be made, or '' (Karl, 1.203): nothing on a
+	 * Sunday, and nothing on a statutory holiday where the business is. A
+	 * weekly booking is only refused for being on Sundays; the holidays it
+	 * would land on are simply left out of it.
+	 */
+	public static function closed_rule( $rule ) {
+		if ( self::is_once( $rule ) && $rule['from'] < BFTD_Time::today() ) {
+			return sprintf( 'The booking on %s was not added: that date has passed.', BFTD_Time::day( $rule['from'] ) );
+		}
+		if ( self::is_once( $rule ) ) {
+			$why = self::closed_on( $rule['from'] );
+			return '' === $why ? '' : sprintf( 'The booking on %s was not added: %s, and nothing is booked then.', BFTD_Time::day( $rule['from'] ), self::closed_phrase( $why ) );
+		}
+		return '7' === (string) $rule['day'] ? 'A weekly booking on Sundays was not added: nothing is booked on a Sunday.' : '';
+	}
+
+	/** "that is a Sunday", "that is Family Day", "that is in the Christmas holidays". */
+	public static function closed_phrase( $why ) {
+		if ( 'Sunday' === $why ) return 'that is a Sunday';
+		if ( class_exists( 'BFTD_Stat_Holidays' ) && in_array( $why, BFTD_Stat_Holidays::break_names(), true ) ) {
+			return 'that is in ' . ( 'Christmas holidays' === $why ? 'the Christmas holidays' : 'spring break' );
+		}
+		return 'that is ' . $why;
+	}
+
+	/** Sunday, the holiday's name, or '' for a day that can be booked. */
+	public static function closed_on( $ymd ) {
+		if ( class_exists( 'BFTD_Stat_Holidays' ) ) return BFTD_Stat_Holidays::closed_because( $ymd );
+		return '7' === gmdate( 'N', strtotime( $ymd . ' 12:00:00 UTC' ) ) ? 'Sunday' : '';
+	}
+
 	public static function save_rules( $student_id, $raw ) {
-		$out = array();
+		$out    = array();
+		$closed = array();
+		$had    = array();
+		foreach ( self::rules( $student_id ) as $r ) $had[ (string) ( $r['id'] ?? '' ) ] = true;
 		foreach ( (array) $raw as $row ) {
 			$id   = is_array( $row ) && ! empty( $row['id'] ) ? sanitize_text_field( $row['id'] ) : 'r' . wp_generate_password( 8, false, false );
 			$rule = self::clean_rule( $row, $id );
-			if ( $rule ) $out[] = $rule;
+			if ( ! $rule ) continue;
+			// Only a new booking is turned away for its day: one already
+			// saved is left as it was, rather than vanishing on a later save.
+			$why = isset( $had[ $id ] ) ? '' : self::closed_rule( $rule );
+			if ( '' !== $why ) { $closed[] = $why; continue; }
+			$out[] = $rule;
 		}
 
 		// Nobody teaches more than a day holds. Slots that would break the
@@ -128,8 +194,8 @@ class BFTD_Schedule {
 		// person saving is told which one and why.
 		$split = self::split_by_cap( $student_id, $out );
 		$out   = $split['kept'];
-		if ( $split['rejected'] ) {
-			$said = array();
+		if ( $split['rejected'] || $closed ) {
+			$said = $closed;
 			foreach ( $split['rejected'] as $r ) $said[] = self::explain_rejection( $r );
 			set_transient( 'bftd_sched_warn_' . get_current_user_id(), $said, 60 );
 		}
@@ -159,9 +225,9 @@ class BFTD_Schedule {
 		$days = self::weekdays();
 		$bits = array();
 		foreach ( $rules as $r ) {
-			$bits[] = self::is_once( $r )
+			$bits[] = ( 'assessment' === ( $r['type'] ?? '' ) ? 'a reading assessment ' : '' ) . ( self::is_once( $r )
 				? 'once on ' . BFTD_Time::day( $r['from'] ) . ' at ' . self::pretty_time( $r['time'] )
-				: $days[ $r['day'] ] . 's at ' . self::pretty_time( $r['time'] );
+				: $days[ $r['day'] ] . 's at ' . self::pretty_time( $r['time'] ) );
 		}
 		$bits = array_unique( $bits );
 		if ( 1 === count( $bits ) ) return $bits[0];
@@ -208,7 +274,11 @@ class BFTD_Schedule {
 		// once. The clash is checked first because it is the absolute one.
 		if ( 'move' === $action ) {
 			$to = self::clean_date( $to_date );
-			if ( $to ) {
+			// Not onto a Sunday or a statutory holiday (1.203).
+			$shut = $to ? self::closed_on( $to ) : '';
+			if ( '' !== $shut ) {
+				return new WP_Error( 'bftd_closed', sprintf( 'Nothing is booked on %s: %s. Pick another date.', BFTD_Time::day( $to ), self::closed_phrase( $shut ) ) );
+			}			if ( $to ) {
 				$slot  = self::occurrence_at( $student_id, $key );
 				// A session can also be given another length, or another
 				// tutor, for that one date (1.193, from the calendar).
@@ -283,6 +353,40 @@ class BFTD_Schedule {
 			if ( $o['key'] === $key ) return $o;
 		}
 		return null;
+	}
+
+	/**
+	 * Add one booking to a student, from the calendar (Karl, 1.203).
+	 *
+	 * The same row the student's own form saves, cleaned the same way, and
+	 * held to the same two rules: it may not run over another session of the
+	 * tutor's, and the tutor's day holds ten. Turned away with the reason
+	 * rather than saved; the student's other bookings are left exactly as
+	 * they are either way.
+	 *
+	 * @return array|WP_Error the booking saved
+	 */
+	public static function add_booking( $student_id, $raw ) {
+		$rule = self::clean_rule( $raw, 'r' . wp_generate_password( 8, false, false ) );
+		if ( ! $rule ) return new WP_Error( 'bftd_booking', 'Pick a date and a time for the booking.' );
+		$why = self::closed_rule( $rule );
+		if ( '' !== $why ) return new WP_Error( 'bftd_closed', $why );
+
+		$have  = self::rules( $student_id );
+		$split = self::split_by_cap( $student_id, array_merge( $have, array( $rule ) ) );
+		foreach ( $split['rejected'] as $r ) {
+			if ( $r['rule']['id'] === $rule['id'] ) return new WP_Error( 'bftd_booking', self::explain_rejection( $r ) );
+		}
+
+		$have[] = $rule;
+		update_post_meta( $student_id, self::RULES_KEY, $have );
+		BFTD_Audit::log( 'schedule_changed', array(
+			'post_id'    => $student_id,
+			'student_id' => $student_id,
+			'summary'    => 'A booking was added from the calendar: ' . self::describe( array( $rule ) ) . ' (' . self::type_label( $rule['type'] ) . ').',
+		) );
+		do_action( 'bftd_schedule_changed', $student_id );
+		return $rule;
 	}
 
 	/**
@@ -590,7 +694,9 @@ class BFTD_Schedule {
 		$days = self::weekdays();
 		$u    = get_userdata( $r['tutor'] );
 		$who  = $u ? $u->display_name : 'That tutor';
-		$day  = isset( $days[ $r['rule']['day'] ] ) ? $days[ $r['rule']['day'] ] . 's' : 'That slot';
+		$day  = self::is_once( $r['rule'] )
+			? 'The session on ' . BFTD_Time::day( $r['rule']['from'] )
+			: ( isset( $days[ $r['rule']['day'] ] ) ? $days[ $r['rule']['day'] ] . 's' : 'That slot' );
 		$time = self::pretty_time( $r['rule']['time'] );
 		$date = BFTD_Time::day( $r['date'] );
 
@@ -692,12 +798,18 @@ class BFTD_Schedule {
 		// survives it unchanged. Every value that reaches a screen is
 		// formatted through BFTD_Time instead.
 		$out    = array();
+		$shut   = array();
 		$cursor = strtotime( $from . ' 12:00:00 UTC' );
 		$end    = strtotime( $to . ' 12:00:00 UTC' );
 
 		while ( $cursor <= $end && count( $out ) < $limit ) {
 			$date = gmdate( 'Y-m-d', $cursor );
 			$dow  = (string) gmdate( 'N', $cursor );
+
+			// A statutory holiday where the business is, or one of our own
+			// school breaks: nothing is booked, so a weekly booking skips it
+			// (Karl, 1.203). One already moved off it still happens where it went.
+			$holiday = isset( $shut[ $date ] ) ? $shut[ $date ] : ( $shut[ $date ] = class_exists( 'BFTD_Stat_Holidays' ) && '' !== BFTD_Stat_Holidays::no_bookings( $date ) );
 
 			foreach ( $rules as $rule ) {
 				if ( $rule['day'] !== $dow ) continue;
@@ -718,10 +830,12 @@ class BFTD_Schedule {
 					'reason'  => '',
 					'rule'    => isset( $rule['id'] ) ? (string) $rule['id'] : '',
 					'once'    => $once,
+					'type'    => self::clean_type( isset( $rule['type'] ) ? $rule['type'] : '' ),
 				);
 
 				// Deleted: gone, with no cancelled marker left behind (1.201).
 				if ( isset( $exceptions[ $key ] ) && 'delete' === $exceptions[ $key ]['action'] ) continue;
+				if ( $holiday && ! ( isset( $exceptions[ $key ] ) && 'move' === $exceptions[ $key ]['action'] ) ) continue;
 
 				if ( isset( $exceptions[ $key ] ) ) {
 					$x = $exceptions[ $key ];
@@ -747,7 +861,9 @@ class BFTD_Schedule {
 					}
 				}
 
-				if ( isset( $taught[ $slot['date'] ] ) ) {
+				// A session record taught that day is a tutoring session, so it
+				// never marks a reading assessment taught (1.203).
+				if ( isset( $taught[ $slot['date'] ] ) && 'assessment' !== $slot['type'] ) {
 					$slot['status']  = 'held';
 					$slot['session'] = $taught[ $slot['date'] ];
 				}
@@ -936,6 +1052,7 @@ class BFTD_Schedule {
 		$last   = '';
 		foreach ( self::occurrences( $student_id, BFTD_Time::today() ) as $o ) {
 			if ( 'booked' !== $o['status'] ) continue;
+			if ( ! self::counts( $o ) ) continue;   // a reading assessment is not a bought session (1.203)
 			$booked++;
 			if ( $booked <= $remaining ) $last = $o['date'];
 		}
@@ -1238,6 +1355,7 @@ class BFTD_Schedule {
 				'booked'    => 'Booked',
 			);
 			echo '<span class="bftd-occ-status">' . esc_html( $labels[ $o['status'] ] ) . '</span>';
+			if ( ! self::counts( $o ) ) echo '<span class="bftd-occ-type">' . esc_html( self::type_label( $o['type'] ) ) . '</span>';
 			if ( class_exists( 'BFTD_Bookings' ) ) echo BFTD_Bookings::occ_mark( $student_id, $o ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in occ_mark
 
 			if ( $o['reason'] ) echo '<span class="bftd-occ-why">' . esc_html( $o['reason'] ) . '</span>';

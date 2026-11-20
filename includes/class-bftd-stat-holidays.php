@@ -80,6 +80,158 @@ class BFTD_Stat_Holidays {
 	}
 
 	/* ------------------------------------------------------------------ */
+	/* Where the business is, and which days nothing is booked (1.203)     */
+	/* ------------------------------------------------------------------ */
+
+	/** The business's place, read from GoHighLevel's business info. */
+	const PLACE = 'bftd_business_place';
+
+	/**
+	 * The holiday lists the portal knows, by country and province or state.
+	 * Each is a method returning date => name for a year. British Columbia
+	 * is the list above, the one payroll uses, so bookings and pay never
+	 * disagree about a holiday.
+	 */
+	public static function known() {
+		return array( 'CA-BC' => array( __CLASS__, 'in_year' ) );
+	}
+
+	/**
+	 * "CA" and "BC" from whatever GoHighLevel holds: codes, or names such
+	 * as "Canada" and "British Columbia". Unknown names are kept, uppercased,
+	 * so the screen can say what was found.
+	 */
+	public static function place_codes( $country, $state ) {
+		$country = strtoupper( trim( (string) $country ) );
+		$state   = strtoupper( trim( (string) $state ) );
+		$countries = array( 'CANADA' => 'CA', 'UNITED STATES' => 'US', 'USA' => 'US', 'UNITED STATES OF AMERICA' => 'US' );
+		if ( isset( $countries[ $country ] ) ) $country = $countries[ $country ];
+		$provinces = array(
+			'BRITISH COLUMBIA' => 'BC', 'ALBERTA' => 'AB', 'SASKATCHEWAN' => 'SK', 'MANITOBA' => 'MB', 'ONTARIO' => 'ON',
+			'QUEBEC' => 'QC', 'QUÉBEC' => 'QC', 'NEW BRUNSWICK' => 'NB', 'NOVA SCOTIA' => 'NS', 'PRINCE EDWARD ISLAND' => 'PE',
+			'NEWFOUNDLAND AND LABRADOR' => 'NL', 'YUKON' => 'YT', 'NORTHWEST TERRITORIES' => 'NT', 'NUNAVUT' => 'NU',
+		);
+		if ( isset( $provinces[ $state ] ) ) $state = $provinces[ $state ];
+		return array( $country, $state );
+	}
+
+	/** The place as stored: country, state, label, when. Empty before the first read. */
+	public static function place() {
+		$p = function_exists( 'get_option' ) ? get_option( self::PLACE, array() ) : array();
+		return is_array( $p ) ? $p : array();
+	}
+
+	/** The list for the business's place, or null when there is none for it. */
+	public static function list_for_place() {
+		$p   = self::place();
+		$key = ( $p['country'] ?? '' ) . '-' . ( $p['state'] ?? '' );
+		$all = self::known();
+		return isset( $all[ $key ] ) ? $all[ $key ] : null;
+	}
+
+	/** The holiday on this date where the business is, or ''. */
+	public static function holiday_here( $ymd ) {
+		static $years = array();
+		$fn = self::list_for_place();
+		if ( ! $fn ) return '';
+		$y  = (int) substr( (string) $ymd, 0, 4 );
+		$ck = $y . '|' . implode( '-', (array) $fn );
+		if ( ! isset( $years[ $ck ] ) ) $years[ $ck ] = call_user_func( $fn, $y );
+		return isset( $years[ $ck ][ $ymd ] ) ? (string) $years[ $ck ][ $ymd ] : '';
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Our own school year's breaks (Karl, 1.203)                          */
+	/* ------------------------------------------------------------------ */
+
+	/**
+	 * Brilliant Futures' own school year, not a school district's: the
+	 * Christmas holidays and spring break move every year, so each school
+	 * year's dates are entered in Settings, Calendars. Nothing is booked in
+	 * either break.
+	 */
+	const BREAKS = 'bftd_school_breaks';
+
+	/** The breaks, named, for display and for the check. */
+	public static function break_names() {
+		return array( 'xmas' => 'Christmas holidays', 'spring' => 'Spring break' );
+	}
+
+	/** Every school year entered: starting year => xmas_from, xmas_to, spring_from, spring_to. Sorted. */
+	public static function school_years() {
+		$all = function_exists( 'get_option' ) ? get_option( self::BREAKS, array() ) : array();
+		$all = is_array( $all ) ? $all : array();
+		ksort( $all );
+		return $all;
+	}
+
+	/**
+	 * Saved from the form: rows of year and the four dates. A year with no
+	 * dates is dropped; a break whose end is before its start is dropped.
+	 *
+	 * @return array the school years kept
+	 */
+	public static function save_school_years( $rows ) {
+		$out = array();
+		foreach ( (array) $rows as $row ) {
+			if ( ! is_array( $row ) ) continue;
+			$year = (int) ( $row['year'] ?? 0 );
+			if ( $year < 2000 || $year > 2200 ) continue;
+			$keep = array();
+			foreach ( array_keys( self::break_names() ) as $b ) {
+				$from = self::date_or_blank( $row[ $b . '_from' ] ?? '' );
+				$to   = self::date_or_blank( $row[ $b . '_to' ] ?? '' );
+				if ( '' === $from || '' === $to || $to < $from ) { $from = ''; $to = ''; }
+				$keep[ $b . '_from' ] = $from;
+				$keep[ $b . '_to' ]   = $to;
+			}
+			if ( '' === implode( '', $keep ) ) continue;
+			$out[ $year ] = $keep;
+		}
+		ksort( $out );
+		if ( function_exists( 'update_option' ) ) update_option( self::BREAKS, $out, false );
+		return $out;
+	}
+
+	private static function date_or_blank( $d ) {
+		$d = trim( (string) $d );
+		return preg_match( '/^\d{4}-\d{2}-\d{2}$/', $d ) ? $d : '';
+	}
+
+	/** The school break this date falls in, or ''. */
+	public static function break_on( $ymd ) {
+		foreach ( self::school_years() as $y ) {
+			foreach ( self::break_names() as $b => $name ) {
+				$from = (string) ( $y[ $b . '_from' ] ?? '' );
+				$to   = (string) ( $y[ $b . '_to' ] ?? '' );
+				if ( '' !== $from && $ymd >= $from && $ymd <= $to ) return $name;
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * Nothing is booked on this date, Sundays aside: a statutory holiday
+	 * where the business is, or one of our school breaks. The name, or ''.
+	 */
+	public static function no_bookings( $ymd ) {
+		$h = self::holiday_here( $ymd );
+		return '' !== $h ? $h : self::break_on( (string) $ymd );
+	}
+
+	/**
+	 * Why nothing can be booked on this date, or '' if it is open (Karl,
+	 * 1.203): Sundays, the statutory holidays where the business is, and
+	 * our own Christmas holidays and spring break.
+	 */
+	public static function closed_because( $ymd ) {
+		$ymd = (string) $ymd;
+		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $ymd ) ) return '';
+		if ( '7' === gmdate( 'N', strtotime( $ymd . ' 12:00:00 UTC' ) ) ) return 'Sunday';
+		return self::no_bookings( $ymd );
+	}
+
+	/* ------------------------------------------------------------------ */
 	/* The arithmetic                                                      */
 	/* ------------------------------------------------------------------ */
 

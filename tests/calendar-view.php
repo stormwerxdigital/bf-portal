@@ -54,6 +54,9 @@ class BFTD_Audit { public static function log($e, $a = array()) { $GLOBALS['AUDI
 class BFTD_Admin { const MENU_SLUG = 'bftd'; }
 $GLOBALS['OCC'] = array();
 class BFTD_Schedule {
+  public static function clean_type($t) { return 'assessment' === $t ? 'assessment' : 'tutoring'; }
+  public static function type_label($t) { return 'assessment' === $t ? 'Reading assessment' : 'Tutoring session'; }
+  public static function closed_on($d) { return '7' === gmdate('N', strtotime($d . ' 12:00:00 UTC')) ? 'Sunday' : ''; }
   public static function scheduled_students() { return array(40, 41); }
   public static function occurrences($sid, $from = '', $to = '', $l = 200) { return $GLOBALS['OCC'][$sid] ?? array(); }
   public static function minutes_of($hhmm) { $p = explode(':', $hhmm); return (int) $p[0] * 60 + (int) $p[1]; }
@@ -102,7 +105,12 @@ $GLOBALS['T'] = array();   // what the tutor's view above read is not this one's
 $ev = BFTD_Calendar_View::events('2026-11-15', '2026-11-21', array(), 4);
 $by = array(); foreach ($ev as $e) $by[$e['kind'] . ' ' . $e['date'] . ' ' . $e['start']] = $e;
 check(isset($by['session 2026-11-18 09:00'], $by['session 2026-11-18 16:00'], $by['session 2026-11-19 16:00'], $by['session 2026-11-20 16:00']), 'every tutor\'s booked, taught and cancelled sessions, got ' . json_encode(array_keys($by)));
-check(!isset($by['session 2026-11-21 16:00']) && !isset($by['session 2026-11-30 16:00']), 'not the marker a move leaves behind, nor one outside the range');
+check(!isset($by['session 2026-11-30 16:00']), 'not one outside the range');
+$mv = $by['session 2026-11-21 16:00'] ?? array();
+check('moved' === ($mv['status'] ?? '') && false === $mv['can_edit'], 'where a rescheduled session was is sent too, marked rescheduled and not editable, for the Rescheduled filter (1.203)');
+check('Tutoring session' === $by['session 2026-11-18 16:00']['type_label'], 'each session says what type it is');
+$cl = BFTD_Calendar_View::closed('2026-11-15', '2026-11-21');
+check(array('2026-11-15' => 'Sunday') === $cl, 'the days nothing can be booked on come with the range, so Sundays are greyed out');
 check('16:50' === $by['session 2026-11-18 16:00']['end'] && '09:30' === $by['session 2026-11-18 09:00']['end'], 'each with its end, from its length');
 check(true === $by['session 2026-11-18 16:00']['in_ghl'] && true === $by['session 2026-11-18 09:00']['draft'], 'saying which are in GoHighLevel, and which student is a draft');
 check(true === $by['session 2026-11-18 16:00']['can_edit'] && false === $by['session 2026-11-19 16:00']['can_edit'] && false === $by['session 2026-11-20 16:00']['can_edit'], 'a booked session can be changed; a taught or cancelled one cannot');
@@ -135,7 +143,10 @@ check(is_wp_error($r), 'a move needs a real date and time');
 /* ---- where it is wired ---- */
 $src = file_get_contents(BFTD_PATH . 'includes/class-bftd-calendar-view.php');
 check(false !== strpos($src, "add_submenu_page( BFTD_Admin::MENU_SLUG, 'Calendar', 'Calendar', BFTD_Roles::STAFF_CAP, self::SLUG,") && false !== strpos($src, "<?php echo \$manage ? 'Calendar' : 'My schedule'; ?>"), 'a Calendar screen for staff, called My schedule for a tutor');
-check(substr_count($src, "check_ajax_referer( 'bftd_nonce', 'nonce' );") === 2 && false !== strpos($src, 'const MAX_DAYS = 42;'), 'both actions are signed, and a range is at most six weeks');
+check(substr_count($src, "check_ajax_referer( 'bftd_nonce', 'nonce' );") === 3 && false !== strpos($src, 'const MAX_DAYS = 42;'), 'all three actions are signed, and a range is at most six weeks');
+check(false !== strpos($src, "! user_can( \$viewer, 'edit_post', \$sid )") && false !== strpos($src, "if ( \$tutor && ( ! BFTD_Roles::can_manage( \$viewer ) || ! BFTD_Roles::is_staff( \$tutor ) ) ) \$tutor = 0;"), 'a booking from the calendar is only for a student this person can edit, and only a manager picks another tutor');
+check(false !== strpos($src, 'class="button button-primary bftd-calv-addbtn"') && false !== strpos($src, '<form id="bftd-calv-add" class="bftd-calv-add" hidden>') && false !== strpos($src, 'class="bftd-calv-showmoved"'), 'Add a booking sits in the side panel, opening in place, and Rescheduled is a filter beside Cancelled');
+check(false !== strpos($src, 'class="bftd-calv-showghl" checked> CRM</label>') && false !== strpos($src, 'class="bftd-calv-showdraft" checked> Drafts</label>') && false !== strpos(file_get_contents(BFTD_PATH . 'assets/js/bftd-calendar.js'), "if ( e.draft && ! showDraft.checked ) return false;"), 'the filters read CRM, and Drafts shows or hides the bookings of draft students');
 $js = file_get_contents(BFTD_PATH . 'assets/js/bftd-calendar.js');
 check(false !== strpos($js, "action: 'bftd_schedule_except'") && false !== strpos($js, "action: 'bftd_calendar_ghl'") && false !== strpos($js, "action: 'bftd_calendar_events'"), 'the screen changes sessions through the schedule\'s own action');
 foreach (array("'day' === state.view", "'week' === state.view", 'drawMonth') as $v) check(false !== strpos($js, $v), 'and draws ' . $v);

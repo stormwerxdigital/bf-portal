@@ -31,7 +31,7 @@ function wp_remote_request($url, $args) {
     array('id' => 'U-C', 'firstName' => 'Candice', 'lastName' => 'Paluck', 'email' => 'candice@example.test'),
     array('id' => 'U-Z', 'firstName' => 'Front', 'lastName' => 'Desk', 'email' => 'desk@example.test'),
   ))));
-  if ('/locations/LOC42' === $path) return array('code' => $GLOBALS['LOC_CODE'], 'body' => json_encode($GLOBALS['LOC_CODE'] < 300 ? array('location' => array('timezone' => $GLOBALS['ZONE'])) : array('message' => 'Unauthorized')));
+  if ('/locations/LOC42' === $path) return array('code' => $GLOBALS['LOC_CODE'], 'body' => json_encode($GLOBALS['LOC_CODE'] < 300 ? array('location' => array('timezone' => $GLOBALS['ZONE'], 'country' => 'CA', 'state' => 'BC', 'business' => array('country' => 'Canada', 'state' => 'British Columbia'))) : array('message' => 'Unauthorized')));
   return array('code' => 404, 'body' => '{}');
 }
 function wp_remote_retrieve_response_code($r) { return $r['code']; }
@@ -57,6 +57,7 @@ class BFTD_Audit { public static function log($e, $a = array()) { $GLOBALS['AUDI
 class BFTD_Settings { const PAGE_SLUG = 'bftd-settings'; }
 require BFTD_PATH . 'includes/class-bftd-ghl.php';
 require BFTD_PATH . 'includes/class-bftd-calendars.php';
+require BFTD_PATH . 'includes/class-bftd-stat-holidays.php';
 
 $fail = 0;
 function check($ok, $msg) { global $fail; if ($ok) echo "  ok  $msg\n"; else { echo "FAIL  $msg\n"; $fail++; } }
@@ -124,7 +125,10 @@ foreach ($z as $one) {
 }
 
 $c = BFTD_Calendars::check_timezone();
-check('off' === $c['state'] && array() === array_filter($GLOBALS['CALLS'], function ($x) { return '/locations/LOC42' === $x[1]; }), 'with no offset set, nothing is checked');
+check('off' === $c['state'], 'with no offset set, the time zone is not checked');
+$pl = BFTD_Stat_Holidays::place();
+check('CA' === $pl['country'] && 'BC' === $pl['state'] && 'British Columbia, Canada' === $pl['label'], 'but where the business is, from its business address in GoHighLevel, is kept, for the statutory holidays (1.203)');
+check(false !== strpos(implode(' ', $GLOBALS['AUDIT']), 'The business is in British Columbia, Canada, from GoHighLevel. Its statutory holidays are closed to bookings.'), 'and the history says where, and that its holidays are closed');
 $GLOBALS['OPT'][BFTD_Calendars::OFFSET] = (string) BFTD_Calendars::zone_offset('America/Vancouver');
 $c = BFTD_Calendars::check_timezone();
 check('ok' === $c['state'] && 'America/Vancouver' === $c['zone'], 'when GoHighLevel\'s zone gives our time, it says they agree');

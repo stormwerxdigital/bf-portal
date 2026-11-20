@@ -169,7 +169,7 @@ class BFTD_Bookings {
 		$why   = array();
 		$out   = array();
 		$read  = BFTD_Calendars::read();
-		$title = 'Reading session: ' . get_post_field( 'post_title', $sid );
+		$name  = (string) get_post_field( 'post_title', $sid );
 		$where = self::location( $sid );
 		$today = BFTD_Time::today();
 		$until = BFTD_Time::add_days( $today, self::WINDOW_DAYS );
@@ -188,7 +188,8 @@ class BFTD_Bookings {
 				'contact'  => (string) $contact,
 				'start'    => self::iso( $o['date'], $o['time'] ),
 				'end'      => self::iso( $o['date'], $o['time'], (int) $o['minutes'] ),
-				'title'    => $title,
+				// The type leads the title, so it reads right in GoHighLevel (1.203).
+				'title'    => ( 'assessment' === ( $o['type'] ?? '' ) ? 'Reading assessment: ' : 'Reading session: ' ) . $name,
 				'address'  => $where,
 				'from'     => (string) ( $o['from_key'] ?? '' ),
 				// A one-time session is booked at whatever time was picked,

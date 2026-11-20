@@ -1504,7 +1504,7 @@ html.mce-fullscreen div.mce-fullscreen{left:0 !important;top:0 !important;right:
 .bftd-calv-body{display:flex;gap:16px;align-items:flex-start}
 .bftd-calv-grid{flex:1;min-width:0;overflow-x:auto;background:var(--bftd-card);border:1px solid var(--bftd-line);border-radius:7px}
 .bftd-calv-grid[aria-busy="true"]{opacity:.6}
-.bftd-calv-side{width:210px;flex:none;background:var(--bftd-card);border:1px solid var(--bftd-line);border-radius:7px;padding:10px 14px}
+.bftd-calv-side{width:240px;flex:none;background:var(--bftd-card);border:1px solid var(--bftd-line);border-radius:7px;padding:10px 14px}
 .bftd-calv-side h2{font-size:14px;margin:4px 0 6px}
 .bftd-calv-tutor{display:flex;align-items:center;gap:6px;margin:6px 0;font-size:13px}
 .bftd-calv-msg{padding:14px;margin:0;color:var(--bftd-muted)}
@@ -1523,7 +1523,24 @@ html.mce-fullscreen div.mce-fullscreen{left:0 !important;top:0 !important;right:
 .bftd-calv-col .bftd-calv-ev{position:absolute;margin:0}
 .bftd-calv-ev:focus-visible{outline:2px solid var(--bftd-purple);outline-offset:1px}
 .bftd-calv-ev-t{font-weight:600}
-.bftd-calv-ev-n,.bftd-calv-ev-w{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bftd-calv-ev-n,.bftd-calv-ev-w,.bftd-calv-ev-y{display:block;white-space:normal;overflow-wrap:anywhere}
+.bftd-calv-ev-n{font-weight:600}
+.bftd-calv-ev-y{font-size:11px;color:#3c434a}
+.bftd-calv-ev.is-assessment{border-left-style:double;border-left-width:6px}
+.bftd-calv-ev.is-moved{background:repeating-linear-gradient(135deg,#f6f7f7 0,#f6f7f7 6px,#eceeef 6px,#eceeef 12px);color:#50575e;border-style:dotted}
+.bftd-calv-col.is-closed,.bftd-calv-cell.is-closed{background:repeating-linear-gradient(135deg,#eceeef 0,#eceeef 8px,#e2e4e7 8px,#e2e4e7 16px)}
+.bftd-calv-head span.is-closed{background:#e2e4e7;color:#646970}
+.bftd-calv-head span.is-closed button,.bftd-calv-cell.is-closed > .bftd-calv-goday{color:#646970}
+.bftd-calv-why{display:block;font-size:11px;font-weight:400;color:#50575e}
+.bftd-calv-k.is-moved{background:repeating-linear-gradient(135deg,#f6f7f7 0,#f6f7f7 6px,#eceeef 6px,#eceeef 12px);border-style:dotted}
+.bftd-calv-k.is-closed{background:repeating-linear-gradient(135deg,#eceeef 0,#eceeef 8px,#e2e4e7 8px,#e2e4e7 16px);border-left-color:#8c8f94}
+.bftd-calv-addbtn{width:100%;margin-bottom:10px !important}
+.bftd-calv-add{margin:0 0 14px;padding:0 0 12px;border-bottom:1px solid var(--bftd-line)}
+.bftd-calv-add h2{font-size:14px;margin:4px 0 6px}
+.bftd-calv-add label{display:block;margin:8px 0 2px;font-size:13px}
+.bftd-calv-add input,.bftd-calv-add select{display:block;width:100%;max-width:100%}
+.bftd-calv-add-do{display:flex;align-items:center;gap:10px;margin:8px 0 4px}
+.bftd-occ-type{font-size:12px;padding:0 6px;border-radius:3px;background:#efe9f6}
 .bftd-calv-ev-w{color:#50575e;font-size:11px}
 .bftd-calv-ev[data-c="0"]{border-left-color:#6b4c8a;background:#efe9f6}
 .bftd-calv-ev[data-c="1"]{border-left-color:#2e6b8a;background:#e5f0f6}
@@ -1623,3 +1640,6 @@ html.mce-fullscreen div.mce-fullscreen{left:0 !important;top:0 !important;right:
 .bftd-sw p{margin:0;flex:1 1 420px;min-width:0}
 .bftd-sw-do{display:flex;gap:8px;flex-wrap:wrap}
 .bftd-sw-do form{margin:0}
+/* A booking squeezed into a narrow lane opens to its full size on hover or
+   focus, so its type, student and tutor can always be read (1.203). */
+.bftd-calv-col .bftd-calv-ev:hover,.bftd-calv-col .bftd-calv-ev:focus-visible{height:auto !important;min-height:var(--bftd-ev-h,0);z-index:6;overflow:visible;box-shadow:0 2px 8px rgba(0,0,0,.18)}

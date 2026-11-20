@@ -86,6 +86,7 @@ class BFTD_Access {
    what the report does with a set of slots, and generating them here would be
    testing BFTD_Schedule twice. */
 class BFTD_Schedule {
+  public static function counts($o){ return 'assessment' !== ($o['type'] ?? 'tutoring'); }
   const OFFSET_KEY='_bftd_lessons_used_before';
   public static function occurrences($sid,$from='',$to='',$limit=200){ return $GLOBALS['SLOTS'][$sid] ?? array(); }
   public static function used_counts($ids){ $o=array(); foreach((array)$ids as $i) $o[(int)$i]=0; return $o; }

@@ -734,6 +734,7 @@ class BFTD_MetaBoxes {
 				One row per booking: pick the date and time, then whether it is one time or every week from that date.
 				A weekly booking runs until its end date, or with none, until it is changed. Sessions are booked
 				whatever has been paid for; the tiles above say how far the paid sessions reach.
+				A reading assessment takes the tutor's time but is not counted among the sessions bought, used or remaining.
 			</p>
 
 			<table class="widefat bftd-sched-rules">
@@ -743,6 +744,7 @@ class BFTD_MetaBoxes {
 					<th style="width:90px;">Minutes</th>
 					<th style="width:130px;">Repeats</th>
 					<th style="width:160px;">Ends</th>
+					<th style="width:170px;">Type</th>
 					<th>Tutor</th>
 					<th style="width:30px;"></th>
 				</tr></thead>
@@ -873,6 +875,13 @@ class BFTD_MetaBoxes {
 				</select>
 			</td>
 			<td><input type="date" name="<?php echo $n; ?>[until]" value="<?php echo esc_attr( $r['until'] ); ?>" class="bftd-s-until" aria-label="Ends"<?php echo $once ? ' hidden' : ''; ?>></td>
+			<td>
+				<select name="<?php echo $n; ?>[type]" class="bftd-s-type" aria-label="Appointment type">
+					<?php foreach ( BFTD_Schedule::types() as $k => $label ) : ?>
+						<option value="<?php echo esc_attr( $k ); ?>" <?php selected( BFTD_Schedule::clean_type( $r['type'] ?? '' ), $k ); ?>><?php echo esc_html( $label ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</td>
 			<td><?php self::tutor_picker( $n . '[tutor]', $tutors, $r['tutor'], $post_id ); ?></td>
 			<td><button type="button" class="button-link bftd-sched-rm" aria-label="Remove this slot">&times;</button></td>
 		</tr>

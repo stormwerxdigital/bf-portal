@@ -31,6 +31,57 @@ class BFTD_Calendar_View {
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
 		add_action( 'wp_ajax_bftd_calendar_events', array( __CLASS__, 'ajax_events' ) );
 		add_action( 'wp_ajax_bftd_calendar_ghl', array( __CLASS__, 'ajax_ghl' ) );
+		add_action( 'wp_ajax_bftd_calendar_book', array( __CLASS__, 'ajax_book' ) );
+	}
+
+	/**
+	 * The students this person may book for: id => name. Everyone for a
+	 * manager; for a tutor, the students they can edit (their own).
+	 */
+	public static function bookable( $viewer ) {
+		$ids = get_posts( array(
+			'post_type'      => BFTD_CPT::STUDENT,
+			'post_status'    => array( 'publish', 'draft', 'private' ),
+			'posts_per_page' => -1,
+			'orderby'        => 'title',
+			'order'          => 'ASC',
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+		) );
+		$out = array();
+		foreach ( (array) $ids as $sid ) {
+			if ( ! user_can( (int) $viewer, 'edit_post', (int) $sid ) ) continue;
+			$out[ (int) $sid ] = (string) get_post_field( 'post_title', $sid ) . ( 'publish' === get_post_status( $sid ) ? '' : ' (draft)' );
+		}
+		return $out;
+	}
+
+	/**
+	 * A booking added from the calendar (Karl, 1.203): a student, then the
+	 * same choices as the student's own form. Held to the same rules, and
+	 * sent to GoHighLevel the same way: once confirmed, in hours.
+	 */
+	public static function ajax_book() {
+		check_ajax_referer( 'bftd_nonce', 'nonce' );
+		$viewer = get_current_user_id();
+		$sid    = absint( $_POST['student_id'] ?? 0 );
+		if ( ! $sid || BFTD_CPT::STUDENT !== get_post_type( $sid ) || ! user_can( $viewer, 'edit_post', $sid ) ) {
+			wp_send_json_error( array( 'message' => 'Pick one of your students.' ), 403 );
+		}
+		$tutor = absint( $_POST['tutor'] ?? 0 );
+		// Another tutor for a booking is a manager's choice, as on the calendar's edit.
+		if ( $tutor && ( ! BFTD_Roles::can_manage( $viewer ) || ! BFTD_Roles::is_staff( $tutor ) ) ) $tutor = 0;
+		$r = BFTD_Schedule::add_booking( $sid, array(
+			'from'    => sanitize_text_field( wp_unslash( $_POST['date'] ?? '' ) ),
+			'time'    => sanitize_text_field( wp_unslash( $_POST['time'] ?? '' ) ),
+			'minutes' => absint( $_POST['minutes'] ?? 50 ),
+			'repeat'  => 'weekly' === ( $_POST['repeat'] ?? '' ) ? 'weekly' : 'once',
+			'until'   => sanitize_text_field( wp_unslash( $_POST['until'] ?? '' ) ),
+			'type'    => sanitize_key( wp_unslash( $_POST['type'] ?? '' ) ),
+			'tutor'   => $tutor,
+		) );
+		if ( is_wp_error( $r ) ) wp_send_json_error( array( 'message' => $r->get_error_message() ), 409 );
+		wp_send_json_success( array( 'booking' => $r ) );
 	}
 
 	public static function menu() {
@@ -87,7 +138,8 @@ class BFTD_Calendar_View {
 			$draft = 'publish' !== get_post_status( $sid );
 			$edit  = user_can( (int) $viewer, 'edit_post', $sid );
 			foreach ( BFTD_Schedule::occurrences( $sid, $from, $to, 400 ) as $o ) {
-				if ( 'moved' === $o['status'] ) continue;   // shown on the date it moved to
+				// A rescheduled session is shown where it went; where it was is
+				// listed too, for the Rescheduled filter (1.203).
 				if ( ! isset( $want[ (int) $o['tutor'] ] ) ) continue;
 				if ( $o['date'] < $from || $o['date'] > $to ) continue;
 				$out[] = array(
@@ -100,7 +152,11 @@ class BFTD_Calendar_View {
 					'start'      => $o['time'],
 					'end'        => self::plus( $o['time'], $o['minutes'] ),
 					'status'     => $o['status'],
+					'type'       => BFTD_Schedule::clean_type( $o['type'] ?? '' ),
+					'type_label' => BFTD_Schedule::type_label( $o['type'] ?? '' ),
 					'key'        => $o['key'],
+					'moved_to'   => 'moved' === $o['status'] && ! empty( $o['moved_to_date'] )
+						? BFTD_Time::day( $o['moved_to_date'] ) . ( ! empty( $o['moved_to_time'] ) ? ', ' . BFTD_Schedule::pretty_time( $o['moved_to_time'] ) : '' ) : '',
 					'draft'      => $draft,
 					'in_ghl'     => isset( $map[ $o['key'] ] ),
 					// Their own sessions are a tutor's to change (Karl, 1.193).
@@ -260,7 +316,24 @@ class BFTD_Calendar_View {
 			wp_send_json_error( array( 'message' => 'That is more than six weeks at once.' ), 400 );
 		}
 		$tutors = isset( $_POST['tutors'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['tutors'] ) ) : array();
-		wp_send_json_success( array( 'events' => self::events( $from, $to, $tutors, get_current_user_id() ) ) );
+		wp_send_json_success( array(
+			'events' => self::events( $from, $to, $tutors, get_current_user_id() ),
+			'closed' => self::closed( $from, $to ),
+		) );
+	}
+
+	/**
+	 * Dates in a range that nothing can be booked on, with why: Sundays,
+	 * statutory holidays where the business is, our school breaks (1.203).
+	 * date => reason. Greyed out on the calendar.
+	 */
+	public static function closed( $from, $to ) {
+		$out = array();
+		for ( $d = $from; $d <= $to; $d = BFTD_Time::add_days( $d, 1 ) ) {
+			$why = BFTD_Schedule::closed_on( $d );
+			if ( '' !== $why ) $out[ $d ] = $why;
+		}
+		return $out;
 	}
 
 	public static function render() {
@@ -276,6 +349,7 @@ class BFTD_Calendar_View {
 			'manage' => $manage ? 1 : 0,
 			'me'     => (int) $viewer,
 		);
+		$students = self::bookable( $viewer );
 		?>
 		<div class="wrap bftd-wrap bftd-calv">
 			<h1 class="wp-heading-inline"><?php echo $manage ? 'Calendar' : 'My schedule'; ?></h1>
@@ -294,26 +368,80 @@ class BFTD_Calendar_View {
 					<option value="week" selected>Week</option>
 					<option value="month">Month</option>
 				</select>
-				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showghl" checked> GoHighLevel bookings</label>
+				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showghl" checked> CRM</label>
+				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showdraft" checked> Drafts</label>
 				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showcancel"> Cancelled</label>
+				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showmoved"> Rescheduled</label>
 			</div>
 			<div class="bftd-calv-body">
 				<div class="bftd-calv-grid" role="region" aria-label="Sessions"></div>
-				<?php if ( $manage ) : ?>
-					<aside class="bftd-calv-side" aria-label="Tutors">
+				<aside class="bftd-calv-side" aria-label="Bookings and tutors">
+					<?php if ( $students ) : ?>
+						<button type="button" class="button button-primary bftd-calv-addbtn" aria-expanded="false" aria-controls="bftd-calv-add">Add a booking</button>
+						<?php // In the panel, in the page's flow: it covers nothing (1.203). ?>
+						<form id="bftd-calv-add" class="bftd-calv-add" hidden>
+							<h2>New booking</h2>
+							<label for="bftd-calv-add-student">Student</label>
+							<select id="bftd-calv-add-student" name="student_id" required>
+								<option value="">Choose a student</option>
+								<?php foreach ( $students as $sid => $name ) : ?>
+									<option value="<?php echo (int) $sid; ?>"><?php echo esc_html( $name ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<label for="bftd-calv-add-type">Type</label>
+							<select id="bftd-calv-add-type" name="type">
+								<?php foreach ( BFTD_Schedule::types() as $k => $label ) : ?>
+									<option value="<?php echo esc_attr( $k ); ?>"<?php selected( 'tutoring', $k ); ?>><?php echo esc_html( $label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<label for="bftd-calv-add-date">Date</label>
+							<input type="date" id="bftd-calv-add-date" name="date" required>
+							<label for="bftd-calv-add-time">Time</label>
+							<input type="time" id="bftd-calv-add-time" name="time" step="300" required>
+							<label for="bftd-calv-add-minutes">Minutes</label>
+							<input type="number" id="bftd-calv-add-minutes" name="minutes" value="50" min="15" step="5">
+							<label for="bftd-calv-add-repeat">Repeats</label>
+							<select id="bftd-calv-add-repeat" name="repeat">
+								<option value="once" selected>One time</option>
+								<option value="weekly">Every week</option>
+							</select>
+							<div class="bftd-calv-add-until" hidden>
+								<label for="bftd-calv-add-ends">Ends (optional)</label>
+								<input type="date" id="bftd-calv-add-ends" name="until">
+							</div>
+							<?php if ( $manage ) : ?>
+								<label for="bftd-calv-add-tutor">Tutor</label>
+								<select id="bftd-calv-add-tutor" name="tutor">
+									<option value="0">The student's assigned tutor</option>
+									<?php foreach ( $tutors as $uid => $name ) : ?>
+										<option value="<?php echo (int) $uid; ?>"><?php echo esc_html( $name ); ?></option>
+									<?php endforeach; ?>
+								</select>
+							<?php endif; ?>
+							<p class="bftd-calv-said" role="alert"></p>
+							<p class="bftd-calv-add-do">
+								<button type="submit" class="button button-primary">Book it</button>
+								<button type="button" class="button-link bftd-calv-add-close">Close</button>
+							</p>
+							<p class="description">Families are told once the change is confirmed in the banner above.</p>
+						</form>
+					<?php endif; ?>
+					<?php if ( $manage ) : ?>
 						<h2>Tutors</h2>
 						<p><button type="button" class="button-link bftd-calv-all">All</button> &middot; <button type="button" class="button-link bftd-calv-none">None</button></p>
 						<?php $i = 0; foreach ( $tutors as $uid => $name ) : ?>
 							<label class="bftd-calv-tutor"><input type="checkbox" value="<?php echo (int) $uid; ?>" checked>
 								<span class="bftd-calv-swatch" data-i="<?php echo (int) ( $i++ % 8 ); ?>"></span><?php echo esc_html( $name ); ?></label>
 						<?php endforeach; ?>
-					</aside>
-				<?php endif; ?>
+					<?php endif; ?>
+				</aside>
 			</div>
 			<p class="description bftd-calv-key">
 				<span class="bftd-calv-k is-booked">Booked</span>
 				<span class="bftd-calv-k is-held">Taught</span>
 				<span class="bftd-calv-k is-cancelled">Cancelled</span>
+				<span class="bftd-calv-k is-moved">Rescheduled, where it was</span>
+				<span class="bftd-calv-k is-closed">Closed: Sundays, statutory holidays, school breaks</span>
 				<span class="bftd-calv-k is-ghl">Made in GoHighLevel, change it there</span>
 			</p>
 			<div class="bftd-calv-pop" role="dialog" aria-modal="false" aria-labelledby="bftd-calv-pop-title" hidden></div>
