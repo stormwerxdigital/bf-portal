@@ -127,7 +127,7 @@ $js = file_get_contents(BFTD_PATH . 'assets/js/bftd-calendar.js');
 check(false !== strpos($bk, "( 'assessment' === ( \$o['type'] ?? '' ) ? 'Reading assessment: ' : 'Reading session: ' )"), 'in GoHighLevel the appointment says which it is');
 check(false !== strpos($ov, 'if ( ! BFTD_Schedule::counts( $slot ) ) continue;'), 'Oversight does not ask for a session record for a reading assessment');
 check(false !== strpos($cl, "self::remember_place( (array) ( \$data['location'] ?? array() ) );") && false !== strpos($cl, 'self::render_school_year();'), 'the business place is read with the hourly check, and the school year is set on the Calendars tab');
-check(false !== strpos($js, "var HOUR   = 96;") && false !== strpos($js, "( state.closed[ s ] ? ' is-closed' : '' )") && false !== strpos($js, "'moved' === e.status && ! showMoved.checked"), 'the calendar is tall enough to read each booking, greys closed days, and filters rescheduled ones');
+check(false !== strpos($js, "var HOUR_MIN = 96;") && false !== strpos($js, "( state.closed[ s ] ? ' is-closed' : '' )") && false !== strpos($js, "'moved' === e.status && ! showMoved.checked"), 'the calendar is tall enough to read each booking, greys closed days, and filters rescheduled ones');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

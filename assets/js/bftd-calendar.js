@@ -29,7 +29,7 @@
 	var tutorBoxes = Array.prototype.slice.call( root.querySelectorAll( '.bftd-calv-tutor input' ) );
 	var DAYS   = [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ];
 	var MONTHS = [ 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' ];
-	var HOUR   = 96;           // pixels an hour takes in the day and week views: a 50 minute session fits its time and type, a two line name, and the tutor (1.203.1)
+	var HOUR_MIN = 96;         // the least an hour takes in the day and week views; drawTimed() makes it taller when a booking needs it (1.203.2)
 	var tutorIds = Object.keys( C.tutors || {} ).map( Number );
 
 	var state = { view: 'week', date: C.today, events: [], closed: {} };
@@ -145,7 +145,7 @@
 		return '<button type="button" class="' + cls + '" data-c="' + colour( e.tutor ) + '" data-i="' + state.events.indexOf( e ) + '"'
 			+ ( timed ? ' style="' + timed + '"' : '' ) + ' aria-label="' + esc( says ) + '" title="' + esc( says ) + '">'
 			// Time and type on one line, so the name has room (1.203.1).
-			+ '<span class="bftd-calv-ev-t">' + esc( clock( e.start ) ) + ( e.type_label ? '<span class="bftd-calv-ev-y"> &middot; ' + esc( e.type_label ) + '</span>' : '' ) + '</span>'
+			+ '<span class="bftd-calv-ev-t">' + esc( clock( e.start ) ) + ( e.type ? '<span class="bftd-calv-ev-y"> &middot; ' + ( 'assessment' === e.type ? 'Assessment' : 'Tutoring' ) + '</span>' : '' ) + '</span>'
 			+ '<span class="bftd-calv-ev-n">' + esc( e.title ) + '</span>'
 			+ ( 'moved' === e.status && e.moved_to ? '<span class="bftd-calv-ev-w">Moved to ' + esc( e.moved_to ) + '</span>' : '' )
 			// The tutor only when more than one is shown: each has their own colour (1.203.1).
@@ -165,7 +165,16 @@
 		list.forEach( function ( e ) { e._lanes = ends.length; } );
 	}
 
-	function drawTimed( days ) {
+	/*
+	 * An hour is as tall as its bookings need (1.203.2). The text a booking
+	 * holds depends on the person's text size (accessibility mode makes it
+	 * larger), the column's width and the length of a name, none of which a
+	 * fixed height can know. So the hours are drawn at HOUR, every booking
+	 * that does not fit is measured, and the view is drawn once more with
+	 * hours tall enough for the one that needed most. Never shorter than HOUR.
+	 */
+	function drawTimed( days, hour ) {
+		var HOUR = hour || HOUR_MIN;
 		var list = visible(), lo = 7 * 60, hi = 20 * 60;
 		list.forEach( function ( e ) { lo = Math.min( lo, Math.floor( mins( e.start ) / 60 ) * 60 ); hi = Math.max( hi, Math.ceil( Math.max( mins( e.end ), mins( e.start ) + 15 ) / 60 ) * 60 ); } );
 		var h = '<div class="bftd-calv-head" style="grid-template-columns:64px repeat(' + days.length + ',minmax(120px,1fr))"><span></span>';
@@ -191,6 +200,12 @@
 		h += '</div>';
 		if ( ! list.length ) h += '<p class="bftd-calv-msg">No sessions ' + ( 'day' === state.view ? 'this day' : 'this week' ) + ' for the tutors shown.</p>';
 		grid.innerHTML = h;
+		if ( hour ) return;   // already sized to fit
+		var need = 1;
+		Array.prototype.forEach.call( grid.querySelectorAll( '.bftd-calv-col .bftd-calv-ev' ), function ( el ) {
+			if ( el.clientHeight > 0 && el.scrollHeight > el.clientHeight + 1 ) need = Math.max( need, ( el.scrollHeight + 4 ) / el.clientHeight );
+		} );
+		if ( need > 1 ) drawTimed( days, Math.min( 400, Math.ceil( HOUR * need ) ) );
 	}
 
 	function drawMonth() {
