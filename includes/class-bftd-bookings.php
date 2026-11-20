@@ -424,7 +424,8 @@ class BFTD_Bookings {
 		if ( $held ) : ?>
 			<p class="bftd-cal-warn"><?php echo esc_html( 'queued' === $held['state']
 				? 'Changes confirmed, to be sent to GoHighLevel at ' . BFTD_Send_Window::when( (int) $held['send_at'] ) . '.'
-				: 'Changes not sent to GoHighLevel yet. Families are told once somebody confirms in the banner at the top of the screen.' ); ?></p>
+				: 'Changes not sent to GoHighLevel yet. Families are told once somebody confirms them on the Calendar.' ); ?>
+				<?php if ( 'queued' !== $held['state'] ) : ?><a href="<?php echo esc_url( admin_url( 'admin.php?page=' . BFTD_Calendar_View::SLUG ) ); ?>">Open the Calendar to confirm</a><?php endif; ?></p>
 		<?php endif; ?>
 		<?php if ( is_array( $state ) && ! empty( $state['when'] ) ) : ?>
 			<p class="<?php echo '' !== $state['error'] ? 'bftd-cal-warn' : 'description'; ?>"><?php

@@ -137,6 +137,17 @@ check('' === $W::banner_html(99, $evening), 'and somebody with nothing waiting s
 /* ---- where it is wired ---- */
 $sw = file_get_contents(BFTD_PATH . 'includes/class-bftd-send-window.php');
 check(false !== strpos($sw, "check_admin_referer( 'bftd_send_changes' );") && false !== strpos($sw, "\$override = \$override && BFTD_Roles::can_manage( \$uid );"), 'confirming is signed, and only a manager can override the hours');
+/* Where it is drawn (1.202, Karl: "this banner should only appear in calendars, and it cannot overlay or cover any controls"). */
+$swsrc = file_get_contents(BFTD_PATH . 'includes/class-bftd-send-window.php');
+$cvsrc = file_get_contents(BFTD_PATH . 'includes/class-bftd-calendar-view.php');
+$css   = file_get_contents(BFTD_PATH . 'assets/css/bftd-admin.css');
+$all   = '';
+foreach (glob(BFTD_PATH . 'includes/*.php') as $f) $all .= file_get_contents($f);
+check(false === strpos($swsrc, "'banner_shell' )") && 1 === substr_count($all, 'BFTD_Send_Window::banner_shell()'), 'the banner is drawn in one place only, not on every admin screen');
+check(1 === preg_match("/<h1[^\n]*\n\t*<\?php if \( class_exists\( 'BFTD_Send_Window' \) \) BFTD_Send_Window::banner_shell\(\); \?>/", $cvsrc), 'and that place is the Calendar page, under its heading');
+preg_match('/\.bftd-sw\{[^}]*\}/', $css, $rule);
+check(isset($rule[0]) && false === strpos($rule[0], 'position:fixed') && false === strpos($rule[0], 'position:absolute') && false === strpos($rule[0], 'z-index'), 'it sits in the page, so it pushes the calendar down rather than covering any control');
+check(false !== strpos(file_get_contents(BFTD_PATH . 'includes/class-bftd-bookings.php'), 'Open the Calendar to confirm'), 'a student with changes waiting says to confirm them on the Calendar');
 check(false !== strpos(file_get_contents(BFTD_PATH . 'assets/js/bftd-calendar.js'), "document.dispatchEvent( new Event( 'bftd:schedule-changed' ) )") && false !== strpos(file_get_contents(BFTD_PATH . 'assets/js/bftd-admin.js'), "document.dispatchEvent( new Event( 'bftd:schedule-changed' ) )"), 'a change on the calendar or the student\'s list brings the banner up at once');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";

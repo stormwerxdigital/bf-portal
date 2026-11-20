@@ -279,6 +279,7 @@ class BFTD_Calendar_View {
 		?>
 		<div class="wrap bftd-wrap bftd-calv">
 			<h1 class="wp-heading-inline"><?php echo $manage ? 'Calendar' : 'My schedule'; ?></h1>
+			<?php if ( class_exists( 'BFTD_Send_Window' ) ) BFTD_Send_Window::banner_shell(); ?>
 			<hr class="wp-header-end">
 			<div class="bftd-calv-bar">
 				<button type="button" class="button bftd-calv-today">Today</button>

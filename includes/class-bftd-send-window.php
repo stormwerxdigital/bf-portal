@@ -46,7 +46,8 @@ class BFTD_Send_Window {
 		add_action( self::EVENT, array( __CLASS__, 'run_queue' ) );
 		add_action( 'admin_post_bftd_send_changes', array( __CLASS__, 'confirm_request' ) );
 		add_action( 'wp_ajax_bftd_pending_banner', array( __CLASS__, 'ajax_banner' ) );
-		add_action( 'admin_footer', array( __CLASS__, 'banner_shell' ) );
+		// The banner is drawn by the Calendar page only, in the page itself
+		// (1.202, Karl: only in calendars, and never over any controls).
 		add_action( 'admin_notices', array( __CLASS__, 'flash' ) );
 	}
 
@@ -318,7 +319,11 @@ class BFTD_Send_Window {
 		return $html;
 	}
 
-	/** Drawn on every portal screen for staff, filled when there is something to say. */
+	/**
+	 * Drawn on the Calendar page, under its heading, filled when there is
+	 * something to say. In the page's flow, not fixed over it, so it pushes
+	 * the calendar down rather than covering any of it (1.202).
+	 */
 	public static function banner_shell() {
 		if ( ! BFTD_Roles::is_staff() || ! BFTD_GHL::configured() ) return;
 		$html = self::banner_html( get_current_user_id() );
