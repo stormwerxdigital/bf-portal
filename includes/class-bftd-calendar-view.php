@@ -442,7 +442,7 @@ class BFTD_Calendar_View {
 				<span class="bftd-calv-k is-cancelled">Cancelled</span>
 				<span class="bftd-calv-k is-moved">Rescheduled, where it was</span>
 				<span class="bftd-calv-k is-closed">Closed: Sundays, statutory holidays, school breaks</span>
-				<span class="bftd-calv-k is-ghl">Made in GoHighLevel, change it there</span>
+				<span class="bftd-calv-k is-ghl">Made in CRM</span>
 			</p>
 			<div class="bftd-calv-pop" role="dialog" aria-modal="false" aria-labelledby="bftd-calv-pop-title" hidden></div>
 		</div>
