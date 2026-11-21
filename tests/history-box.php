@@ -16,6 +16,8 @@ function body_of($src, $fn) {
 
 check(false !== strpos($src, "add_meta_box( 'bftd_student_crm', 'History',"), 'the box is called History');
 check(false === strpos($src, 'Contact and history'), 'and nothing still calls it Contact and history');
+check(false !== strpos($src, "add_meta_box( 'bftd_log', 'Activity log',"), 'the change log box is called Activity log (1.208.1)');
+check(1 === substr_count($src, "'History', array("), 'so only one box on the student page is called History');
 
 $ns = body_of($src, 'not_shown');
 check(false !== strpos($ns, "array( 'phone', 'email' )"), 'Phone and Email are the fields not shown');

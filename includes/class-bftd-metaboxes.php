@@ -120,13 +120,13 @@ class BFTD_MetaBoxes {
 
 		add_meta_box( 'bftd_resource', 'Resource', array( __CLASS__, 'box_resource' ), BFTD_CPT::RESOURCE, 'normal', 'high' );
 
-		// The History panel is the activity log, one record at a time, so it
+		// The Activity log box is the activity log, one record at a time, so it
 		// answers to the same rule as the Activity Log screen. Drawing it for
 		// a tutor while hiding the page it comes from would be the same
 		// information behind a thinner door.
 		if ( BFTD_Roles::can_administer() ) {
 			foreach ( BFTD_Roles::post_types() as $pt ) {
-				add_meta_box( 'bftd_log', 'History', array( __CLASS__, 'box_log' ), $pt, 'normal', 'low' );
+				add_meta_box( 'bftd_log', 'Activity log', array( __CLASS__, 'box_log' ), $pt, 'normal', 'low' );
 			}
 		}
 	}
