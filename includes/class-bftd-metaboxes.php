@@ -1179,6 +1179,9 @@ class BFTD_MetaBoxes {
 				'late'        => 'Late start',
 				'rescheduled' => 'Rescheduled',
 				'missed'      => 'Missed',
+				// The student did not turn up and nobody cancelled (Karl, 1.210).
+				// Uses a paid session like Missed, but asks for no "Cancelled by".
+				'noshow'      => 'No show',
 				'pending'     => 'Pending',
 			) ),
 			'status_why'     => array(

@@ -526,6 +526,9 @@ class BFTD_Charts {
 			array( (string) (int) $a['missed'], 'missed', (int) $a['missed'] ? 'warn' : '', 'cross' ),
 			array( $since[0], $since[1], $weeks ? 'warn' : '', 'clock' ),
 		);
+		// No shows, only once there has been one (1.210).
+		$ns = (int) ( $a['noshow'] ?? 0 );
+		if ( $ns ) array_splice( $tiles, 4, 0, array( array( (string) $ns, 1 === $ns ? 'no show' : 'no shows', 'warn', 'cross' ) ) );
 
 		ob_start();
 		?>

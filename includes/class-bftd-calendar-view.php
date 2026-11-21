@@ -434,8 +434,13 @@ class BFTD_Calendar_View {
 				<label class="bftd-calv-ghl" title="Bookings sent to the CRM, and appointments made in it"><input type="checkbox" class="bftd-calv-showghl" checked> Scheduled</label>
 				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showdraft" checked> Drafts</label>
 				<label class="bftd-calv-ghl" title="Bookings before today, taught or not"><input type="checkbox" class="bftd-calv-showheld" checked> Past</label>
+				<label class="bftd-calv-ghl" title="Bookings whose session was attended"><input type="checkbox" class="bftd-calv-showattended" checked> Attended</label>
+				<label class="bftd-calv-ghl" title="Bookings whose session was marked No show"><input type="checkbox" class="bftd-calv-shownoshow" checked> No shows</label>
 				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showcancel"> Cancelled</label>
 				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showmoved"> Rescheduled</label>
+				<?php // Search the bookings by student name (Karl, 1.210). ?>
+				<label class="screen-reader-text" for="bftd-calv-search">Search by student</label>
+				<input type="search" id="bftd-calv-search" class="bftd-calv-search" placeholder="Search students" autocomplete="off">
 			</div>
 			<div class="bftd-calv-body">
 				<div class="bftd-calv-grid" role="region" aria-label="Sessions"></div>
@@ -504,7 +509,8 @@ class BFTD_Calendar_View {
 			<p class="description bftd-calv-key">
 				<span class="bftd-calv-k is-booked">Booked</span>
 				<span class="bftd-calv-k is-draft">Draft</span>
-				<span class="bftd-calv-k is-held">Taught</span>
+				<span class="bftd-calv-k is-held">Attended</span>
+				<span class="bftd-calv-k is-noshow">No show</span>
 				<span class="bftd-calv-k is-cancelled">Cancelled</span>
 				<span class="bftd-calv-k is-moved">Rescheduled</span>
 				<span class="bftd-calv-k is-closed">Closed: Sundays, statutory holidays, school breaks</span>

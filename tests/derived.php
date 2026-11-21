@@ -446,6 +446,13 @@ check(2 === $a['held'], 'only the sessions that have happened are counted, got '
 check(1 === $a['rescheduled'], 'one moved');
 check(1 === $a['missed'], 'one lost');
 
+/* A no-show (1.210) is counted on its own, never as attended. */
+$GLOBALS['SESS'][806] = array('session_date' => $ago(3), 'status' => 'noshow');
+$n = BFTD_Derived::attendance(1);
+check(1 === $n['noshow'] && 2 === $n['held'] && 1 === $n['missed'], 'a no-show is counted on its own, not as attended or missed, got ' . json_encode(array($n['noshow'], $n['held'], $n['missed'])));
+check(10 === $n['days_since'], 'and the days since the last session attended do not reset for it');
+unset($GLOBALS['SESS'][806]);
+
 /* Since the last one ATTENDED, not the last one recorded. A run of
    cancellations is exactly the case this exists to show, and measuring from
    the newest record would hide it behind the cancellation. */

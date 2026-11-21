@@ -24,7 +24,7 @@ for (const [name, vp] of [['desktop', { width: 1340, height: 900 }], ['phone', {
   await p.goto('file://' + page_path);
   await p.waitForSelector('.bftd-calv-ev');
 
-  const open = async () => { await p.click('.bftd-calv-ev'); await p.waitForTimeout(300); };
+  const open = async () => { await p.click('.bftd-calv-ev.is-booked'); await p.waitForTimeout(300); };
   const shown = () => p.evaluate(() => ({
     pop: !document.querySelector('.bftd-calv-pop').hidden,
     veil: !document.querySelector('.bftd-calv-veil').hidden,
@@ -80,6 +80,50 @@ for (const [name, vp] of [['desktop', { width: 1340, height: 900 }], ['phone', {
   await p.keyboard.press('Escape'); await p.waitForTimeout(100);
   s = await shown();
   check(!s.pop && !s.veil, 'and so does Escape');
+
+  if (name === 'desktop') {
+    /* Attended and No shows (Karl, 1.210): each its own filter, and a no-show
+       looks and reads as one. */
+    console.log('\nAttended and No shows on the Calendar:');
+    const count = () => p.evaluate(() => ({
+      booked: document.querySelectorAll('.bftd-calv-ev.is-booked').length,
+      held: document.querySelectorAll('.bftd-calv-ev.is-held').length,
+      noshow: document.querySelectorAll('.bftd-calv-ev.is-noshow').length,
+    }));
+    let c = await count();
+    check(c.booked === 1 && c.held === 1 && c.noshow === 1, 'all three show to begin with, got ' + JSON.stringify(c));
+    const ns = await p.evaluate(() => {
+      const b = document.querySelector('.bftd-calv-ev.is-noshow');
+      return { label: b.getAttribute('aria-label'), bg: getComputedStyle(b).backgroundColor,
+        key: [...document.querySelectorAll('.bftd-calv-k')].map(k => k.textContent.trim()) };
+    });
+    check(/no show/.test(ns.label) && ns.bg === 'rgb(250, 237, 227)', 'a no-show reads "no show" and is clay, got ' + ns.bg);
+    check(ns.key.includes('Attended') && ns.key.includes('No show'), 'and the key names Attended and No show');
+    await p.click('.bftd-calv-showattended'); await p.waitForTimeout(100);
+    c = await count();
+    check(c.held === 0 && c.noshow === 1 && c.booked === 1, 'unticking Attended hides only the attended booking, got ' + JSON.stringify(c));
+    await p.click('.bftd-calv-shownoshow'); await p.waitForTimeout(100);
+    c = await count();
+    check(c.noshow === 0 && c.booked === 1, 'unticking No shows hides the no-show, got ' + JSON.stringify(c));
+    await p.click('.bftd-calv-showattended'); await p.click('.bftd-calv-shownoshow'); await p.waitForTimeout(100);
+    c = await count();
+    check(c.held === 1 && c.noshow === 1, 'and ticking them brings both back');
+
+    /* Search by student name (Karl, 1.210). */
+    console.log('\nSearching by student:');
+    const all = () => p.evaluate(() => document.querySelectorAll('.bftd-calv-ev').length);
+    const box = await p.evaluate(() => { const s = document.querySelector('.bftd-calv-search');
+      return s && { type: s.type, label: !!document.querySelector('label[for="' + s.id + '"]'), ph: s.placeholder }; });
+    check(!!box && box.type === 'search' && box.label, 'there is a labelled search box, got ' + JSON.stringify(box));
+    await p.fill('.bftd-calv-search', 'sam'); await p.waitForTimeout(100);
+    check(1 === await all() && 1 === (await count()).noshow, 'typing part of a name shows only that student\'s bookings');
+    await p.fill('.bftd-calv-search', 'PAT EX'); await p.waitForTimeout(100);
+    check(2 === await all(), 'any case, and more than one word');
+    await p.fill('.bftd-calv-search', 'nobody'); await p.waitForTimeout(100);
+    check(0 === await all(), 'a name with no bookings shows none');
+    await p.fill('.bftd-calv-search', ''); await p.waitForTimeout(100);
+    check(3 === await all(), 'and clearing it brings them all back');
+  }
   await p.close();
 }
 

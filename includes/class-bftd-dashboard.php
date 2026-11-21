@@ -549,6 +549,7 @@ class BFTD_Dashboard {
 			'tutors'    => $tutors,
 			'held'      => isset( $att['held'] ) ? (int) $att['held'] : 0,
 			'missed'    => isset( $att['missed'] ) ? (int) $att['missed'] : 0,
+			'noshow'    => isset( $att['noshow'] ) ? (int) $att['noshow'] : 0,
 			'moved'     => isset( $att['rescheduled'] ) ? (int) $att['rescheduled'] : 0,
 			'bank'      => BFTD_Schedule::bank( $student_id ),
 			'last'      => $last ? BFTD_Time::day( $last, self::date_format() ) : '',
@@ -589,9 +590,10 @@ class BFTD_Dashboard {
 							<dl class="bf-kid-facts">
 								<div><dt>Tutor</dt><dd><?php echo $s['tutors'] ? esc_html( implode( ', ', $s['tutors'] ) ) : '<span class="bf-none">Not assigned yet</span>'; ?></dd></div>
 								<div><dt>Attendance</dt><dd><?php
-									if ( $s['held'] || $s['missed'] || $s['moved'] ) {
+									if ( $s['held'] || $s['missed'] || $s['moved'] || $s['noshow'] ) {
 										$bits = array( $s['held'] . ' attended' );
 										if ( $s['missed'] ) $bits[] = $s['missed'] . ' missed';
+										if ( $s['noshow'] ) $bits[] = $s['noshow'] . ( 1 === $s['noshow'] ? ' no show' : ' no shows' );
 										if ( $s['moved'] )  $bits[] = $s['moved'] . ' rescheduled';
 										echo esc_html( implode( ' · ', $bits ) );
 									} else {

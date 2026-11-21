@@ -276,6 +276,7 @@ class BFTD_Derived {
 		$resc = 0;
 		$miss = 0;
 		$late = 0;
+		$noshow = 0;
 		$last = 0;
 		$first = 0;
 
@@ -303,6 +304,8 @@ class BFTD_Derived {
 				continue;
 			}
 			if ( 'missed' === $status )      { $miss++; continue; }
+			// Not attended, so never counted as attended (1.210).
+			if ( 'noshow' === $status )      { $noshow++; continue; }
 
 			// A late start went ahead: attended, and counted on its own too.
 			if ( 'late' === $status ) $late++;
@@ -313,7 +316,7 @@ class BFTD_Derived {
 			}
 		}
 
-		if ( ! $held && ! $resc && ! $miss ) return array();
+		if ( ! $held && ! $resc && ! $miss && ! $noshow ) return array();
 
 		$days = $last ? (int) floor( ( $now - $last ) / DAY_IN_SECONDS ) : 0;
 
@@ -321,6 +324,7 @@ class BFTD_Derived {
 			'held'        => $held,
 			'rescheduled' => $resc,
 			'missed'      => $miss,
+			'noshow'      => $noshow,
 			'late'        => $late,
 			'last_ts'     => $last,
 			'first_ts'    => $first,

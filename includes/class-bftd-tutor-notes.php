@@ -21,7 +21,7 @@ class BFTD_Tutor_Notes {
 
 	/** What happened to a session, in the words the session screen uses. */
 	public static function statuses() {
-		return array( 'held' => 'Attended', 'late' => 'Late start', 'rescheduled' => 'Rescheduled', 'missed' => 'Missed', 'pending' => 'Pending' );
+		return array( 'held' => 'Attended', 'late' => 'Late start', 'rescheduled' => 'Rescheduled', 'missed' => 'Missed', 'noshow' => 'No show', 'pending' => 'Pending' );
 	}
 
 	public static function init() {

@@ -28,6 +28,9 @@
 	var showMoved  = root.querySelector( '.bftd-calv-showmoved' );
 	var showDraft  = root.querySelector( '.bftd-calv-showdraft' );
 	var showHeld   = root.querySelector( '.bftd-calv-showheld' );
+	var showAttended = root.querySelector( '.bftd-calv-showattended' );
+	var showNoshow   = root.querySelector( '.bftd-calv-shownoshow' );
+	var search       = root.querySelector( '.bftd-calv-search' );
 	var tutorBoxes = Array.prototype.slice.call( root.querySelectorAll( '.bftd-calv-tutor input' ) );
 	var DAYS   = [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ];
 	var MONTHS = [ 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' ];
@@ -44,6 +47,8 @@
 		if ( 'moved' in saved ) showMoved.checked = !! saved.moved;
 		if ( 'draft' in saved ) showDraft.checked = !! saved.draft;
 		if ( 'held' in saved ) showHeld.checked = !! saved.held;
+		if ( 'attended' in saved ) showAttended.checked = !! saved.attended;
+		if ( 'noshow' in saved ) showNoshow.checked = !! saved.noshow;
 	} catch ( e ) {}
 	viewEl.value = state.view;
 
@@ -52,7 +57,8 @@
 			localStorage.setItem( 'bftd_calv', JSON.stringify( {
 				view: state.view,
 				off: tutorBoxes.filter( function ( b ) { return ! b.checked; } ).map( function ( b ) { return Number( b.value ); } ),
-				ghl: showGhl.checked, cancel: showCancel.checked, moved: showMoved.checked, draft: showDraft.checked, held: showHeld.checked
+				ghl: showGhl.checked, cancel: showCancel.checked, moved: showMoved.checked, draft: showDraft.checked, held: showHeld.checked,
+				attended: showAttended.checked, noshow: showNoshow.checked
 			} ) );
 		} catch ( e ) {}
 	}
@@ -136,7 +142,13 @@
 			if ( 'moved' === e.status && ! showMoved.checked ) return false;
 			if ( e.draft && ! showDraft.checked ) return false;
 			// Past (1.206.4, was Taught): everything before today, taught or not.
-			if ( ( 'held' === e.status || e.date < C.today ) && ! showHeld.checked ) return false;   // draft students' bookings (1.203)
+			if ( e.date < C.today && ! showHeld.checked ) return false;
+			// Attended and No shows (Karl, 1.210): what each session says happened.
+			if ( 'held' === e.status && ! showAttended.checked ) return false;
+			if ( 'noshow' === e.status && ! showNoshow.checked ) return false;
+			// Search by student name (Karl, 1.210): any part of the name, any case.
+			var q = search ? search.value.trim().toLowerCase() : '';
+			if ( q && String( e.student || e.title || '' ).toLowerCase().indexOf( q ) < 0 ) return false;
 			return true;
 		} );
 	}
@@ -147,7 +159,7 @@
 		var who = C.tutors[ e.tutor ] || '';
 		var says = e.title + ', ' + clock( e.start ) + ' to ' + clock( e.end ) + ( who ? ', ' + who : '' )
 			+ ( e.type_label ? ', ' + e.type_label : '' )
-			+ ( 'cancelled' === e.status ? ', cancelled' : 'held' === e.status ? ', taught' : 'moved' === e.status ? ', rescheduled to ' + e.moved_to : '' ) + ( 'ghl' === e.kind ? ', made in GoHighLevel' : '' );
+			+ ( 'cancelled' === e.status ? ', cancelled' : 'held' === e.status ? ', attended' : 'noshow' === e.status ? ', no show' : 'moved' === e.status ? ', rescheduled to ' + e.moved_to : '' ) + ( 'ghl' === e.kind ? ', made in GoHighLevel' : '' );
 		// The left border is the tutor's colour, the same as their swatch (1.206.1).
 		var t = ( C.colours && C.colours[ e.tutor ] !== undefined ) ? C.colours[ e.tutor ] % 8 : 0;
 		return '<button type="button" class="' + cls + '" data-t="' + t + '" data-i="' + state.events.indexOf( e ) + '"'
@@ -271,7 +283,8 @@
 			+ '</div><div class="bftd-calv-pop-body">';
 		if ( 'moved' === e.status ) h += '<p class="description">Rescheduled to ' + esc( e.moved_to ) + '.</p>';
 		if ( 'ghl' === e.kind ) h += '<p class="description">Made in GoHighLevel, not on a student\'s schedule.</p>';
-		else if ( 'held' === e.status ) h += '<p class="description">Taught.</p>';
+		else if ( 'held' === e.status ) h += '<p class="description">Attended.</p>';
+		else if ( 'noshow' === e.status ) h += '<p class="description">No show.</p>';
 		else if ( 'cancelled' === e.status ) h += '<p class="description">Cancelled.</p>';
 		else if ( e.in_ghl ) h += '<p class="description">In GoHighLevel.</p>';
 		if ( e.can_edit ) {
@@ -355,7 +368,8 @@
 	root.querySelector( '.bftd-calv-next' ).addEventListener( 'click', function () { step( 1 ); } );
 	root.querySelector( '.bftd-calv-today' ).addEventListener( 'click', function () { state.date = C.today; load(); } );
 	viewEl.addEventListener( 'change', function () { state.view = viewEl.value; remember(); load(); } );
-	[ showGhl, showCancel, showMoved, showDraft, showHeld ].forEach( function ( x ) { x.addEventListener( 'change', function () { remember(); draw(); } ); } );
+	if ( search ) search.addEventListener( 'input', function () { draw(); } );
+	[ showGhl, showCancel, showMoved, showDraft, showHeld, showAttended, showNoshow ].forEach( function ( x ) { x.addEventListener( 'change', function () { remember(); draw(); } ); } );
 	tutorBoxes.forEach( function ( b ) { b.addEventListener( 'change', function () { remember(); load(); } ); } );
 	var all = root.querySelector( '.bftd-calv-all' ), none = root.querySelector( '.bftd-calv-none' );
 	if ( all ) all.addEventListener( 'click', function () { tutorBoxes.forEach( function ( b ) { b.checked = true; } ); remember(); load(); } );

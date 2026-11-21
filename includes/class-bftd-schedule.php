@@ -740,6 +740,17 @@ class BFTD_Schedule {
 
 		$out = self::generate( $rules, self::exceptions( $student_id ), self::taught_dates( $student_id ), $from, $to, $limit );
 
+		// A booking whose published session says No show is shown as one
+		// (Karl, 1.210). Never a reading assessment, as with taught.
+		$noshow = self::noshow_dates( $student_id );
+		if ( $noshow ) {
+			foreach ( $out as $i => $o ) {
+				if ( 'booked' !== $o['status'] || 'assessment' === ( $o['type'] ?? '' ) || ! isset( $noshow[ $o['date'] ] ) ) continue;
+				$out[ $i ]['status']  = 'noshow';
+				$out[ $i ]['session'] = $noshow[ $o['date'] ];
+			}
+		}
+
 		/**
 		 * Filter the generated occurrences.
 		 *
@@ -976,7 +987,8 @@ class BFTD_Schedule {
 				if ( ! BFTD_Fields::get( $sid, 'session', 'session_date' ) ) continue;
 
 				$status = (string) BFTD_Fields::get( $sid, 'session', 'status' );
-				if ( ! in_array( $status, array( 'held', 'late', 'missed' ), true ) ) continue;
+				// A no-show uses a paid session too (Karl, 1.210).
+				if ( ! in_array( $status, array( 'held', 'late', 'missed', 'noshow' ), true ) ) continue;
 
 				$out[ $owner ]++;
 			}
@@ -1009,6 +1021,18 @@ class BFTD_Schedule {
 	 * is all this is for: the slot either was taught or was not. Anything
 	 * counting lessons wants taught_count().
 	 */
+	/** date => session post id, for each published session marked No show (1.210). */
+	public static function noshow_dates( $student_id ) {
+		$report = BFTD_CPT::report_for( $student_id, BFTD_CPT::PROGRESS );
+		if ( ! $report ) return array();
+		$out = array();
+		foreach ( BFTD_CPT::sessions_for( $report ) as $sid ) {
+			$date = (string) BFTD_Fields::get( $sid, 'session', 'session_date' );
+			if ( $date && 'noshow' === BFTD_Fields::get( $sid, 'session', 'status' ) ) $out[ $date ] = (int) $sid;
+		}
+		return $out;
+	}
+
 	public static function taught_dates( $student_id ) {
 		$out = array();
 		foreach ( self::taught_sessions( $student_id ) as $sid => $date ) {

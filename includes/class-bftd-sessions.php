@@ -196,7 +196,7 @@ class BFTD_Sessions {
 		$out = array();
 		foreach ( (array) $student_ids as $id ) {
 			$out[ (int) $id ] = array(
-				'held' => 0, 'rescheduled' => 0, 'missed' => 0,
+				'held' => 0, 'rescheduled' => 0, 'missed' => 0, 'noshow' => 0,
 				'draft' => 0, 'total' => 0, 'last' => '',
 			);
 		}
@@ -469,8 +469,8 @@ class BFTD_Sessions {
 	/** Attended, rescheduled or missed. Shared by the drawer and the advanced view. */
 	public static function happened_cell( $sid ) {
 		$status = (string) BFTD_Fields::get( $sid, 'session', 'status' );
-		$words  = array( 'held' => 'Attended', 'late' => 'Late start', 'rescheduled' => 'Rescheduled', 'missed' => 'Missed', 'pending' => 'Pending' );
-		$kind   = array( 'held' => 'held', 'late' => 'held', 'rescheduled' => 'moved', 'missed' => 'missed', 'pending' => 'draft' );
+		$words  = array( 'held' => 'Attended', 'late' => 'Late start', 'rescheduled' => 'Rescheduled', 'missed' => 'Missed', 'noshow' => 'No show', 'pending' => 'Pending' );
+		$kind   = array( 'held' => 'held', 'late' => 'held', 'rescheduled' => 'moved', 'missed' => 'missed', 'noshow' => 'missed', 'pending' => 'draft' );
 		echo isset( $words[ $status ] )
 			? '<span class="bftd-att-b is-' . esc_attr( $kind[ $status ] ) . '">' . esc_html( $words[ $status ] ) . '</span>'
 			: '<span class="bftd-none">Not recorded</span>';
@@ -548,6 +548,7 @@ class BFTD_Sessions {
 			array( 'held', $rec['held'], 'attended' ),
 			array( 'moved', $rec['rescheduled'], 'moved' ),
 			array( 'missed', $rec['missed'], 'missed' ),
+			array( 'missed', $rec['noshow'] ?? 0, 'no show' ),
 		);
 		echo '<span class="bftd-att">';
 		foreach ( $parts as $part ) {

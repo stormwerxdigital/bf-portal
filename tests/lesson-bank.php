@@ -244,6 +244,27 @@ check(array() === BFTD_Schedule::used_counts(array()), 'nobody asked about is no
 check(BFTD_Schedule::used_count($S) === BFTD_Schedule::taught_count($S) + BFTD_Schedule::cancelled_count($S),
   'used is exactly the sessions taught plus the sessions cancelled');
 
+/* A no-show (Karl, 1.210): the student did not come and nobody cancelled. It
+   uses a paid session, like a cancellation, but it is neither a lesson taught
+   nor a cancellation. */
+$GLOBALS['SESSION_META'][904]['status'] = 'noshow';
+check(2 === BFTD_Schedule::taught_count($S), 'a no-show is not a lesson taught');
+check(4 === BFTD_Schedule::used_count($S), 'but it uses a paid session, got ' . BFTD_Schedule::used_count($S));
+check(1 === BFTD_Schedule::cancelled_count($S), 'and it is not counted as cancelled');
+check(BFTD_Schedule::used_counts(array($S))[$S] === 4, 'the bulk count agrees');
+
+/* The booking it was for shows as a no-show, from the published session. */
+$GLOBALS['SESSION_META'][904]['session_date'] = '2026-07-13';
+$wk = 60;
+$GLOBALS['SESSIONS'][$wk] = array(904);
+BFTD_Schedule::save_rules($wk, array(array('day' => '1', 'time' => '16:00', 'minutes' => 50, 'from' => '2026-07-06', 'tutor' => 5)));
+$byDate = array();
+foreach (BFTD_Schedule::occurrences($wk, '2026-07-06', '2026-07-20') as $o) $byDate[$o['date']] = $o['status'];
+check(($byDate['2026-07-13'] ?? '') === 'noshow', 'the booking on the no-show date shows as a no-show, got ' . ($byDate['2026-07-13'] ?? 'none'));
+check(($byDate['2026-07-06'] ?? '') === 'booked' && ($byDate['2026-07-20'] ?? '') === 'booked', 'and the bookings either side do not');
+unset($GLOBALS['SESSIONS'][$wk]);
+$GLOBALS['SESSION_META'][904] = array('session_date' => '2026-07-14', 'status' => 'held');
+
 /* And the counting reads the count, not the map. */
 $sched = file_get_contents(BFTD_PATH . 'includes/class-bftd-schedule.php');
 check(0 === preg_match('/count\(\s*self::taught_dates\(/', $sched),
