@@ -594,6 +594,12 @@ class BFTD_Roles {
 		return user_can( $user_id, self::ADMIN_CAP ) || user_can( $user_id, 'manage_options' );
 	}
 
+	/** A WordPress administrator: the owner's tier, above senior managers (1.206.3). */
+	public static function is_administrator( $user_id = null ) {
+		$user_id = $user_id ? $user_id : get_current_user_id();
+		return user_can( $user_id, 'manage_options' );
+	}
+
 	/** Can this person add and remove managers? Senior managers and admins. */
 	public static function can_manage_team( $user_id = null ) {
 		$user_id = $user_id ? $user_id : get_current_user_id();

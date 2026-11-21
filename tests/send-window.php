@@ -34,7 +34,7 @@ function add_action(...$a) {}
 function get_posts($a) { return array(40, 41, 42); }
 if (!function_exists('apply_filters')) { function apply_filters($h, $v) { return $v; } }
 $GLOBALS['MANAGERS'] = array(4);
-class BFTD_Roles { public static function can_manage($u = null) { return in_array((int) $u, $GLOBALS['MANAGERS'], true); } public static function is_staff($u = null) { return true; } }
+class BFTD_Roles { public static function can_manage($u = null) { return in_array((int) $u, $GLOBALS['MANAGERS'], true); } public static function is_administrator($u = null) { return in_array((int) $u, $GLOBALS['ADMINS'] ?? array(), true); } public static function is_staff($u = null) { return true; } }
 class BFTD_Audit { public static function log($e, $a = array()) { $GLOBALS['AUDIT'][] = $e . ': ' . $a['summary']; } }
 class BFTD_Admin { const MENU_SLUG = 'bftd'; }
 class BFTD_CPT { const STUDENT = 'bftd_student'; public static function staff_ids($s) { return array(4); } }
@@ -93,7 +93,11 @@ check(!isset($W::pending()[40]), 'and with nothing changed since, nothing is hel
 
 $GLOBALS['ME'] = 4;
 list($what) = $W::confirm(4, true, $evening);
-check('sent' === $what && array(41) === $GLOBALS['SYNCED'], 'a manager can send at any time');
+check('queued' === $what && array() === $GLOBALS['SYNCED'], 'a manager who is not an administrator cannot send out of hours: it is queued like anyone\'s (1.206.3)');
+$GLOBALS['ADMINS'] = array(4);
+list($what) = $W::confirm(4, true, $evening);
+check('sent' === $what && array(41) === $GLOBALS['SYNCED'], 'an administrator can send at any time');
+$GLOBALS['ADMINS'] = array();
 $GLOBALS['SYNCED'] = array(); $GLOBALS['ME'] = 6;
 $GLOBALS['INPUT'][40] = 'a3'; $W::note_change(40);
 list($what) = $W::confirm(6, false, $lunch);
@@ -126,9 +130,13 @@ $GLOBALS['INPUT'][40] = 'a4'; $W::note_change(40);
 $b = $W::banner_html(6, $lunch);
 check(false !== strpos($b, '1 student has schedule changes not sent:') && false !== strpos($b, 'Ana Lee') && false === strpos($b, 'Families have not been told') && false !== strpos($b, '>Confirm and send now<'), 'in hours: what is held, and Confirm and send now, with no line saying families have not been told (1.204.1)');
 $b = $W::banner_html(6, $evening);
-check(false !== strpos($b, '>Confirm, send at 8:00 am tomorrow<') && false === strpos($b, 'Send now anyway'), 'after 6:00 pm a tutor confirms for 8:00 am, with no way round it');
+check(false !== strpos($b, '>Confirm<') && false !== strpos($b, 'Ana Lee</a>. <span class="bftd-sw-when">Send at 8:00 am tomorrow.</span>') && false === strpos($b, 'Send now'), 'after 6:00 pm a tutor sees Confirm, with when it will go in grey after the names, and no way round it (1.206.3)');
 $b = $W::banner_html(4, $evening);
-check(false !== strpos($b, '>Send now anyway<') && false !== strpos($b, 'name="override" value="1"'), 'a manager can send anyway');
+check(false === strpos($b, '>Send now<') && false === strpos($b, 'name="override" value="1"'), 'a manager who is not an administrator cannot send out of hours either (1.206.3)');
+$GLOBALS['ADMINS'] = array(4);
+$b = $W::banner_html(4, $evening);
+check(false !== strpos($b, '>Send now<') && false !== strpos($b, 'name="override" value="1"') && false === strpos($b, 'anyway'), 'an administrator can: Send now');
+$GLOBALS['ADMINS'] = array();
 $W::confirm(6, false, $evening);
 $b = $W::banner_html(6, $evening);
 check(false !== strpos($b, 'Confirmed: the changes for 1 student will be sent at 8:00 am tomorrow.') && false !== strpos($b, 'between 8:00 am and 6:00 pm'), 'once confirmed, it says when it will go');
@@ -136,7 +144,7 @@ check('' === $W::banner_html(99, $evening), 'and somebody with nothing waiting s
 
 /* ---- where it is wired ---- */
 $sw = file_get_contents(BFTD_PATH . 'includes/class-bftd-send-window.php');
-check(false !== strpos($sw, "check_admin_referer( 'bftd_send_changes' );") && false !== strpos($sw, "\$override = \$override && BFTD_Roles::can_manage( \$uid );"), 'confirming is signed, and only a manager can override the hours');
+check(false !== strpos($sw, "check_admin_referer( 'bftd_send_changes' );") && false !== strpos($sw, "\$override = \$override && BFTD_Roles::is_administrator( \$uid );"), 'confirming is signed, and only an administrator can override the hours (1.206.3)');
 /* Where it is drawn (1.202, Karl: "this banner should only appear in calendars, and it cannot overlay or cover any controls"). */
 $swsrc = file_get_contents(BFTD_PATH . 'includes/class-bftd-send-window.php');
 $cvsrc = file_get_contents(BFTD_PATH . 'includes/class-bftd-calendar-view.php');

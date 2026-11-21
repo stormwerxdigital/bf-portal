@@ -1653,6 +1653,7 @@ html.mce-fullscreen div.mce-fullscreen{left:0 !important;top:0 !important;right:
 .bftd-sw p{margin:0;flex:1 1 420px;min-width:0}
 .bftd-sw-do{display:flex;gap:8px;flex-wrap:wrap}
 .bftd-sw-do form{margin:0}
+.bftd-sw-when{color:#646970;font-weight:400}
 /* A booking squeezed into a narrow lane opens to its full size on hover or
    focus, so its type, student and tutor can always be read (1.203). */
 .bftd-calv-col .bftd-calv-ev:hover,.bftd-calv-col .bftd-calv-ev:focus-visible{height:auto !important;min-height:var(--bftd-ev-h,0);z-index:6;overflow:visible;box-shadow:0 2px 8px rgba(0,0,0,.18)}

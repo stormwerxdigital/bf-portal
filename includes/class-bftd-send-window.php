@@ -13,8 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  * confirms.
  *
  * Confirming between 8:00 am and 6:00 pm, business time, sends at once; out
- * of hours it is queued and sent at 8:00 am. A manager, senior manager or
- * administrator may send at any time. Whatever is sent is only the final
+ * of hours it is queued and sent at 8:00 am. Only an administrator (1.206.3;
+ * managers before) may send at any time. Whatever is sent is only the final
  * state: the mirror (BFTD_Bookings::sync_student) compares what GoHighLevel
  * has with what the schedule says now, so ten changes to one session are one
  * change, and a session moved and moved back is none.
@@ -199,7 +199,8 @@ class BFTD_Send_Window {
 	public static function confirm( $uid, $override = false, $now = null ) {
 		$mine = self::mine( $uid );
 		if ( ! $mine ) return array( 'none', 0, 0 );
-		$override = $override && BFTD_Roles::can_manage( $uid );
+		// Sending outside the hours is for administrators only (Karl, 1.206.3).
+		$override = $override && BFTD_Roles::is_administrator( $uid );
 		if ( $override || self::in_hours( $now ) ) {
 			self::send_now( array_keys( $mine ), $uid );
 			return array( 'sent', 0, count( $mine ) );
@@ -279,7 +280,7 @@ class BFTD_Send_Window {
 		if ( ! $mine ) return '';
 		$editing = array_filter( $mine, function ( $r ) { return 'editing' === $r['state']; } );
 		$queued  = array_filter( $mine, function ( $r ) { return 'queued' === $r['state']; } );
-		$manager = BFTD_Roles::can_manage( $uid );
+		$admin   = BFTD_Roles::is_administrator( $uid );
 		$open    = self::in_hours( $now );
 		$names   = function ( $rows ) {
 			$out = array();
@@ -299,13 +300,16 @@ class BFTD_Send_Window {
 		$html = '';
 		if ( $editing ) {
 			$n     = count( $editing );
+			// Out of hours, when it will go is said in grey after the names,
+			// and the button is just Confirm (Karl, 1.206.3).
+			$later = $open ? '' : ' <span class="bftd-sw-when">Send at ' . esc_html( self::when( self::next_open( $now ), $now ) ) . '.</span>';
 			$html .= '<p><strong>' . esc_html( $n . ' ' . ( 1 === $n ? 'student has' : 'students have' ) . ' schedule changes not sent:' ) . '</strong> ' . $names( $editing )
-				. '.</p><div class="bftd-sw-do">';   // the line that followed went, it is obvious (Karl, 1.204.1)
+				. '.' . $later . '</p><div class="bftd-sw-do">';   // the line that followed went, it is obvious (Karl, 1.204.1)
 			if ( $open ) {
 				$html .= $button( 'Confirm and send now', false, true );
 			} else {
-				$html .= $button( 'Confirm, send at ' . self::when( self::next_open( $now ), $now ), false, true );
-				if ( $manager ) $html .= $button( 'Send now anyway', true, false );
+				$html .= $button( 'Confirm', false, true );
+				if ( $admin ) $html .= $button( 'Send now', true, false );
 			}
 			$html .= '</div>';
 		}
@@ -314,7 +318,7 @@ class BFTD_Send_Window {
 			$at    = min( array_map( function ( $r ) { return (int) $r['send_at']; }, $queued ) );
 			$html .= '<p><strong>' . esc_html( 'Confirmed: the changes for ' . $n . ' ' . ( 1 === $n ? 'student' : 'students' ) . ' will be sent at ' . self::when( $at, $now ) . '.' ) . '</strong> ' . $names( $queued )
 				. '. Families are only told between ' . esc_html( ltrim( gmdate( 'g:i a', $from * 3600 ), '0' ) . ' and ' . ltrim( gmdate( 'g:i a', $until * 3600 ), '0' ) ) . '.</p>';
-			if ( $manager && ! $editing ) $html .= '<div class="bftd-sw-do">' . $button( 'Send now anyway', true, false ) . '</div>';
+			if ( $admin && ! $editing ) $html .= '<div class="bftd-sw-do">' . $button( 'Send now', true, false ) . '</div>';
 		}
 		return $html;
 	}
