@@ -124,7 +124,7 @@ $GLOBALS['ME'] = 6;
 /* ---- the banner ---- */
 $GLOBALS['INPUT'][40] = 'a4'; $W::note_change(40);
 $b = $W::banner_html(6, $lunch);
-check(false !== strpos($b, '1 student has schedule changes not sent:') && false !== strpos($b, 'Ana Lee') && false !== strpos($b, 'Families have not been told') && false !== strpos($b, '>Confirm and send now<'), 'in hours: what is held, and Confirm and send now');
+check(false !== strpos($b, '1 student has schedule changes not sent:') && false !== strpos($b, 'Ana Lee') && false === strpos($b, 'Families have not been told') && false !== strpos($b, '>Confirm and send now<'), 'in hours: what is held, and Confirm and send now, with no line saying families have not been told (1.204.1)');
 $b = $W::banner_html(6, $evening);
 check(false !== strpos($b, '>Confirm, send at 8:00 am tomorrow<') && false === strpos($b, 'Send now anyway'), 'after 6:00 pm a tutor confirms for 8:00 am, with no way round it');
 $b = $W::banner_html(4, $evening);

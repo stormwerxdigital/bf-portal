@@ -300,7 +300,7 @@ class BFTD_Send_Window {
 		if ( $editing ) {
 			$n     = count( $editing );
 			$html .= '<p><strong>' . esc_html( $n . ' ' . ( 1 === $n ? 'student has' : 'students have' ) . ' schedule changes not sent:' ) . '</strong> ' . $names( $editing )
-				. '. Families have not been told. Make all your changes, then confirm once.</p><div class="bftd-sw-do">';
+				. '.</p><div class="bftd-sw-do">';   // the line that followed went, it is obvious (Karl, 1.204.1)
 			if ( $open ) {
 				$html .= $button( 'Confirm and send now', false, true );
 			} else {

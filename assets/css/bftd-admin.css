@@ -1535,6 +1535,9 @@ html.mce-fullscreen div.mce-fullscreen{left:0 !important;top:0 !important;right:
 .bftd-calv-k.is-moved{background:repeating-linear-gradient(135deg,#f6f7f7 0,#f6f7f7 6px,#eceeef 6px,#eceeef 12px);border-style:dotted}
 .bftd-calv-k.is-closed{background:repeating-linear-gradient(135deg,#eceeef 0,#eceeef 8px,#e2e4e7 8px,#e2e4e7 16px);border-left-color:#8c8f94}
 .bftd-calv-addbtn{width:100%;margin-bottom:10px !important}
+/* Add a booking is the brand purple, not the sage of other primary buttons (Karl, 1.204.1). */
+.wp-core-ui .button.button-primary.bftd-calv-addbtn{background:var(--bftd-purple);border-color:var(--bftd-purple)}
+.wp-core-ui .button.button-primary.bftd-calv-addbtn:hover,.wp-core-ui .button.button-primary.bftd-calv-addbtn:focus{background:var(--bftd-purple-deep);border-color:var(--bftd-purple-deep)}
 .bftd-calv-add{margin:0 0 14px;padding:0 0 12px;border-bottom:1px solid var(--bftd-line)}
 .bftd-calv-add h2{font-size:14px;margin:4px 0 6px}
 .bftd-calv-add label{display:block;margin:8px 0 2px;font-size:13px}

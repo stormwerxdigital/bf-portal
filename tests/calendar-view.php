@@ -156,5 +156,8 @@ foreach (array("'day' === state.view", "'week' === state.view", 'drawMonth') as 
 $sc = file_get_contents(BFTD_PATH . 'includes/class-bftd-schedule.php');
 check(false !== strpos($sc, "( isset( \$_POST['tutor'] ) && BFTD_Roles::can_manage() && BFTD_Roles::is_staff( absint( \$_POST['tutor'] ) ) ) ? absint( \$_POST['tutor'] ) : 0"), 'another tutor for one session is a manager\'s change, and only to a staff account');
 
+$acss = file_get_contents(BFTD_PATH . 'assets/css/bftd-admin.css');
+check(false !== strpos($acss, '.wp-core-ui .button.button-primary.bftd-calv-addbtn{background:var(--bftd-purple);border-color:var(--bftd-purple)}'), 'Add a booking is purple, not the sage of other primary buttons (1.204.1)');
+
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);
