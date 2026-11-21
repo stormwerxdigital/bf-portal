@@ -34,7 +34,7 @@ const bare = await p0.evaluate(() => ({
     && document.querySelector('.skl-all') !== null
     && document.querySelector('.skl-all').offsetParent !== null,
 }));
-check(bare.rows === 18, 'with no script, the whole library is on the page, got ' + bare.rows);
+check(bare.rows === 18, 'with no script, every skill reached is on the page, got ' + bare.rows);
 check(!bare.btn, 'and the button is not shown, because it would do nothing');
 await noJs.close();
 
@@ -61,20 +61,17 @@ const state = () => p.evaluate(() => {
 });
 
 let s = await state();
-check(s.total === 18, 'every skill in the library has a row, got ' + s.total);
+check(s.total === 18, 'every skill reached has a row, got ' + s.total);
 check(s.shown === 10, 'ten of them show, got ' + s.shown);
 check(s.btnShown, 'and the button appears once it can do something');
 check(s.label.trim() === 'Show all skills', 'reading "Show all skills", got ' + JSON.stringify(s.label));
 
-/* The two states have to be visibly different, or the list is just a list. */
-check(s.on === 5 && s.ahead === 13, `five being built, thirteen ahead, got ${s.on} and ${s.ahead}`);
-
-/* Reached first. Opening on a run of things nobody has taught yet is a list
-   that starts with what has not happened. */
+/* Every row is a skill reached on a session (1.208): nothing is listed as
+   still to do, so every row is a checkmark. This report's own five come
+   first, then the thirteen from earlier sessions. */
+check(s.on === 18 && s.ahead === 0, `eighteen reached, none still to do, got ${s.on} and ${s.ahead}`);
 check(s.first.every(n => n.length > 0), 'the rows are named');
-const onFirst = await p.evaluate(() =>
-  [...document.querySelectorAll('.skl-r')].slice(0, 5).every(e => e.classList.contains('is-on')));
-check(onFirst, 'and the first five rows are the ones being built');
+check(s.first[0] === 'Forming lowercase letters automatically', 'and this report\'s own come first, got ' + JSON.stringify(s.first[0]));
 
 await p.click('.skl-all');
 await p.waitForTimeout(150);
@@ -89,26 +86,23 @@ s = await state();
 check(s.shown === 10, 'and folds them away again, got ' + s.shown);
 check(s.expanded === 'false', 'announcing that too');
 
-/* A reached skill is a checkmark, one still ahead an empty bullet. Nothing
-   is written to the right of the name: Karl removed that column. */
+/* A reached skill is a checkmark with no dot behind it. Nothing is written
+   to the right of the name: Karl removed that column. */
 await p.mouse.move(0, 0);
 await p.waitForTimeout(100);
 const told = await p.evaluate(() => {
   const on = document.querySelector('.skl-r.is-on');
-  const ah = document.querySelector('.skl-r.is-ahead');
   const cs = e => getComputedStyle(e);
   return {
-    onMark: cs(on.querySelector('.skl-mark')).backgroundColor,
-    ahMark: cs(ah.querySelector('.skl-mark')).backgroundColor,
     words: document.querySelectorAll('.skl-r .skl-m').length,
-    onTick: !!on.querySelector('.skl-mark svg'),
-    ahTick: !!ah.querySelector('.skl-mark svg'),
+    allTicked: [...document.querySelectorAll('.skl-r')].every(e => !!e.querySelector('.skl-mark svg')),
     onDot: cs(on.querySelector('.skl-mark')).backgroundColor,
+    next: document.querySelectorAll('.skl-next').length,
   };
 });
-check(told.onMark !== told.ahMark, 'the mark on a reached row is filled differently');
-check(told.words === 0, 'and no words to the right of a name, got ' + told.words);
-check(told.onTick && !told.ahTick, 'a reached skill is a checkmark, one ahead is not');
+check(told.words === 0, 'no words to the right of a name, got ' + told.words);
+check(told.allTicked, 'every row is a checkmark');
+check(told.next === 0, 'and no line about what comes next');
 check(/rgba\(0, 0, 0, 0\)|transparent/.test(told.onDot), 'and the checkmark has no dot behind it, got ' + told.onDot);
 
 check(errors.length === 0, 'and nothing threw: ' + JSON.stringify(errors));

@@ -1346,7 +1346,6 @@ a.bftd-ov-d:hover,a.bftd-ov-d:focus{text-decoration:underline}
 .bftd-done-row em { color: #646970; font-style: normal; font-size: 12px; }
 .bftd-done-row.is-earned label { color: #1d2327; }
 .bftd-done-why { color: #646970; font-size: 12px; }
-.bftd-track-box .bftd-field-number { max-width: 22em; }
 
 @media (max-width: 782px) {
 	.bftd-done-list { columns: 1; }

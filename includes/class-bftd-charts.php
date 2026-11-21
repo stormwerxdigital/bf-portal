@@ -783,29 +783,10 @@ class BFTD_Charts {
 	const SKILL_ROWS = 10;
 
 	/**
-	 * What is left, and what is behind them.
-	 *
-	 * The list used to be the whole library against what had been reached,
-	 * which was right when there was one library. There are two tracks now,
-	 * each numbered from one, and a student is on one of them at a time and
-	 * moves between them. So:
-	 *
-	 * WHAT IS LEFT comes from the track they are on now, from the number they
-	 * started that track at. A child who joined Tracks 2 and 3 at skill ten is
-	 * not behind on the nine before it; they were never on them.
-	 *
-	 * WHAT IS DONE is every track, because a skill learned in Track 1 is still
-	 * learned after they move. Dropping it when they move would make a report
-	 * say a child had gone backwards.
-	 *
-	 * WORDWALL IS NOT IN WHAT IS LEFT. Those are words read on sight and they
-	 * are optional, so counting them as outstanding would put a number on a
-	 * family's report that nobody intends to finish. Done ones still show,
-	 * because the child did them.
-	 *
-	 * And the other track is mentioned rather than listed. A parent reading
-	 * Track 1 does not need a hundred and forty things they have not started;
-	 * they need to know the next part exists and roughly when it opens.
+	 * The skills a student has reached, from their sessions and nothing else
+	 * (Karl, 1.208): this report's sessions first, in the order reached, then
+	 * any reached in their earlier sessions. Nothing still to do is listed,
+	 * because each student's programme is their own.
 	 */
 	private static function skill_list( $grid, $student_id = 0 ) {
 		$lessons = $grid['lessons'];
@@ -815,18 +796,7 @@ class BFTD_Charts {
 
 		$n = count( $lessons );
 
-		/*
-		 * The whole library, not just what has been reached.
-		 *
-		 * A list of five skills says a child has learned five things. The same
-		 * five against the twenty two this practice teaches says where they
-		 * are, which is the question a parent is actually asking — and it
-		 * shows the ones still ahead, which is the rest of the answer.
-		 *
-		 * Reached first, in the order they were reached, then the rest in the
-		 * library's own order. Putting the library first would open the list
-		 * on a run of things nobody has taught yet.
-		 */
+		// Reached on this report's sessions, in the order they were reached.
 		$out  = array();
 		$seen = array();
 		foreach ( $rows as $key => $marks ) {
@@ -844,19 +814,18 @@ class BFTD_Charts {
 			);
 		}
 
-		$have_skills = class_exists( 'BFTD_Skills' ) && class_exists( 'BFTD_Derived' );
-		$track       = ( $have_skills && $student_id ) ? BFTD_Derived::track( $student_id ) : '';
+		$have_skills = class_exists( 'BFTD_Skills' );
 
 		/*
-		 * Skills completed outside this report's own sessions: ticked on the
-		 * student, or reached in a session belonging to an earlier report, in
-		 * any track. They are history, so they are listed as done with no
-		 * session beside them, because this report is not where it happened.
+		 * Skills reached in this student's earlier sessions, outside this
+		 * report's own. Only what was entered on sessions counts (Karl,
+		 * 1.208): there is no track, no list of what is left and no line
+		 * about what comes next, because every student's programme is their
+		 * own and the library's order is not it.
 		 */
-		$ahead  = array();
 		$behind = array();
 		if ( $have_skills && $student_id ) {
-			$done_ids = BFTD_Skills::done_for_student( $student_id );
+			$done_ids = BFTD_Skills::reached_in_sessions( $student_id );
 			foreach ( BFTD_Skills::all() as $id => $row ) {
 				if ( isset( $seen[ (string) $id ] ) ) continue;
 				if ( ! empty( $done_ids[ $id ] ) ) {
@@ -869,33 +838,7 @@ class BFTD_Charts {
 			}
 		}
 
-		if ( $have_skills && '' !== $track ) {
-			// What is left: this track, from where they started it, skills
-			// rather than Wordwall, and not already done.
-			$start    = $student_id ? BFTD_Derived::track_start( $student_id, $track ) : 1;
-			$done_ids = $student_id ? BFTD_Skills::done_for_student( $student_id ) : array();
-			foreach ( BFTD_Skills::sequence( $track ) as $number => $id ) {
-				if ( $number < $start ) continue;
-				if ( isset( $seen[ (string) $id ] ) ) continue;
-				if ( ! empty( $done_ids[ $id ] ) ) continue;
-				$row = BFTD_Skills::all()[ $id ];
-				if ( 'skill' !== ( $row['group'] ?? 'skill' ) ) continue;   // Wordwall is optional
-				$ahead[] = array(
-					'name'    => $number . '. ' . $row['name'],
-					'reached' => false,
-				);
-			}
-		} elseif ( $have_skills ) {
-			/*
-			 * No track chosen yet, so there is no sequence to count against and
-			 * nothing is claimed about what is outstanding. The report says what
-			 * has been reached and stops there, which is true, rather than
-			 * counting a child against a programme nobody has put them on.
-			 */
-			$ahead = array();
-		}
-
-		$out = array_merge( $out, $behind, $ahead );
+		$out = array_merge( $out, $behind );
 
 		$total  = count( $out );
 		$folded = max( 0, $total - self::SKILL_ROWS );
@@ -905,36 +848,6 @@ class BFTD_Charts {
 		<?php
 		// No count line above the list: Karl removed it. The section shows
 		// the skills and nothing else.
-		?>
-		<?php
-		/*
-		 * The other track, said in one line rather than listed.
-		 *
-		 * A parent working through Track 1 does not want a hundred and forty
-		 * things their child has not begun. They want to know the next part
-		 * exists and roughly how far off it is, and the honest answer to that is
-		 * how much of this track is left, which is a number this page already
-		 * knows. No promise about dates, because nothing here knows how fast a
-		 * child will go.
-		 */
-		$left = count( $ahead );
-		if ( $have_skills && '' !== $track && $left && count( BFTD_Skills::tracks() ) > 1 ) :
-			$others = array();
-			foreach ( BFTD_Skills::tracks() as $k => $label ) {
-				if ( $k !== $track ) $others[] = $label;
-			}
-			if ( $others ) :
-			?>
-			<p class="skl-next"><?php echo esc_html( sprintf(
-				'%s %s after the %d remaining %s in %s.',
-				implode( ' and ', $others ),
-				1 === count( $others ) ? 'comes next,' : 'come next,',
-				$left,
-				1 === $left ? 'skill' : 'skills',
-				BFTD_Skills::track_label( $track )
-			) ); ?></p>
-			<?php endif;
-		endif;
 		?>
 
 		<?php

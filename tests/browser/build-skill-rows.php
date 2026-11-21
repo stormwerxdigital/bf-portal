@@ -12,11 +12,12 @@ function get_option($k,$d=''){ return $d; }
 function get_the_title($i=0){ return ''; }
 require BFTD_PATH.'includes/class-bftd-time.php';
 
-/* Three sessions, five skills reached, a library of eighteen. */
+/* Three sessions on this report reached five skills; thirteen more were
+   reached in earlier sessions (1.208: skills come from sessions only). */
 $reached = array('Forming lowercase letters automatically', 'One sound can be spelled by several letters',
                  'Holding the sounds of a word in order', 'Mapping sounds to their spellings',
                  'Reading a spelling pattern as a pattern');
-$ahead = array('Flexing a sound until the word makes sense', 'Reading a long word by chunk',
+$earlier = array('Flexing a sound until the word makes sense', 'Reading a long word by chunk',
                'Reading a passage smoothly', 'Finding a pattern in a real text',
                'Writing evenly and without effort', 'Working out what a sentence is saying',
                'Reading common words by their sounds', 'Writing every sound heard',
@@ -41,12 +42,10 @@ class BFTD_Skills {
     foreach($GLOBALS['LIB'] as $id=>$r) if($r['track']===$track && $r['number']) $o[$r['number']]=$id;
     ksort($o); return $o;
   }
-  public static function done_for_student($sid){ return $GLOBALS['DONE']; }
+  public static function reached_in_sessions($sid){ return $GLOBALS['DONE']; }
 }
 class BFTD_Derived {
   public static function skills($r){ return $GLOBALS['GRID']; }
-  public static function track($sid){ return 't1'; }
-  public static function track_start($sid,$t){ return 1; }
 }
 class BFTD_CPT { public static function student_id($r){ return 900; } }
 
@@ -58,8 +57,9 @@ foreach ($reached as $name) {
   $GLOBALS['LIB'][++$id] = array('number'=>++$no, 'name'=>$name, 'track'=>'t1', 'group'=>'skill');
   $GLOBALS['DONE'][$id] = true;
 }
-foreach ($ahead as $name) {
+foreach ($earlier as $name) {
   $GLOBALS['LIB'][++$id] = array('number'=>++$no, 'name'=>$name, 'track'=>'t1', 'group'=>'skill');
+  $GLOBALS['DONE'][$id] = true;
 }
 
 $lessons = array();

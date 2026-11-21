@@ -207,38 +207,22 @@ class BFTD_Skills {
 	/* What a student has actually completed                               */
 	/* ------------------------------------------------------------------ */
 
-	/** Where a student's completed skills are kept, as a list of skill ids. */
+	/**
+	 * Where skills ticked on a student were kept, before 1.208. Left on the
+	 * record and read by nothing: skills reached come from sessions only.
+	 */
 	const DONE_KEY = '_bftd_skills_done';
 
 	/**
-	 * Every skill this student has completed, as skill id => true.
-	 *
-	 * Two things make a skill complete and they are different claims, so both
-	 * count and neither is derived from the other.
-	 *
-	 * A skill RECORDED on a published session is the tutor saying the child got
-	 * there in that hour. That is the ordinary way, it needs nobody to remember
-	 * anything afterwards, and it is why the grid on a report has always been
-	 * built from the records.
-	 *
-	 * A skill TICKED on the student is the tutor saying it is done, whether or
-	 * not a session happened to be the place it happened. A child arriving
-	 * already able to do the first thirty is the case this exists for: nobody
-	 * is going to invent thirty sessions to say so.
-	 *
-	 * Published sessions only. A draft is a tutor thinking, and a skill in a
-	 * draft is not a claim about a child yet.
+	 * Every skill this student has reached on a published session, as skill
+	 * id => true (Karl, 1.208: "pull skills reached from what is entered into
+	 * sessions"). A draft is a tutor thinking, and a skill in a draft is not
+	 * a claim about a child yet.
 	 */
-	public static function done_for_student( $student_id ) {
+	public static function reached_in_sessions( $student_id ) {
 		$done = array();
 
-		foreach ( (array) get_post_meta( (int) $student_id, self::DONE_KEY, true ) as $id ) {
-			$id = (int) $id;
-			if ( $id ) $done[ $id ] = true;
-		}
-
-		// The one bulk fetch, rather than a second query that would have to be
-		// kept in step with it. Published only, which is its default.
+		// The one bulk fetch. Published only, which is its default.
 		$sessions = BFTD_CPT::sessions_of( array( (int) $student_id ) );
 		foreach ( (array) ( $sessions[ (int) $student_id ] ?? array() ) as $sid ) {
 			foreach ( (array) self::for_session( $sid ) as $row ) {
@@ -248,52 +232,6 @@ class BFTD_Skills {
 		}
 
 		return $done;
-	}
-
-	/** Just the ticked ones, which is the only half anybody edits. */
-	public static function ticked_for_student( $student_id ) {
-		$out = array();
-		foreach ( (array) get_post_meta( (int) $student_id, self::DONE_KEY, true ) as $id ) {
-			$id = (int) $id;
-			if ( $id && '' !== self::label( $id ) ) $out[] = $id;
-		}
-		return array_values( array_unique( $out ) );
-	}
-
-	/**
-	 * Save the ticks, when the form was carrying them.
-	 *
-	 * Absent means this form did not have the field, which is every form except
-	 * the student editor. An empty array arrives as an empty array, because the
-	 * box always posts a hidden marker saying it was there.
-	 */
-	public static function save_ticks( $student_id ) {
-		if ( ! isset( $_POST['bftd_skills_done_present'] ) ) return 0;
-
-		$before = self::ticked_for_student( $student_id );
-		$after  = array();
-		foreach ( (array) ( $_POST['bftd_skills_done'] ?? array() ) as $id ) {
-			$id = (int) $id;
-			if ( $id && '' !== self::label( $id ) ) $after[] = $id;
-		}
-		$after = array_values( array_unique( $after ) );
-
-		sort( $before );
-		$sorted_after = $after;
-		sort( $sorted_after );
-		if ( $before === $sorted_after ) return 0;
-
-		update_post_meta( (int) $student_id, self::DONE_KEY, $after );
-
-		if ( class_exists( 'BFTD_Audit' ) ) {
-			BFTD_Audit::log( 'section_updated', array(
-				'post_id'    => (int) $student_id,
-				'student_id' => (int) $student_id,
-				'summary'    => get_the_title( $student_id ) . ': skills marked complete changed from '
-					. count( $before ) . ' to ' . count( $after ) . '.',
-			) );
-		}
-		return 1;
 	}
 
 	public static function init() {

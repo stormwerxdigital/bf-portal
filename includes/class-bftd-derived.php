@@ -498,42 +498,6 @@ class BFTD_Derived {
 	 * Returns lessons (the columns) and rows (skill => lesson index => 'new'
 	 * or 'again'), so the drawing has no rule of its own to get wrong.
 	 */
-	/* ------------------------------------------------------------------ */
-	/* Where a student is in the programme                                 */
-	/* ------------------------------------------------------------------ */
-
-	/**
-	 * The track a student is on, or '' when nobody has placed them yet.
-	 *
-	 * Deliberately not defaulted to Track 1. A student with no track is a real
-	 * state, the one every new record starts in, and a report that silently
-	 * counted them against a programme nobody put them on would be confidently
-	 * wrong about a child.
-	 */
-	public static function track( $student_id ) {
-		$pre = self::fixture( 'track' );
-		if ( null !== $pre ) return (string) $pre;
-
-		$track = (string) BFTD_Fields::get( $student_id, 'student', 'track', array( 'type' => 'select' ) );
-		return isset( BFTD_Skills::tracks()[ $track ] ) ? $track : '';
-	}
-
-	/**
-	 * The skill number a student began a track at. One is the default.
-	 *
-	 * Each track keeps its own, because somebody joining Tracks 2 and 3 part
-	 * way through starts where they joined, and going back to Track 1 should
-	 * not forget where they began it.
-	 */
-	public static function track_start( $student_id, $track ) {
-		$pre = self::fixture( 'track_start' );
-		if ( null !== $pre ) return (int) $pre;
-
-		if ( ! isset( BFTD_Skills::tracks()[ $track ] ) ) return 1;
-		$n = (int) BFTD_Fields::get( $student_id, 'student', 'start_' . $track, array( 'type' => 'number' ) );
-		return $n > 0 ? $n : 1;
-	}
-
 	public static function skills( $report_id ) {
 		$pre = self::fixture( 'skills' );
 		if ( null !== $pre ) return (array) $pre;

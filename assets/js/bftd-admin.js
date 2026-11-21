@@ -3314,37 +3314,6 @@ function bftdThumb( id, thumb, full ) {
 
 }( jQuery ) );
 
-/* ---- the student's track, and which starting number goes with it -------
- *
- * A student has a starting number in each track they have been in, because they
- * move between them and do not always begin a track at one. Both numbers are on
- * the form so switching track needs no page load and so the number from the
- * track they came from is still there when they go back. Only the one that
- * matches the chosen track is shown.
- *
- * The server decides the state this starts in: PHP writes the chosen track onto
- * the box, and this only follows it changing. A tutor whose script did not run
- * sees both numbers, each labelled with its track, which is readable and
- * correct rather than broken.
- */
-jQuery( function ( $ ) {
-	var $box = $( '.bftd-track-box' );
-	if ( ! $box.length ) return;
-
-	function show( track ) {
-		$box.find( '.bftd-track-start' ).each( function () {
-			var mine = $( this ).hasClass( 'bftd-track-start-' + track );
-			$( this ).toggle( !! track && mine );
-		} );
-	}
-
-	show( $box.attr( 'data-track' ) || '' );
-
-	$box.on( 'change', 'select[name="bftd[student][track]"]', function () {
-		show( $( this ).val() || '' );
-	} );
-} );
-
 /* --------------------------------------------------------------------------
    Quick edit on the skills list
 

@@ -97,34 +97,7 @@ class BFTD_Students {
 			'tutor'  => isset( $_GET['tutor'] ) ? (int) $_GET['tutor'] : 0,
 			'client' => isset( $_GET['client'] ) ? (int) $_GET['client'] : 0,
 			'status' => isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : '',
-			// Which part of the programme. A student is on one track at a
-			// time, so this narrows to the children working through it.
-			'track'  => isset( $_GET['track'] ) ? sanitize_key( wp_unslash( $_GET['track'] ) ) : '',
 		);
-	}
-
-	/**
-	 * Students on one track.
-	 *
-	 * A student with no track stored is on no track, not on Track 1. The
-	 * library defaults an untracked SKILL to Track 1 because every skill
-	 * written before tracks existed is a Track 1 skill. A student is the other
-	 * way round: an untracked one is a child nobody has placed yet, and
-	 * sweeping them into Track 1 would answer a question about them that
-	 * nobody has answered.
-	 */
-	public static function students_on_track( $track ) {
-		if ( ! class_exists( 'BFTD_Activities' ) || ! isset( BFTD_Activities::tracks()[ $track ] ) ) return null;
-		return get_posts( array(
-			'post_type'      => BFTD_CPT::STUDENT,
-			'post_status'    => 'any',
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-			'meta_query'     => array( array(
-				'key'   => BFTD_Schema::meta_key( 'student', 'track' ),
-				'value' => $track,
-			) ),
-		) );
 	}
 
 	/**
@@ -143,10 +116,6 @@ class BFTD_Students {
 		};
 
 		if ( '' !== $filters['q'] ) $narrow( BFTD_CPT::students_matching( $filters['q'] ) );
-		if ( ! empty( $filters['track'] ) ) {
-			$on = self::students_on_track( $filters['track'] );
-			if ( null !== $on ) $narrow( $on );
-		}
 		if ( $filters['tutor'] )    $narrow( BFTD_CPT::students_of_staff( $filters['tutor'] ) );
 		if ( $filters['client'] )   $narrow( BFTD_CPT::students_of_client( $filters['client'] ) );
 
@@ -349,23 +318,6 @@ class BFTD_Students {
 			self::people_select( 'tutor', 'Every tutor', $tutors, $f['tutor'] );
 			self::people_select( 'client', 'Every client', $clients, $f['client'] );
 			?>
-
-			<?php
-			// The track sits with the other narrowing selects rather than in a
-			// row of its own, because it is the same kind of question.
-			if ( class_exists( 'BFTD_Activities' ) ) :
-				$tracks = BFTD_Activities::tracks();
-				if ( $tracks ) :
-				?>
-				<select name="track" aria-label="Track">
-					<option value="">Any track</option>
-					<?php foreach ( $tracks as $k => $label ) {
-						printf( '<option value="%s"%s>%s</option>', esc_attr( $k ),
-							selected( $f['track'] ?? '', $k, false ), esc_html( $label ) );
-					} ?>
-				</select>
-				<?php endif;
-			endif; ?>
 
 			<?php if ( $with_status ) : ?>
 				<select name="status" aria-label="Status">

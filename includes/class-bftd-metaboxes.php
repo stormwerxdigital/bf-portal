@@ -87,7 +87,6 @@ class BFTD_MetaBoxes {
 	public static function boxes() {
 		add_meta_box( 'bftd_student_family', 'Caregivers and tutors', array( __CLASS__, 'box_family' ), BFTD_CPT::STUDENT, 'normal', 'high' );
 		add_meta_box( 'bftd_student_detail', 'Student details', array( __CLASS__, 'box_student' ), BFTD_CPT::STUDENT, 'normal', 'high' );
-		add_meta_box( 'bftd_skills_done', 'Skills completed', array( __CLASS__, 'box_skills_done' ), BFTD_CPT::STUDENT, 'normal', 'default' );
 		add_meta_box( 'bftd_student_crm', 'History', array( __CLASS__, 'box_crm' ), BFTD_CPT::STUDENT, 'normal', 'high' );
 		add_meta_box( 'bftd_schedule', 'Sessions and schedule', array( __CLASS__, 'box_schedule' ), BFTD_CPT::STUDENT, 'normal', 'high' );
 		add_meta_box( 'bftd_priority', 'Priority items', array( __CLASS__, 'box_priority' ), BFTD_CPT::STUDENT, 'normal', 'default' );
@@ -395,14 +394,8 @@ class BFTD_MetaBoxes {
 				?>
 			</div>
 
-			<?php
-			// Where the student is in the programme, on one row beside their
-			// diagnostic (Laurel). The track box keeps its class and
-			// data-track: the script that shows the right starting number
-			// looks for it.
-			?>
-			<div class="bftd-grid bftd-track-box" style="margin-top:14px" data-track="<?php
-				echo esc_attr( (string) BFTD_Fields::get( $post->ID, 'student', 'track', array( 'type' => 'select' ) ) ); ?>">
+			<?php // The diagnostic date, on its own row. Track was removed in 1.208. ?>
+			<div class="bftd-grid" style="margin-top:14px">
 				<?php
 				/*
 				 * Read from the reading diagnostics rather than typed.
@@ -423,9 +416,6 @@ class BFTD_MetaBoxes {
 					<p class="description">The most recent reading diagnostic. Record one and this follows it.</p>
 				</div>
 
-				<?php foreach ( self::track_fields() as $key => $field ) : ?>
-					<?php BFTD_Fields::render_field( $post->ID, 'student', $key, $field ); ?>
-				<?php endforeach; ?>
 			</div>
 
 			<?php
@@ -485,50 +475,6 @@ class BFTD_MetaBoxes {
 		);
 	}
 
-	/**
-	 * Where this student is in the programme.
-	 *
-	 * A track and a number in it, because the progress report counts from
-	 * there: what is left in the track they are in, and what they have already
-	 * done in the tracks they have been in before.
-	 *
-	 * Each track keeps its OWN starting number rather than sharing one.
-	 * Students move from Track 1 into Tracks 2 and 3, and sometimes back, and
-	 * they do not always start a track at one: somebody joining Tracks 2 and 3
-	 * at skill ten starts at ten. One shared field would be overwritten by the
-	 * move and the first track's history would be gone, which is the thing the
-	 * report is for.
-	 *
-	 * The blank option is deliberate and is first. A select with no blank
-	 * option posts its first real option, so a student nobody has placed yet
-	 * would be silently stamped Track 1 by the first save, and the report would
-	 * then count a programme they are not on.
-	 */
-	public static function track_fields() {
-		$tracks = class_exists( 'BFTD_Activities' ) ? BFTD_Activities::tracks() : array();
-		$out = array(
-			'track' => array(
-				'type'    => 'select',
-				'label'   => 'Track',
-				'options' => array( '' => 'Not chosen yet' ) + $tracks,
-				'help'    => 'Which part of the programme this student is working through now. It can be changed as they move on.',
-			),
-		);
-		foreach ( $tracks as $key => $label ) {
-			$out[ 'start_' . $key ] = array(
-				'type'  => 'number',
-				'label' => 'Starting skill number in ' . $label,
-				'help'  => 'The skill they began this track at. Not always one: somebody joining part way through starts where they joined.',
-				// Only the one matching the chosen track is shown, by the
-				// script. Both are rendered so switching track does not need a
-				// page load, and so the number a student had in the track they
-				// came from is still on the record when they go back to it.
-				'class' => 'bftd-track-start bftd-track-start-' . $key,
-			);
-		}
-		return $out;
-	}
-
 	private static function student_fields() {
 		return array(
 			'grade'        => array( 'type' => 'select', 'label' => 'Grade', 'options' => self::grade_options() ),
@@ -558,83 +504,6 @@ class BFTD_MetaBoxes {
 	/** The student details drawn under History rather than here. */
 	private static function in_contact() {
 		return array( 'grade', 'mode' );
-	}
-
-	/**
-	 * Skills marked complete, for the track this student is on.
-	 *
-	 * Only the track they are on, because a list of two hundred and eighty with
-	 * no division is not a list anybody ticks. What they completed in a track
-	 * they have left is still counted and still on the report; it is simply not
-	 * what a tutor is editing today, and the heading says so.
-	 *
-	 * A skill recorded on a published session is shown ticked and locked. It is
-	 * complete because the record says so, and offering a tick that cannot
-	 * change anything would be a control that lies. Unticking it means editing
-	 * the session that claimed it, which is where that claim belongs.
-	 */
-	public static function box_skills_done( $post ) {
-		$track = BFTD_Derived::track( $post->ID );
-
-		echo '<div class="bftd-box">';
-		// Always posted, so an empty list is an empty list rather than a form
-		// that did not carry the field.
-		echo '<input type="hidden" name="bftd_skills_done_present" value="1">';
-
-		if ( '' === $track ) {
-			echo '<p class="description">Choose a track above and save, and this student\'s skills will be listed here to tick off.</p></div>';
-			return;
-		}
-
-		$sequence = BFTD_Skills::sequence( $track );
-		if ( ! $sequence ) {
-			echo '<p class="description">' . esc_html( BFTD_Skills::track_label( $track ) )
-				. ' has no numbered skills yet, so there is nothing to tick. Numbers are set on each skill in the library.</p></div>';
-			return;
-		}
-
-		$ticked    = array_fill_keys( BFTD_Skills::ticked_for_student( $post->ID ), true );
-		$from_work = BFTD_Skills::done_for_student( $post->ID );
-		$start     = BFTD_Derived::track_start( $post->ID, $track );
-
-		/*
-		 * The whole track is listed, not just from the starting number. A tutor
-		 * ticking off work needs to reach anything, including something below
-		 * where this student began, and a list that quietly omitted it would
-		 * look like the skill did not exist. The starting number is said as
-		 * context, because it is what the family's report counts from.
-		 */
-		echo '<p class="description">' . esc_html( BFTD_Skills::track_label( $track ) )
-			. '. This student started at skill ' . (int) $start
-			. ', which is where their report counts from, and every skill in the track is listed here. '
-			. 'A skill already recorded on a published session is ticked and cannot be unticked, '
-			. 'because the session is what says so.</p>';
-
-		echo '<ul class="bftd-done-list">';
-		foreach ( $sequence as $number => $id ) {
-			$group  = BFTD_Skills::all()[ $id ]['group'] ?? 'skill';
-			$earned = ! empty( $from_work[ $id ] ) && empty( $ticked[ $id ] );
-			$on     = ! empty( $from_work[ $id ] ) || ! empty( $ticked[ $id ] );
-			?>
-			<li class="bftd-done-row<?php echo $earned ? ' is-earned' : ''; ?>">
-				<label>
-					<input type="checkbox" name="bftd_skills_done[]" value="<?php echo (int) $id; ?>"
-						<?php checked( $on ); ?> <?php disabled( $earned ); ?>>
-					<strong><?php echo (int) $number; ?></strong>
-					<?php echo esc_html( BFTD_Skills::label( $id ) ); ?>
-					<?php if ( 'skill' !== $group ) : ?>
-						<em><?php echo esc_html( BFTD_Skills::group_label( $group ) ); ?></em>
-					<?php endif; ?>
-					<?php if ( $earned ) : ?>
-						<span class="bftd-done-why">recorded on a session</span>
-						<?php // A disabled box posts nothing, so the value is carried on its own. ?>
-						<input type="hidden" name="bftd_skills_done[]" value="<?php echo (int) $id; ?>">
-					<?php endif; ?>
-				</label>
-			</li>
-			<?php
-		}
-		echo '</ul></div>';
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -1762,8 +1631,6 @@ class BFTD_MetaBoxes {
 			self::save_relationships( $post_id );
 			$changed += self::save_flat( $post_id, 'student', self::student_fields() );
 			$changed += self::save_flat( $post_id, 'student', self::crm_fields() );
-			$changed += self::save_flat( $post_id, 'student', self::track_fields() );
-			$changed += BFTD_Skills::save_ticks( $post_id );
 			// Absent means the form was not carrying the schedule. An empty
 			// array means somebody deleted every rule, which is a real thing
 			// to do and is respected; the two must not be read as the same.
