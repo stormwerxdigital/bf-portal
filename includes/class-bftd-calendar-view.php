@@ -196,12 +196,29 @@ class BFTD_Calendar_View {
 			$title = (string) get_post_field( 'post_title', $sid );
 			$draft = 'publish' !== get_post_status( $sid );
 			$edit  = user_can( (int) $viewer, 'edit_post', $sid );
+			// Attendance, from the session or the booking's own mark (1.211).
+			$have  = class_exists( 'BFTD_Attendance' );
+			$sess  = $have && $from <= BFTD_Time::today() ? BFTD_Attendance::sessions_by_date( $sid ) : array();
+			$marks = $have ? BFTD_Attendance::marks( $sid ) : array();
+			$who   = null;
 			foreach ( BFTD_Schedule::occurrences( $sid, $from, $to, 400 ) as $o ) {
 				// A rescheduled session is shown where it went; where it was is
 				// listed too, for the Rescheduled filter (1.203).
 				if ( ! isset( $want[ (int) $o['tutor'] ] ) ) continue;
 				if ( $o['date'] < $from || $o['date'] > $to ) continue;
+				$mine     = $edit || (int) $o['tutor'] === (int) $viewer;
+				$can_mark = $have && $mine && $o['date'] <= BFTD_Time::today() && in_array( $o['status'], array( 'booked', 'held', 'noshow' ), true );
+				if ( $can_mark && null === $who ) {
+					$who = array();
+					foreach ( BFTD_MetaBoxes::cancelled_by_options( 0, $sid ) as $k => $label ) if ( '' !== (string) $k ) $who[] = array( (string) $k, (string) $label );
+				}
+				$att = $have ? BFTD_Attendance::for_booking( $sess, $marks, $o['date'] ) : array( 'attend' => '', 'attend_on' => '', 'session_draft' => false );
 				$out[] = array(
+					'attend'        => $att['attend'],
+					'attend_on'     => $att['attend_on'],
+					'session_draft' => $att['session_draft'],
+					'can_mark'      => $can_mark,
+					'who'           => $can_mark ? $who : array(),
 					'kind'       => 'session',
 					'title'      => $title,
 					'student'    => $title,

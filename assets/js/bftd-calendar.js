@@ -287,6 +287,25 @@
 		else if ( 'noshow' === e.status ) h += '<p class="description">No show.</p>';
 		else if ( 'cancelled' === e.status ) h += '<p class="description">Cancelled.</p>';
 		else if ( e.in_ghl ) h += '<p class="description">In GoHighLevel.</p>';
+		// Attendance, marked here and kept on the session (Karl, 1.211).
+		if ( e.can_mark ) {
+			var CH = [ [ 'held', 'Attended' ], [ 'late', 'Late start' ], [ 'noshow', 'No show' ], [ 'missed', 'Missed' ] ];
+			var where = 'session' === e.attend_on
+				? ( e.session_draft ? 'Saved on its session, a draft. It counts once the session is published.' : 'Saved on its session.' )
+				: 'No session yet. Kept on this booking, and the session recorded for this date starts with it.';
+			h += '<form class="bftd-calv-attend"><h3>Attendance</h3>'
+				+ '<label>What happened <select name="status">'
+				+ ( 'session' === e.attend_on ? '' : '<option value="">Not marked</option>' );
+			CH.forEach( function ( c ) { h += '<option value="' + c[0] + '"' + ( c[0] === e.attend ? ' selected' : '' ) + '>' + c[1] + '</option>'; } );
+			h += '</select></label>'
+				+ '<div class="bftd-calv-attend-missed"' + ( 'missed' === e.attend ? '' : ' hidden' ) + '>'
+				+ '<label>Cancelled by <select name="missed_by"><option value="">Choose someone</option>';
+			( e.who || [] ).forEach( function ( p ) { h += '<option value="' + esc( p[0] ) + '">' + esc( p[1] ) + '</option>'; } );
+			h += '</select></label><label>Why <textarea name="missed_why" rows="2" placeholder="The family sees this on their report"></textarea></label></div>'
+				+ '<p class="description bftd-calv-attend-where">' + esc( where ) + '</p>'
+				+ '<p class="bftd-calv-said" role="alert"></p>'
+				+ '<p class="bftd-calv-pop-do"><button type="submit" class="button button-primary">Save attendance</button></p></form>';
+		}
 		if ( e.can_edit ) {
 			h += '<form class="bftd-calv-edit">'
 				+ '<div class="bftd-calv-pop-row"><label>Date <input type="date" name="date" value="' + e.date + '" required></label>'
@@ -308,6 +327,22 @@
 		pop.hidden = false;
 		// The card itself takes focus, so a phone does not open its keyboard.
 		pop.focus();
+
+		var att = pop.querySelector( '.bftd-calv-attend' );
+		if ( att ) {
+			var aSaid = att.querySelector( '.bftd-calv-said' ), aBox = att.querySelector( '.bftd-calv-attend-missed' );
+			att.elements.status.addEventListener( 'change', function () { aBox.hidden = 'missed' !== att.elements.status.value; } );
+			att.addEventListener( 'submit', function ( ev ) {
+				ev.preventDefault();
+				var f = att.elements;
+				aSaid.textContent = 'Saving…';
+				post( { action: 'bftd_calendar_attend', student_id: e.student_id, date: e.date, status: f.status.value,
+					missed_by: f.missed_by.value, missed_why: f.missed_why.value } ).then( function ( res ) {
+					if ( res && res.success ) { closePop(); load(); return; }
+					aSaid.textContent = res && res.data && res.data.message ? res.data.message : 'That was not saved.';
+				} ).catch( function () { aSaid.textContent = 'That was not saved. Check the connection and try again.'; } );
+			} );
+		}
 
 		var form = pop.querySelector( '.bftd-calv-edit' );
 		if ( ! form ) return;

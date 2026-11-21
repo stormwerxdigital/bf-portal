@@ -109,6 +109,32 @@ for (const [name, vp] of [['desktop', { width: 1340, height: 900 }], ['phone', {
     c = await count();
     check(c.held === 1 && c.noshow === 1, 'and ticking them brings both back');
 
+    /* Marking attendance from the card (Karl, 1.211). */
+    console.log('\nMarking attendance:');
+    await open();
+    const a = await p.evaluate(() => {
+      const f = document.querySelector('.bftd-calv-pop .bftd-calv-attend');
+      return f && { opts: [...f.elements.status.options].map(o => o.textContent), missedHidden: f.querySelector('.bftd-calv-attend-missed').hidden,
+        where: f.querySelector('.bftd-calv-attend-where').textContent,
+        before: !!(f.compareDocumentPosition(document.querySelector('.bftd-calv-pop .bftd-calv-edit')) & Node.DOCUMENT_POSITION_FOLLOWING) };
+    });
+    check(!!a && a.opts.join('|') === 'Not marked|Attended|Late start|No show|Missed', 'a booking from today back can be marked, got ' + JSON.stringify(a && a.opts));
+    check(!!a && a.missedHidden && /No session yet/.test(a.where), 'Cancelled by and Why stay hidden, and it says the mark waits for the session');
+    check(!!a && a.before, 'attendance comes before the booking\'s own changes');
+    await p.selectOption('.bftd-calv-attend select[name=status]', 'missed');
+    check(!(await p.evaluate(() => document.querySelector('.bftd-calv-attend-missed').hidden)), 'choosing Missed asks who cancelled and why');
+    await p.selectOption('.bftd-calv-attend select[name=missed_by]', '31');
+    await p.fill('.bftd-calv-attend textarea[name=missed_why]', 'Family away');
+    await p.evaluate(() => { window.__posts = []; });
+    await p.click('.bftd-calv-attend button[type=submit]'); await p.waitForTimeout(200);
+    const sent = await p.evaluate(() => window.__posts.find(b => b.action === 'bftd_calendar_attend'));
+    check(!!sent && sent.status === 'missed' && sent.missed_by === '31' && sent.missed_why === 'Family away' && sent.student_id === '501',
+      'Save attendance sends the student, date and answer, got ' + JSON.stringify(sent));
+    check(!(await shown()).pop, 'and the card closes once it is saved');
+    await p.click('.bftd-calv-ev.is-held'); await p.waitForTimeout(300);
+    check(!(await p.evaluate(() => document.querySelector('.bftd-calv-pop .bftd-calv-attend'))), 'a booking someone cannot mark shows no attendance choice');
+    await p.keyboard.press('Escape');
+
     /* Search by student name (Karl, 1.210). */
     console.log('\nSearching by student:');
     const all = () => p.evaluate(() => document.querySelectorAll('.bftd-calv-ev').length);

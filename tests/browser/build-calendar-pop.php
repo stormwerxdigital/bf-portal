@@ -41,8 +41,13 @@ $event = array(
   'title' => 'Pat Example', 'date' => BFTD_Time::today(), 'start' => '15:00', 'end' => '15:50', 'tutor' => 1,
   'status' => 'booked', 'draft' => true, 'type' => 'tutoring', 'type_label' => 'Tutoring session',
   'can_edit' => true, 'url' => '#student-501',
+  // Attendance (1.211): today's booking, no session yet, can be marked.
+  'can_mark' => true, 'attend' => '', 'attend_on' => '', 'session_draft' => false,
+  'who' => array(array('31', 'Pat Parent (Client)'), array('5', 'Rae T (Tutor)')),
 );
-$stub = '<script>window.fetch = function () { return Promise.resolve({ json: function () { return Promise.resolve({ success: true, data: { events: ' . json_encode(array($event, array_merge($event, array("id" => "x2", "key" => "k2", "start" => "16:00", "end" => "16:50", "status" => "held", "draft" => false, "can_edit" => false)), array_merge($event, array("id" => "x3", "key" => "k3", "start" => "17:00", "end" => "17:50", "status" => "noshow", "title" => "Sam Other", "student" => "Sam Other", "draft" => false, "can_edit" => false)))) . ', closed: {} } }); } }); };'
+$events = array($event, array_merge($event, array("id" => "x2", "key" => "k2", "start" => "16:00", "end" => "16:50", "status" => "held", "draft" => false, "can_edit" => false, "can_mark" => false)), array_merge($event, array("id" => "x3", "key" => "k3", "start" => "17:00", "end" => "17:50", "status" => "noshow", "title" => "Sam Other", "student" => "Sam Other", "draft" => false, "can_edit" => false, "can_mark" => false)));
+// Every request is kept in window.__posts, so a test can see what was sent.
+$stub = '<script>window.__posts = []; window.fetch = function (u, o) { var b = {}; if (o && o.body && o.body.forEach) o.body.forEach(function (v, k) { b[k] = v; }); window.__posts.push(b); return Promise.resolve({ json: function () { return Promise.resolve({ success: true, data: { events: ' . json_encode($events) . ', closed: {} } }); } }); };'
   . 'try { localStorage.clear(); } catch (e) {}</script>';
 
 $css = file_get_contents(BFTD_PATH . 'assets/css/bftd-admin.css');

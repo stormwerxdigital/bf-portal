@@ -3734,3 +3734,36 @@ function bftdThumb( id, thumb, full ) {
 
 	$( function () { $( '.bftd-actabout:not([hidden])' ).each( function () { fit( $( this ) ); } ); } );
 }( jQuery ) );
+
+/* --------------------------------------------------------------------------
+   A new session starts with the attendance marked on the Calendar (Karl,
+   1.211). Once the student and date are known, the booking's mark, if there
+   is one, fills What happened (and Cancelled by and Why for a missed one),
+   and a note says where it came from. Only on a new session, and only once
+   per student and date, so nothing a tutor has chosen is overwritten later.
+   -------------------------------------------------------------------------- */
+( function ( $ ) {
+	'use strict';
+	if ( ! $( 'body' ).hasClass( 'post-new-php' ) || ! window.BFTD ) return;
+	var $st = $( '#bftd_session_status' ), $date = $( '#bftd_session_session_date' ), $who = $( '#bftd_student' );
+	if ( ! $st.length || ! $date.length || ! $who.length ) return;
+	var asked = '';
+	function ask() {
+		var key = $who.val() + '|' + $date.val();
+		if ( ! Number( $who.val() ) || ! $date.val() || key === asked ) return;
+		asked = key;
+		$.post( BFTD.ajax_url, { action: 'bftd_attendance_mark', nonce: BFTD.nonce, student_id: $who.val(), date: $date.val() } ).done( function ( res ) {
+			$( '.bftd-from-calendar' ).remove();
+			var m = res && res.success && res.data ? res.data.mark : null;
+			if ( ! m || ! m.status ) return;
+			$st.val( m.status ).trigger( 'change' );
+			if ( 'missed' === m.status ) {
+				if ( m.missed_by ) $( '#bftd_session_missed_by' ).val( m.missed_by ).trigger( 'change' );
+				if ( m.missed_why && ! $( '#bftd_session_missed_why' ).val() ) $( '#bftd_session_missed_why' ).val( m.missed_why );
+			}
+			$st.after( $( '<p class="description bftd-from-calendar" role="status"></p>' ).text( 'From the Calendar: ' + ( m.label || m.status ) + '. Change it here if that is not right.' ) );
+		} );
+	}
+	$who.add( $date ).on( 'change', ask );
+	$( ask );
+}( jQuery ) );
