@@ -105,6 +105,9 @@ class BFTD_Change_Notify {
 
 	/** Flag a change for review. Called after a save that actually changed something. */
 	public static function flag( $post_id, $type, $summary ) {
+		// Changes are no longer tracked for telling families (Karl, 1.207.2).
+		// Nothing is flagged, so no review bar and no "waiting" count.
+		if ( ! self::tracking() ) return;
 		if ( ! isset( self::types()[ $type ] ) ) return;
 		$pending = get_post_meta( $post_id, self::pending_key( $type ), true );
 		$pending = is_array( $pending ) ? $pending : array();
@@ -182,7 +185,17 @@ class BFTD_Change_Notify {
 		);
 	}
 
+	/**
+	 * Whether changes are tracked for telling families. Off since 1.207.2
+	 * (Karl: "we are no longer tracking changes for notifications for
+	 * students or reports"). Changes flagged before then are not shown.
+	 */
+	public static function tracking() {
+		return false;
+	}
+
 	public static function render_bar( $post ) {
+		if ( ! self::tracking() ) return;
 		if ( ! $post || ! in_array( $post->post_type, array( BFTD_CPT::STUDENT, BFTD_CPT::ASSESSMENT, BFTD_CPT::PROGRESS, BFTD_CPT::SESSION ), true ) ) return;
 		if ( ! current_user_can( 'edit_post', $post->ID ) ) return;
 
