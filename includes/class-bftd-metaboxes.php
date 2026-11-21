@@ -88,7 +88,7 @@ class BFTD_MetaBoxes {
 		add_meta_box( 'bftd_student_family', 'Caregivers and tutors', array( __CLASS__, 'box_family' ), BFTD_CPT::STUDENT, 'normal', 'high' );
 		add_meta_box( 'bftd_student_detail', 'Student details', array( __CLASS__, 'box_student' ), BFTD_CPT::STUDENT, 'normal', 'high' );
 		add_meta_box( 'bftd_skills_done', 'Skills completed', array( __CLASS__, 'box_skills_done' ), BFTD_CPT::STUDENT, 'normal', 'default' );
-		add_meta_box( 'bftd_student_crm', 'Contact and history', array( __CLASS__, 'box_crm' ), BFTD_CPT::STUDENT, 'normal', 'high' );
+		add_meta_box( 'bftd_student_crm', 'History', array( __CLASS__, 'box_crm' ), BFTD_CPT::STUDENT, 'normal', 'high' );
 		add_meta_box( 'bftd_schedule', 'Sessions and schedule', array( __CLASS__, 'box_schedule' ), BFTD_CPT::STUDENT, 'normal', 'high' );
 		add_meta_box( 'bftd_priority', 'Priority items', array( __CLASS__, 'box_priority' ), BFTD_CPT::STUDENT, 'normal', 'default' );
 		add_meta_box( 'bftd_review', 'For review', array( __CLASS__, 'box_review' ), BFTD_CPT::STUDENT, 'normal', 'default' );
@@ -376,7 +376,12 @@ class BFTD_MetaBoxes {
 
 			<div class="bftd-grid">
 				<?php foreach ( self::crm_fields() as $key => $field ) : ?>
-					<?php BFTD_Fields::render_field( $post->ID, 'student', $key, $field ); ?>
+					<?php
+					// Phone and email are not shown (Karl, 1.207.1). Still kept
+					// in step with the CRM; a form without them leaves them be.
+					if ( in_array( $key, self::not_shown(), true ) ) continue;
+					BFTD_Fields::render_field( $post->ID, 'student', $key, $field );
+					?>
 				<?php endforeach; ?>
 
 				<?php
@@ -452,6 +457,11 @@ class BFTD_MetaBoxes {
 		$out = array( '' => 'Not set', 'preprimer' => 'Preprimer', 'primer' => 'Primer' );
 		for ( $i = 1; $i <= 12; $i++ ) $out[ 'g' . $i ] = 'Grade ' . $i;
 		return $out;
+	}
+
+	/** CRM fields the History box does not show (1.207.1). */
+	public static function not_shown() {
+		return array( 'phone', 'email' );
 	}
 
 	/** The fields the CRM will own once it is connected. */
@@ -545,7 +555,7 @@ class BFTD_MetaBoxes {
 		echo '</div>';
 	}
 
-	/** The student details drawn under Contact and history rather than here. */
+	/** The student details drawn under History rather than here. */
 	private static function in_contact() {
 		return array( 'grade', 'mode' );
 	}
