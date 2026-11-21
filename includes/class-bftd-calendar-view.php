@@ -370,6 +370,7 @@ class BFTD_Calendar_View {
 				</select>
 				<label class="bftd-calv-ghl" title="Bookings sent to the CRM, and appointments made in it"><input type="checkbox" class="bftd-calv-showghl" checked> Scheduled</label>
 				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showdraft" checked> Drafts</label>
+				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showheld" checked> Taught</label>
 				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showcancel"> Cancelled</label>
 				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showmoved"> Rescheduled</label>
 			</div>
@@ -429,15 +430,16 @@ class BFTD_Calendar_View {
 					<?php if ( $manage ) : ?>
 						<h2>Tutors</h2>
 						<p><button type="button" class="button-link bftd-calv-all">All</button> &middot; <button type="button" class="button-link bftd-calv-none">None</button></p>
-						<?php $i = 0; foreach ( $tutors as $uid => $name ) : ?>
+						<?php foreach ( $tutors as $uid => $name ) : ?>
 							<label class="bftd-calv-tutor"><input type="checkbox" value="<?php echo (int) $uid; ?>" checked>
-								<span class="bftd-calv-swatch" data-i="<?php echo (int) ( $i++ % 8 ); ?>"></span><?php echo esc_html( $name ); ?></label>
+								<?php echo esc_html( $name ); ?></label>
 						<?php endforeach; ?>
 					<?php endif; ?>
 				</aside>
 			</div>
 			<p class="description bftd-calv-key">
 				<span class="bftd-calv-k is-booked">Booked</span>
+				<span class="bftd-calv-k is-draft">Draft</span>
 				<span class="bftd-calv-k is-held">Taught</span>
 				<span class="bftd-calv-k is-cancelled">Cancelled</span>
 				<span class="bftd-calv-k is-moved">Rescheduled</span>

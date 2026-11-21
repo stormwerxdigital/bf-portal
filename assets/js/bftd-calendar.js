@@ -26,6 +26,7 @@
 	var showCancel = root.querySelector( '.bftd-calv-showcancel' );
 	var showMoved  = root.querySelector( '.bftd-calv-showmoved' );
 	var showDraft  = root.querySelector( '.bftd-calv-showdraft' );
+	var showHeld   = root.querySelector( '.bftd-calv-showheld' );
 	var tutorBoxes = Array.prototype.slice.call( root.querySelectorAll( '.bftd-calv-tutor input' ) );
 	var DAYS   = [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ];
 	var MONTHS = [ 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' ];
@@ -41,6 +42,7 @@
 		if ( 'cancel' in saved ) showCancel.checked = !! saved.cancel;
 		if ( 'moved' in saved ) showMoved.checked = !! saved.moved;
 		if ( 'draft' in saved ) showDraft.checked = !! saved.draft;
+		if ( 'held' in saved ) showHeld.checked = !! saved.held;
 	} catch ( e ) {}
 	viewEl.value = state.view;
 
@@ -49,7 +51,7 @@
 			localStorage.setItem( 'bftd_calv', JSON.stringify( {
 				view: state.view,
 				off: tutorBoxes.filter( function ( b ) { return ! b.checked; } ).map( function ( b ) { return Number( b.value ); } ),
-				ghl: showGhl.checked, cancel: showCancel.checked, moved: showMoved.checked, draft: showDraft.checked
+				ghl: showGhl.checked, cancel: showCancel.checked, moved: showMoved.checked, draft: showDraft.checked, held: showHeld.checked
 			} ) );
 		} catch ( e ) {}
 	}
@@ -92,7 +94,6 @@
 		if ( ! tutorBoxes.length ) return tutorIds;
 		return tutorBoxes.filter( function ( b ) { return b.checked; } ).map( function ( b ) { return Number( b.value ); } );
 	}
-	function colour( tutor ) { var i = tutorIds.indexOf( Number( tutor ) ); return i < 0 ? 0 : i % 8; }
 
 	/* ---- asking the server ---- */
 	var asked = 0;
@@ -132,7 +133,8 @@
 			if ( ( 'ghl' === e.kind || e.in_ghl ) && ! showGhl.checked ) return false;
 			if ( 'cancelled' === e.status && ! showCancel.checked ) return false;
 			if ( 'moved' === e.status && ! showMoved.checked ) return false;
-			if ( e.draft && ! showDraft.checked ) return false;   // draft students' bookings (1.203)
+			if ( e.draft && ! showDraft.checked ) return false;
+			if ( 'held' === e.status && ! showHeld.checked ) return false;   // sessions already taught (1.206)   // draft students' bookings (1.203)
 			return true;
 		} );
 	}
@@ -144,7 +146,7 @@
 		var says = e.title + ', ' + clock( e.start ) + ' to ' + clock( e.end ) + ( who ? ', ' + who : '' )
 			+ ( e.type_label ? ', ' + e.type_label : '' )
 			+ ( 'cancelled' === e.status ? ', cancelled' : 'held' === e.status ? ', taught' : 'moved' === e.status ? ', rescheduled to ' + e.moved_to : '' ) + ( 'ghl' === e.kind ? ', made in GoHighLevel' : '' );
-		return '<button type="button" class="' + cls + '" data-c="' + colour( e.tutor ) + '" data-i="' + state.events.indexOf( e ) + '"'
+		return '<button type="button" class="' + cls + '" data-i="' + state.events.indexOf( e ) + '"'
 			+ ( timed ? ' style="' + timed + '"' : '' ) + ' aria-label="' + esc( says ) + '" title="' + esc( says ) + '">'
 			// Time and type on one line, so the name has room (1.203.1).
 			+ '<span class="bftd-calv-ev-t">' + esc( clock( e.start ) ) + ( e.type ? '<span class="bftd-calv-ev-y"> &middot; ' + ( 'assessment' === e.type ? 'Assessment' : 'Tutoring' ) + '</span>' : '' ) + '</span>'
@@ -325,7 +327,7 @@
 	root.querySelector( '.bftd-calv-next' ).addEventListener( 'click', function () { step( 1 ); } );
 	root.querySelector( '.bftd-calv-today' ).addEventListener( 'click', function () { state.date = C.today; load(); } );
 	viewEl.addEventListener( 'change', function () { state.view = viewEl.value; remember(); load(); } );
-	[ showGhl, showCancel, showMoved, showDraft ].forEach( function ( x ) { x.addEventListener( 'change', function () { remember(); draw(); } ); } );
+	[ showGhl, showCancel, showMoved, showDraft, showHeld ].forEach( function ( x ) { x.addEventListener( 'change', function () { remember(); draw(); } ); } );
 	tutorBoxes.forEach( function ( b ) { b.addEventListener( 'change', function () { remember(); load(); } ); } );
 	var all = root.querySelector( '.bftd-calv-all' ), none = root.querySelector( '.bftd-calv-none' );
 	if ( all ) all.addEventListener( 'click', function () { tutorBoxes.forEach( function ( b ) { b.checked = true; } ); remember(); load(); } );

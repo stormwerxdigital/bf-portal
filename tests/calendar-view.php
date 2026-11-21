@@ -160,6 +160,11 @@ check(false !== strpos(file_get_contents(BFTD_PATH . 'assets/js/bftd-calendar.js
 check(false !== strpos($src, '<span class="bftd-calv-k is-ghl">Made in CRM</span>') && false === strpos($src, 'Made in GoHighLevel, change it there'), 'the key reads Made in CRM (1.205.1)');
 check(false !== strpos($src, '<span class="bftd-calv-k is-moved">Rescheduled</span>'), 'and Rescheduled (1.205.1)');
 $acss = file_get_contents(BFTD_PATH . 'assets/css/bftd-admin.css');
+$cjs2 = file_get_contents(BFTD_PATH . 'assets/js/bftd-calendar.js');
+check(false !== strpos($acss, '.bftd-calv-ev{border-left-color:#5c7a29;background:#eef4e2}') && false !== strpos($acss, '.bftd-calv-ev.is-draft{border-left-color:#70567F;background:#efe9f6}') && false !== strpos($acss, '.bftd-calv-ev.is-held{border-left-color:#b9c99c;background:#f7f9f2;color:#5f6b55}'), 'bookings are coloured by state: booked green, draft purple, taught a faded green (1.206)');
+check(false === strpos($acss, 'data-c=') && false === strpos($cjs2, 'data-c=') && false === strpos($src, 'bftd-calv-swatch'), 'and no longer by tutor, so the tutor list has no colour swatches');
+check(strpos($acss, 'Coloured by state') < strpos($acss, '.bftd-calv-ev.is-moved{') && strpos($acss, 'Coloured by state') < strpos($acss, '.bftd-calv-ev.is-cancelled{'), 'a cancelled or rescheduled booking keeps its own look over the state colour');
+check(false !== strpos($src, 'class="bftd-calv-showheld" checked> Taught</label>') && false !== strpos($cjs2, "if ( 'held' === e.status && ! showHeld.checked ) return false;") && false !== strpos($src, '<span class="bftd-calv-k is-draft">Draft</span>'), 'a Taught filter shows or hides sessions already taught, and the key has Draft (1.206)');
 check(false !== strpos($acss, '.wp-core-ui .button.button-primary.bftd-calv-addbtn{background:var(--bftd-purple);border-color:var(--bftd-purple)}'), 'Add a booking is purple, not the sage of other primary buttons (1.204.1)');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
