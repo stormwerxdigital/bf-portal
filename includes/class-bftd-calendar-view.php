@@ -373,7 +373,7 @@ class BFTD_Calendar_View {
 				</select>
 				<label class="bftd-calv-ghl" title="Bookings sent to the CRM, and appointments made in it"><input type="checkbox" class="bftd-calv-showghl" checked> Scheduled</label>
 				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showdraft" checked> Drafts</label>
-				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showheld" checked> Taught</label>
+				<label class="bftd-calv-ghl" title="Bookings before today, taught or not"><input type="checkbox" class="bftd-calv-showheld" checked> Past</label>
 				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showcancel"> Cancelled</label>
 				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showmoved"> Rescheduled</label>
 			</div>

@@ -134,7 +134,8 @@
 			if ( 'cancelled' === e.status && ! showCancel.checked ) return false;
 			if ( 'moved' === e.status && ! showMoved.checked ) return false;
 			if ( e.draft && ! showDraft.checked ) return false;
-			if ( 'held' === e.status && ! showHeld.checked ) return false;   // sessions already taught (1.206)   // draft students' bookings (1.203)
+			// Past (1.206.4, was Taught): everything before today, taught or not.
+			if ( ( 'held' === e.status || e.date < C.today ) && ! showHeld.checked ) return false;   // draft students' bookings (1.203)
 			return true;
 		} );
 	}
