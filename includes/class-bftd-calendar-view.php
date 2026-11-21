@@ -440,7 +440,7 @@ class BFTD_Calendar_View {
 				<span class="bftd-calv-k is-booked">Booked</span>
 				<span class="bftd-calv-k is-held">Taught</span>
 				<span class="bftd-calv-k is-cancelled">Cancelled</span>
-				<span class="bftd-calv-k is-moved">Rescheduled, where it was</span>
+				<span class="bftd-calv-k is-moved">Rescheduled</span>
 				<span class="bftd-calv-k is-closed">Closed: Sundays, statutory holidays, school breaks</span>
 				<span class="bftd-calv-k is-ghl">Made in CRM</span>
 			</p>

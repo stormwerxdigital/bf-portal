@@ -158,6 +158,7 @@ check(false !== strpos($sc, "( isset( \$_POST['tutor'] ) && BFTD_Roles::can_mana
 
 check(false !== strpos(file_get_contents(BFTD_PATH . 'assets/js/bftd-calendar.js'), "if ( ( 'ghl' === e.kind || e.in_ghl ) && ! showGhl.checked ) return false;"), 'Scheduled shows or hides everything in the CRM: bookings the portal sent there and appointments made there (1.205)');
 check(false !== strpos($src, '<span class="bftd-calv-k is-ghl">Made in CRM</span>') && false === strpos($src, 'Made in GoHighLevel, change it there'), 'the key reads Made in CRM (1.205.1)');
+check(false !== strpos($src, '<span class="bftd-calv-k is-moved">Rescheduled</span>'), 'and Rescheduled (1.205.1)');
 $acss = file_get_contents(BFTD_PATH . 'assets/css/bftd-admin.css');
 check(false !== strpos($acss, '.wp-core-ui .button.button-primary.bftd-calv-addbtn{background:var(--bftd-purple);border-color:var(--bftd-purple)}'), 'Add a booking is purple, not the sage of other primary buttons (1.204.1)');
 
