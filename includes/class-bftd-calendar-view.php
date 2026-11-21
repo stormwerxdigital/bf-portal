@@ -214,6 +214,9 @@ class BFTD_Calendar_View {
 
 			$title = (string) get_post_field( 'post_title', $sid );
 			$draft = 'publish' !== get_post_status( $sid );
+			// The school the student is linked to, for the search (Karl, 1.212.2).
+			$linked = class_exists( 'BFTD_Schools' ) ? BFTD_Schools::get( BFTD_Schools::of_student( $sid ) ) : null;
+			$school = $linked ? (string) $linked['name'] : '';
 			$edit  = user_can( (int) $viewer, 'edit_post', $sid );
 			// Attendance, from the session or the booking's own mark (1.211).
 			$have  = class_exists( 'BFTD_Attendance' );
@@ -241,6 +244,7 @@ class BFTD_Calendar_View {
 					'kind'       => 'session',
 					'title'      => $title,
 					'student'    => $title,
+					'school'     => $school,
 					'student_id' => (int) $sid,
 					'tutor'      => (int) $o['tutor'],
 					'date'       => $o['date'],
@@ -478,8 +482,8 @@ class BFTD_Calendar_View {
 				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showcancel"> Cancelled</label>
 				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showmoved"> Rescheduled</label>
 				<?php // Search the bookings by student name (Karl, 1.210). ?>
-				<label class="screen-reader-text" for="bftd-calv-search">Search by student</label>
-				<input type="search" id="bftd-calv-search" class="bftd-calv-search" placeholder="Search students" autocomplete="off">
+				<label class="screen-reader-text" for="bftd-calv-search">Search by student or school</label>
+				<input type="search" id="bftd-calv-search" class="bftd-calv-search" placeholder="Search students or schools" autocomplete="off">
 			</div>
 			<div class="bftd-calv-body">
 				<div class="bftd-calv-grid" role="region" aria-label="Sessions"></div>

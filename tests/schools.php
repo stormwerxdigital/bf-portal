@@ -148,5 +148,9 @@ check(false !== strpos($gh, "BFTD_Schools::resolve_student( \$sid, '', false );"
 $st = file_get_contents(BFTD_PATH . 'includes/class-bftd-students.php');
 check(false !== strpos($st, "\$narrow( BFTD_Schools::students_at( \$filters['school'] ) );") && false !== strpos($st, '<option value="0">Every school</option>'), 'the Students list filters by school, alongside status');
 
+$cv = file_get_contents(BFTD_PATH . 'includes/class-bftd-calendar-view.php');
+check(false !== strpos($cv, "\$linked = class_exists( 'BFTD_Schools' ) ? BFTD_Schools::get( BFTD_Schools::of_student( \$sid ) ) : null;") && false !== strpos($cv, "'school'     => \$school,"),
+  'each Calendar booking carries the school its student is linked to, for the search (1.212.2)');
+
 echo $fail ? "\n$fail failure(s)\n" : "\nAll checks passed.\n";
 exit($fail ? 1 : 0);

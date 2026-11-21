@@ -47,7 +47,7 @@ $event = array(
   'can_mark' => true, 'attend' => '', 'attend_on' => '', 'session_draft' => false,
   'who' => array(array('31', 'Pat Parent (Client)'), array('5', 'Rae T (Tutor)')),
 );
-$events = array($event, array_merge($event, array("id" => "x2", "key" => "k2", "start" => "16:00", "end" => "16:50", "status" => "held", "draft" => false, "can_edit" => false, "can_mark" => false)), array_merge($event, array("id" => "x3", "key" => "k3", "start" => "17:00", "end" => "17:50", "status" => "noshow", "title" => "Sam Other", "student" => "Sam Other", "student_id" => 502, "draft" => false, "can_edit" => false, "can_mark" => false)));
+$events = array($event, array_merge($event, array("id" => "x2", "key" => "k2", "start" => "16:00", "end" => "16:50", "status" => "held", "draft" => false, "can_edit" => false, "can_mark" => false)), array_merge($event, array("id" => "x3", "key" => "k3", "start" => "17:00", "end" => "17:50", "status" => "noshow", "title" => "Sam Other", "student" => "Sam Other", "student_id" => 502, "school" => "Prairie Sky Elementary", "draft" => false, "can_edit" => false, "can_mark" => false)));
 // Every request is kept in window.__posts, so a test can see what was sent.
 $stub = '<script>window.__posts = []; window.fetch = function (u, o) { var b = {}; if (o && o.body && o.body.forEach) o.body.forEach(function (v, k) { b[k] = v; }); window.__posts.push(b); return Promise.resolve({ json: function () { return Promise.resolve({ success: true, data: { events: ' . json_encode($events) . ', closed: {} } }); } }); };'
   . 'try { localStorage.clear(); } catch (e) {}</script>';

@@ -151,7 +151,8 @@
 			// A student unticked under their tutor (1.212).
 			if ( 'session' === e.kind && kidsOff[ e.tutor ] && kidsOff[ e.tutor ][ e.student_id ] ) return false;
 			var q = search ? search.value.trim().toLowerCase() : '';
-			if ( q && String( e.student || e.title || '' ).toLowerCase().indexOf( q ) < 0 ) return false;
+			// Or by the school they are linked to (1.212.2).
+			if ( q && String( e.student || e.title || '' ).toLowerCase().indexOf( q ) < 0 && String( e.school || '' ).toLowerCase().indexOf( q ) < 0 ) return false;
 			return true;
 		} );
 	}

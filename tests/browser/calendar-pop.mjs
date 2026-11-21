@@ -179,6 +179,10 @@ for (const [name, vp] of [['desktop', { width: 1340, height: 900 }], ['phone', {
     check(2 === await all(), 'any case, and more than one word');
     await p.fill('.bftd-calv-search', 'nobody'); await p.waitForTimeout(100);
     check(0 === await all(), 'a name with no bookings shows none');
+    /* And by the school a student is linked to (Karl, 1.212.2). */
+    await p.fill('.bftd-calv-search', 'prairie sky'); await p.waitForTimeout(100);
+    check(1 === await all() && 1 === (await count()).noshow, 'a linked school\'s name shows its students\' bookings');
+    check(/schools/.test(await p.getAttribute('.bftd-calv-search', 'placeholder')), 'and the box says it searches schools too');
     await p.fill('.bftd-calv-search', ''); await p.waitForTimeout(100);
     check(3 === await all(), 'and clearing it brings them all back');
 
