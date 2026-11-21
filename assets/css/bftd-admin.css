@@ -1748,3 +1748,10 @@ html.bftd-calv-modal{overflow:hidden}
 .bftd-calv-pop[data-t="6"]{--calv-accent:#5a5a8a}
 .bftd-calv-pop[data-t="7"]{--calv-accent:#8a7a2e}
 .bftd-calv-pop-who{display:flex;align-items:center;gap:6px}
+/* A session's Appointment (1.213). */
+.bftd-appt h4{margin-top:0}
+.bftd-appt select{min-width:320px;max-width:100%}
+.bftd-appt-now{margin:0 0 10px}
+.bftd-appt-err{color:#8a1f1f;font-weight:600}
+.bftd-appt-new{margin-top:10px}
+.bftd-calv-pop-foot{display:flex;flex-wrap:wrap;gap:8px 20px}

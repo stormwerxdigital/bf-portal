@@ -32,6 +32,7 @@ class BFTD_Fields {
 class BFTD_MetaBoxes { public static function cancelled_by_options($p, $s = 0) { return array('' => 'Choose someone', '31' => 'Pat Parent (Client)', '5' => 'Rae T (Tutor)'); } }
 class BFTD_Schedule { public static function occurrences($s, $f, $t, $l = 200) { return $GLOBALS['OCC'][$s][$f] ?? array(); } }
 class BFTD_Audit { public static function log($e, $a = array()) { $GLOBALS['LOGGED'][] = $e; } }
+class BFTD_Session_Appt { public static function linked_keys($s) { return $GLOBALS['LINKED'] ?? array(); } }
 require BFTD_PATH . 'includes/class-bftd-attendance.php';
 
 $fail = 0;
@@ -73,6 +74,17 @@ check('held' === $b['attend'] && 'session' === $b['attend_on'] && true === $b['s
 check('session' === BFTD_Attendance::mark($S, $ago(2), 'missed', '5', 'Tutor ill') && 'missed' === $st(501)
   && '5' === BFTD_Fields::get(501, 'session', 'missed_by') && 'Tutor ill' === BFTD_Fields::get(501, 'session', 'missed_why'), 'Missed writes who and why to the session too');
 check(is_wp_error(BFTD_Attendance::mark($S, $ago(2), '')), 'a session cannot be left with no answer from here');
+
+echo "\nThe session linked to the appointment (1.213):\n";
+$SESS[$S][] = 502; $STATUS[502] = 'draft';
+$META[502] = array('_bftd_student_id' => $S, '_bftd_session__session_date' => $ago(2), '_bftd_session__status' => 'held');
+$META[501]['_bftd_session__session_date'] = $ago(5);
+$GLOBALS['LINKED'] = array($ago(2) . ' 10:00' => 501);
+BFTD_Attendance::mark($S, $ago(2), 'late', '', '', 0, $ago(2) . ' 10:00');
+check('late' === $st(501) && 'held' === $st(502), 'a mark sent with its appointment goes to the session linked to it, not another on that date');
+unset($GLOBALS['LINKED']);
+$META[501]['_bftd_session__session_date'] = $ago(2);
+array_pop($SESS[$S]);
 
 echo "\nWho can mark:\n";
 $OCC[$S][$ago(2)] = array(array('tutor' => 5));

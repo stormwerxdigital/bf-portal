@@ -1349,7 +1349,9 @@ class BFTD_MetaBoxes {
 			echo '</div>';
 		};
 
-		$draw( array( 'session_date', 'session_time' ) );
+		// The date and time come from the appointment (Karl, 1.213).
+		if ( class_exists( 'BFTD_Session_Appt' ) ) BFTD_Session_Appt::render( $post );
+		else $draw( array( 'session_date', 'session_time' ) );
 		self::status_row( $post, $fields );
 		self::why_block( $post, $fields );
 		self::missed_block( $post, $fields );
@@ -1657,12 +1659,15 @@ class BFTD_MetaBoxes {
 			$changed += self::save_rows_field( $post_id, 'session', 'texts', self::text_columns(), 'Texts read' );
 			$changed += self::save_rows_field( $post_id, 'session', 'missed_extended', self::extended_columns(), 'Session extended' );
 			$changed += self::save_rows_field( $post_id, 'session', 'matrices', self::matrix_columns(), 'Morphology matrices studied' );
+			// Linked first, so the checks below see the appointment's date (1.213).
+			if ( class_exists( 'BFTD_Session_Appt' ) ) BFTD_Session_Appt::save_from_form( $post_id );
 			self::stamp_missed( $post_id );
 			self::claim_session( $post_id );
 			self::hold_duplicate_draft( $post_id, $post );
 			self::hold_unexplained( $post_id, $post );
 			self::hold_pending( $post_id, $post );
 			self::hold_unclaimed( $post_id, $post );
+			if ( class_exists( 'BFTD_Session_Appt' ) ) BFTD_Session_Appt::hold_unlinked( $post_id, $post );
 			self::save_report_staff( $post_id );
 			self::attach_session_to_report( $post_id );
 		} elseif ( BFTD_CPT::RESOURCE === $post->post_type ) {
@@ -2355,6 +2360,10 @@ class BFTD_MetaBoxes {
 				echo '<div class="notice notice-warning"><p><strong>Kept as a draft.</strong> '
 					. 'This session is marked Pending. Everything you wrote has been saved. '
 					. 'Change What happened once it is decided and publish, and the family will see it then.</p></div>';
+			} elseif ( 'unlinked' === $what ) {
+				echo '<div class="notice notice-warning"><p><strong>Kept as a draft.</strong> '
+					. 'This session is not linked to an appointment, and its date and time come from one. '
+					. 'Everything you wrote has been saved. Choose its appointment, or make a new one, under Appointment and publish.</p></div>';
 			} elseif ( 'unclaimed' === $what ) {
 				// A different sentence, because this one is not about the
 				// family. Nothing is withheld from them by it; what is

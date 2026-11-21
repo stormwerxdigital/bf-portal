@@ -221,6 +221,8 @@ class BFTD_Calendar_View {
 			// Attendance, from the session or the booking's own mark (1.211).
 			$have  = class_exists( 'BFTD_Attendance' );
 			$sess  = $have && $from <= BFTD_Time::today() ? BFTD_Attendance::sessions_by_date( $sid ) : array();
+			// Sessions by the appointment they are linked to (1.213).
+			$byKey = class_exists( 'BFTD_Session_Appt' ) ? BFTD_Session_Appt::linked_keys( $sid ) : array();
 			$marks = $have ? BFTD_Attendance::marks( $sid ) : array();
 			$who   = null;
 			foreach ( BFTD_Schedule::occurrences( $sid, $from, $to, 400 ) as $o ) {
@@ -235,6 +237,8 @@ class BFTD_Calendar_View {
 					foreach ( BFTD_MetaBoxes::cancelled_by_options( 0, $sid ) as $k => $label ) if ( '' !== (string) $k ) $who[] = array( (string) $k, (string) $label );
 				}
 				$att = $have ? BFTD_Attendance::for_booking( $sess, $marks, $o['date'] ) : array( 'attend' => '', 'attend_on' => '', 'session_draft' => false );
+				$linked = isset( $byKey[ $o['key'] ] ) ? (int) $byKey[ $o['key'] ] : 0;
+				if ( $linked ) $att = array( 'attend' => (string) BFTD_Fields::get( $linked, 'session', 'status' ), 'attend_on' => 'session', 'session_draft' => 'publish' !== get_post_status( $linked ) );
 				$out[] = array(
 					'attend'        => $att['attend'],
 					'attend_on'     => $att['attend_on'],
@@ -261,6 +265,10 @@ class BFTD_Calendar_View {
 					// Their own sessions are a tutor's to change (Karl, 1.193).
 					'can_edit'   => ( $edit || (int) $o['tutor'] === (int) $viewer ) && 'booked' === $o['status'],
 					'url'        => (string) get_edit_post_link( $sid, 'raw' ),
+					// Its session, or where to record one already linked (1.213).
+					'session_url' => $linked ? (string) get_edit_post_link( $linked, 'raw' ) : '',
+					'record_url'  => ( class_exists( 'BFTD_Session_Appt' ) && ! $linked && 'assessment' !== ( $o['type'] ?? '' ) && $mine && $o['date'] <= BFTD_Time::today() && in_array( $o['status'], array( 'booked', 'held', 'noshow' ), true ) )
+						? admin_url( 'post-new.php?post_type=' . BFTD_CPT::SESSION . '&student=' . (int) $sid . '&appt=' . rawurlencode( $o['key'] ) ) : '',
 				);
 			}
 		}

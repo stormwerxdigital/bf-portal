@@ -3853,3 +3853,35 @@ function bftdThumb( id, thumb, full ) {
 	$list.on( 'mousedown', '.bftd-school-o', function ( e ) { e.preventDefault(); pickAt( Number( $( this ).data( 'i' ) ) ); } );
 	$in.on( 'blur', function () { setTimeout( close, 150 ); } );
 }( jQuery ) );
+
+/* --------------------------------------------------------------------------
+   A session's Appointment (Karl, 1.213): its date and time come from one.
+   New appointment shows its fields; picking one tells the attendance fill
+   (1.211) the date; choosing the student on a new session lists theirs.
+   -------------------------------------------------------------------------- */
+( function ( $ ) {
+	'use strict';
+	var $box = $( '.bftd-appt' );
+	if ( ! $box.length || ! window.BFTD ) return;
+	var $pick = $( '#bftd-appt-pick' ), $new = $box.find( '.bftd-appt-new' ), $date = $( '#bftd_session_session_date' );
+	function follow() {
+		var v = $pick.val() || '';
+		$new.prop( 'hidden', 'new' !== v );
+		var d = 'new' === v ? $( '#bftd-appt-date' ).val() : $pick.find( 'option:selected' ).data( 'date' );
+		if ( d && $date.val() !== d ) $date.val( d ).trigger( 'change' );
+	}
+	$pick.on( 'change', follow );
+	$( '#bftd-appt-date' ).on( 'change', follow );
+	$( '#bftd_student' ).on( 'change', function () {
+		var sid = Number( $( this ).val() );
+		$.post( BFTD.ajax_url, { action: 'bftd_session_appts', nonce: BFTD.nonce, student_id: sid, session_id: $box.data( 'session' ) } ).done( function ( res ) {
+			var list = res && res.success && res.data ? res.data.appts : [];
+			var keep = $pick.find( 'option[value="new"]' ).detach();
+			$pick.empty().append( $( '<option value="">' ).text( sid ? ( list.length ? 'Choose an appointment' : 'No appointments in the month around today' ) : 'Choose the student first' ) );
+			list.forEach( function ( a ) { if ( ! a.mine ) $pick.append( $( '<option>' ).val( a.key ).attr( 'data-date', a.date ).text( a.label ) ); } );
+			$pick.append( keep );
+			follow();
+		} );
+	} );
+	follow();
+}( jQuery ) );

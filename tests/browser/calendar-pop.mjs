@@ -130,6 +130,8 @@ for (const [name, vp] of [['desktop', { width: 1340, height: 900 }], ['phone', {
     check(!!a && a.opts.join('|') === 'Not marked|Attended|Late start|No show|Missed', 'a booking from today back can be marked, got ' + JSON.stringify(a && a.opts));
     check(!!a && a.missedHidden && /No session yet/.test(a.where), 'Cancelled by and Why stay hidden, and it says the mark waits for the session');
     check(!!a && a.before, 'attendance comes before the booking\'s own changes');
+    const foot = await p.evaluate(() => [...document.querySelectorAll('.bftd-calv-pop-foot a')].map(x => x.textContent.trim() + ' ' + x.getAttribute('href')));
+    check(foot.some(t => /^Record the session/.test(t) && /#record-501$/.test(t)), 'a booking with no session offers to record one, already linked (1.213), got ' + JSON.stringify(foot));
     await p.selectOption('.bftd-calv-attend select[name=status]', 'missed');
     check(!(await p.evaluate(() => document.querySelector('.bftd-calv-attend-missed').hidden)), 'choosing Missed asks who cancelled and why');
     await p.selectOption('.bftd-calv-attend select[name=missed_by]', '31');
@@ -137,8 +139,8 @@ for (const [name, vp] of [['desktop', { width: 1340, height: 900 }], ['phone', {
     await p.evaluate(() => { window.__posts = []; });
     await p.click('.bftd-calv-attend button[type=submit]'); await p.waitForTimeout(200);
     const sent = await p.evaluate(() => window.__posts.find(b => b.action === 'bftd_calendar_attend'));
-    check(!!sent && sent.status === 'missed' && sent.missed_by === '31' && sent.missed_why === 'Family away' && sent.student_id === '501',
-      'Save attendance sends the student, date and answer, got ' + JSON.stringify(sent));
+    check(!!sent && sent.status === 'missed' && sent.missed_by === '31' && sent.missed_why === 'Family away' && sent.student_id === '501' && sent.key === 'k1',
+      'Save attendance sends the student, date, appointment and answer, got ' + JSON.stringify(sent));
     check(!(await shown()).pop, 'and the card closes once it is saved');
     await p.click('.bftd-calv-ev.is-held'); await p.waitForTimeout(300);
     check(!(await p.evaluate(() => document.querySelector('.bftd-calv-pop .bftd-calv-attend'))), 'a booking someone cannot mark shows no attendance choice');

@@ -91,7 +91,7 @@ class BFTD_Attendance {
 	 * Record a mark. Returns 'session' or 'booking' (where it went), or a
 	 * WP_Error saying what is missing.
 	 */
-	public static function mark( $student_id, $date, $status, $missed_by = '', $missed_why = '', $viewer = 0 ) {
+	public static function mark( $student_id, $date, $status, $missed_by = '', $missed_why = '', $viewer = 0, $key = '' ) {
 		$student_id = (int) $student_id;
 		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) $date ) ) return new WP_Error( 'bftd_date', 'That is not a date.' );
 		if ( $date > BFTD_Time::today() ) return new WP_Error( 'bftd_future', 'A session that has not happened yet cannot be marked.' );
@@ -108,6 +108,12 @@ class BFTD_Attendance {
 		}
 
 		$sessions = self::sessions_by_date( $student_id );
+		// The session linked to this appointment wins over one that only
+		// shares its date (1.213).
+		if ( '' !== $key && class_exists( 'BFTD_Session_Appt' ) ) {
+			$linked = BFTD_Session_Appt::linked_keys( $student_id );
+			if ( isset( $linked[ $key ] ) ) $sessions[ $date ] = array( 'id' => $linked[ $key ], 'status' => '', 'draft' => false );
+		}
 		if ( isset( $sessions[ $date ] ) ) {
 			if ( '' === $status ) return new WP_Error( 'bftd_status', 'Choose what happened. The session keeps an answer.' );
 			$sid = $sessions[ $date ]['id'];
@@ -152,7 +158,8 @@ class BFTD_Attendance {
 			sanitize_key( wp_unslash( $_POST['status'] ?? '' ) ),
 			sanitize_text_field( wp_unslash( $_POST['missed_by'] ?? '' ) ),
 			sanitize_textarea_field( wp_unslash( $_POST['missed_why'] ?? '' ) ),
-			$viewer
+			$viewer,
+			sanitize_text_field( wp_unslash( $_POST['key'] ?? '' ) )
 		);
 		if ( is_wp_error( $r ) ) wp_send_json_error( array( 'message' => $r->get_error_message() ), 400 );
 		wp_send_json_success( array( 'where' => $r ) );

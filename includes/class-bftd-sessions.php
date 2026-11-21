@@ -115,7 +115,8 @@ class BFTD_Sessions {
 		$held = BFTD_MetaBoxes::hold_duplicate_draft( $sid, $as_published )
 			|| BFTD_MetaBoxes::hold_unexplained( $sid, $as_published )
 			|| BFTD_MetaBoxes::hold_pending( $sid, $as_published )
-			|| BFTD_MetaBoxes::hold_unclaimed( $sid, $as_published );
+			|| BFTD_MetaBoxes::hold_unclaimed( $sid, $as_published )
+			|| ( class_exists( 'BFTD_Session_Appt' ) && BFTD_Session_Appt::hold_unlinked( $sid, $as_published ) );
 
 		if ( ! $held ) wp_update_post( array( 'ID' => $sid, 'post_status' => 'publish' ) );
 

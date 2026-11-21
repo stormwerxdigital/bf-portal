@@ -146,5 +146,19 @@ check(false !== strpos($mb, "\$repeat = isset( \$r['repeat'] ) ? \$r['repeat'] :
 check(false !== strpos($js, "repeat:  \$r.find( '.bftd-s-repeat' ).val(),") && false !== strpos($js, "'.bftd-occ-delete'"), 'the preview books what the form says, and Delete is wired');
 check(false !== strpos($cv, "array( 'move', 'cancel', 'delete' )"), 'an appointment made in GoHighLevel can be deleted from the calendar too');
 
+/* ---- an appointment made from a session for a lesson already given (1.213) ---- */
+check(!array_key_exists('local', BFTD_Schedule::clean_rule(array('repeat' => 'once', 'from' => $D3, 'time' => '16:00'), 'z')), 'an ordinary booking row keeps its shape: no "kept here" field');
+$GLOBALS['FIRED'] = array();
+$past = open_day(BFTD_Time::add_days($T, -3));
+$kept = BFTD_Schedule::add_booking(12, array('repeat' => 'once', 'from' => $past, 'time' => '09:00', 'local' => 1), true);
+check(!is_wp_error($kept) && 1 === ($kept['local'] ?? 0), 'an appointment for an earlier day is saved, marked kept here');
+check(!in_array('bftd_schedule_changed', $GLOBALS['FIRED'], true), 'and nobody is told: it is not held in the banner');
+$o = array_values(array_filter(BFTD_Schedule::occurrences(12, $past, $past), function ($x) { return '09:00' === $x['time']; }))[0] ?? array();
+check(!empty($o['local']), 'its session slot says it is kept here, which the GoHighLevel sync skips');
+BFTD_Schedule::save_rules(12, array(array('id' => $kept['id'], 'repeat' => 'once', 'from' => $past, 'time' => '09:00')));
+check(1 === (BFTD_Schedule::rules(12)[0]['local'] ?? 0), 'saving the student\'s schedule form, which does not carry the mark, keeps it');
+$bk = file_get_contents(BFTD_PATH . 'includes/class-bftd-bookings.php');
+check(false !== strpos($bk, "if ( ! empty( \$o['local'] ) ) continue;"), 'and the GoHighLevel sync leaves it out');
+
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

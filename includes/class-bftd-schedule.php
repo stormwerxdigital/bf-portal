@@ -98,7 +98,7 @@ class BFTD_Schedule {
 		$until = 'weekly' === $repeat ? self::clean_date( isset( $row['until'] ) ? $row['until'] : '' ) : '';
 		if ( $until && $from && $until < $from ) $until = '';
 
-		return array(
+		$rule = array(
 			'id'      => $id,
 			'day'     => $day,
 			'time'    => $time,
@@ -109,6 +109,10 @@ class BFTD_Schedule {
 			'until'   => $until,
 			'type'    => self::clean_type( isset( $row['type'] ) ? $row['type'] : '' ),
 		);
+		// Made from a session for today or earlier: kept here, never sent to
+		// GoHighLevel (1.213). Only on those rows, so no other row changes shape.
+		if ( ! empty( $row['local'] ) ) $rule['local'] = 1;
+		return $rule;
 	}
 
 	/**
@@ -148,7 +152,8 @@ class BFTD_Schedule {
 	 * would land on are simply left out of it.
 	 */
 	public static function closed_rule( $rule ) {
-		if ( self::is_once( $rule ) && $rule['from'] < BFTD_Time::today() ) {
+		// A lesson already given can be recorded from its session (1.213, kept here).
+		if ( self::is_once( $rule ) && $rule['from'] < BFTD_Time::today() && empty( $rule['local'] ) ) {
 			return sprintf( 'The booking on %s was not added: that date has passed.', BFTD_Time::day( $rule['from'] ) );
 		}
 		if ( self::is_once( $rule ) ) {
@@ -177,11 +182,13 @@ class BFTD_Schedule {
 		$out    = array();
 		$closed = array();
 		$had    = array();
-		foreach ( self::rules( $student_id ) as $r ) $had[ (string) ( $r['id'] ?? '' ) ] = true;
+		foreach ( self::rules( $student_id ) as $r ) $had[ (string) ( $r['id'] ?? '' ) ] = $r;
 		foreach ( (array) $raw as $row ) {
 			$id   = is_array( $row ) && ! empty( $row['id'] ) ? sanitize_text_field( $row['id'] ) : 'r' . wp_generate_password( 8, false, false );
 			$rule = self::clean_rule( $row, $id );
 			if ( ! $rule ) continue;
+			// The student's form does not carry "kept here"; the saved row does.
+			if ( isset( $had[ $id ] ) && is_array( $had[ $id ] ) && ! empty( $had[ $id ]['local'] ) ) $rule['local'] = 1;
 			// Only a new booking is turned away for its day: one already
 			// saved is left as it was, rather than vanishing on a later save.
 			$why = isset( $had[ $id ] ) ? '' : self::closed_rule( $rule );
@@ -366,7 +373,7 @@ class BFTD_Schedule {
 	 *
 	 * @return array|WP_Error the booking saved
 	 */
-	public static function add_booking( $student_id, $raw ) {
+	public static function add_booking( $student_id, $raw, $quiet = false ) {
 		$rule = self::clean_rule( $raw, 'r' . wp_generate_password( 8, false, false ) );
 		if ( ! $rule ) return new WP_Error( 'bftd_booking', 'Pick a date and a time for the booking.' );
 		$why = self::closed_rule( $rule );
@@ -385,7 +392,9 @@ class BFTD_Schedule {
 			'student_id' => $student_id,
 			'summary'    => 'A booking was added from the calendar: ' . self::describe( array( $rule ) ) . ' (' . self::type_label( $rule['type'] ) . ').',
 		) );
-		do_action( 'bftd_schedule_changed', $student_id );
+		// Quiet: made from a session for a lesson already given, so nobody is
+		// told and nothing waits in the banner (1.213).
+		if ( ! $quiet ) do_action( 'bftd_schedule_changed', $student_id );
 		return $rule;
 	}
 
@@ -842,6 +851,7 @@ class BFTD_Schedule {
 					'rule'    => isset( $rule['id'] ) ? (string) $rule['id'] : '',
 					'once'    => $once,
 					'type'    => self::clean_type( isset( $rule['type'] ) ? $rule['type'] : '' ),
+					'local'   => ! empty( $rule['local'] ),
 				);
 
 				// Deleted: gone, with no cancelled marker left behind (1.201).

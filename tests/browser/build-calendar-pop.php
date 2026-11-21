@@ -44,7 +44,7 @@ $event = array(
   'status' => 'booked', 'draft' => true, 'type' => 'tutoring', 'type_label' => 'Tutoring session',
   'can_edit' => true, 'url' => '#student-501',
   // Attendance (1.211): today's booking, no session yet, can be marked.
-  'can_mark' => true, 'attend' => '', 'attend_on' => '', 'session_draft' => false,
+  'can_mark' => true, 'attend' => '', 'attend_on' => '', 'session_draft' => false, 'record_url' => '#record-501', 'session_url' => '',
   'who' => array(array('31', 'Pat Parent (Client)'), array('5', 'Rae T (Tutor)')),
 );
 $events = array($event, array_merge($event, array("id" => "x2", "key" => "k2", "start" => "16:00", "end" => "16:50", "status" => "held", "draft" => false, "can_edit" => false, "can_mark" => false)), array_merge($event, array("id" => "x3", "key" => "k3", "start" => "17:00", "end" => "17:50", "status" => "noshow", "title" => "Sam Other", "student" => "Sam Other", "student_id" => 502, "school" => "Prairie Sky Elementary", "draft" => false, "can_edit" => false, "can_mark" => false)));

@@ -175,6 +175,8 @@ class BFTD_Bookings {
 		$until = BFTD_Time::add_days( $today, self::WINDOW_DAYS );
 		foreach ( BFTD_Schedule::occurrences( $sid, $today, $until, 200 ) as $o ) {
 			if ( 'booked' !== $o['status'] ) continue;
+			// Kept here: made from a session for a lesson already given (1.213).
+			if ( ! empty( $o['local'] ) ) continue;
 			$cal = BFTD_Calendars::calendar_for( (int) $o['tutor'] );
 			if ( '' === $cal ) {
 				$u = $o['tutor'] ? get_userdata( (int) $o['tutor'] ) : null;

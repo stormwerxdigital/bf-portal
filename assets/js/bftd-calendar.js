@@ -367,7 +367,11 @@
 				+ '<p class="bftd-calv-pop-quiet"><button type="button" class="button-link bftd-calv-delete">Delete</button></p></form>';
 		}
 		h += '</div>';
-		if ( e.url ) h += '<div class="bftd-calv-pop-foot"><a class="bftd-calv-pop-open" href="' + esc( e.url ) + '">Open ' + esc( e.student ) + ' &rarr;</a></div>';
+		// Its session, or recording one already linked to this appointment (1.213).
+		var foot = ( e.session_url ? '<a class="bftd-calv-pop-open" href="' + esc( e.session_url ) + '">Open the session &rarr;</a>' : '' )
+			+ ( e.record_url ? '<a class="bftd-calv-pop-open" href="' + esc( e.record_url ) + '">Record the session &rarr;</a>' : '' )
+			+ ( e.url ? '<a class="bftd-calv-pop-open" href="' + esc( e.url ) + '">Open ' + esc( e.student ) + ' &rarr;</a>' : '' );
+		if ( foot ) h += '<div class="bftd-calv-pop-foot">' + foot + '</div>';
 		pop.innerHTML = h;
 		// Its colour says what it is, the same as the booking that was tapped.
 		pop.className = 'bftd-calv-pop ' + btn.className.split( ' ' ).filter( function ( c ) { return 0 === c.indexOf( 'is-' ); } ).join( ' ' );
@@ -387,7 +391,7 @@
 				ev.preventDefault();
 				var f = att.elements;
 				aSaid.textContent = 'Saving…';
-				post( { action: 'bftd_calendar_attend', student_id: e.student_id, date: e.date, status: f.status.value,
+				post( { action: 'bftd_calendar_attend', student_id: e.student_id, date: e.date, key: e.key, status: f.status.value,
 					missed_by: f.missed_by.value, missed_why: f.missed_why.value } ).then( function ( res ) {
 					if ( res && res.success ) { closePop(); load(); return; }
 					aSaid.textContent = res && res.data && res.data.message ? res.data.message : 'That was not saved.';
