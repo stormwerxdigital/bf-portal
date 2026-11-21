@@ -450,7 +450,8 @@ class BFTD_Calendar_View {
 				<span class="bftd-calv-k is-closed">Closed: Sundays, statutory holidays, school breaks</span>
 				<span class="bftd-calv-k is-ghl">Made in CRM</span>
 			</p>
-			<div class="bftd-calv-pop" role="dialog" aria-modal="false" aria-labelledby="bftd-calv-pop-title" hidden></div>
+			<div class="bftd-calv-veil" hidden></div>
+			<div class="bftd-calv-pop" role="dialog" aria-modal="true" aria-labelledby="bftd-calv-pop-title" tabindex="-1" hidden></div>
 		</div>
 		<script>window.BFTD_CAL = <?php echo wp_json_encode( $config ); ?>;</script>
 		<?php

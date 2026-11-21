@@ -22,6 +22,7 @@
 	var label  = root.querySelector( '.bftd-calv-label' );
 	var viewEl = root.querySelector( '.bftd-calv-view' );
 	var pop    = root.querySelector( '.bftd-calv-pop' );
+	var veil   = root.querySelector( '.bftd-calv-veil' );
 	var showGhl    = root.querySelector( '.bftd-calv-showghl' );
 	var showCancel = root.querySelector( '.bftd-calv-showcancel' );
 	var showMoved  = root.querySelector( '.bftd-calv-showmoved' );
@@ -241,7 +242,14 @@
 
 	/* ---- one event: what can be done with it ---- */
 	var opened = null;
-	function closePop() { pop.hidden = true; pop.innerHTML = ''; if ( opened ) { opened.focus(); opened = null; } }
+	// A card in the middle of the screen over a dimmed, blurred calendar
+	// (Karl, 1.209). The veil and the X both close it, and so does Escape.
+	function closePop() {
+		pop.hidden = true; pop.innerHTML = ''; pop.className = 'bftd-calv-pop';
+		if ( veil ) veil.hidden = true;
+		document.documentElement.classList.remove( 'bftd-calv-modal' );
+		if ( opened ) { opened.focus(); opened = null; }
+	}
 
 	function tutorSelect( current ) {
 		if ( ! C.manage ) return '';
@@ -254,9 +262,13 @@
 		opened = btn;
 		var who = C.tutors[ e.tutor ] || '';
 		var length = mins( e.end ) - mins( e.start );
-		var h = '<h2 id="bftd-calv-pop-title">' + esc( e.title ) + '</h2>'
-			+ '<p>' + esc( dayName( e.date ) + ', ' + clock( e.start ) + ' to ' + clock( e.end ) ) + ( who ? '<br>' + esc( who ) : '' ) + '</p>';
-		if ( e.type_label ) h += '<p class="description">' + esc( e.type_label ) + '</p>';
+		var h = '<div class="bftd-calv-pop-head">'
+			+ '<button type="button" class="bftd-calv-x bftd-calv-close" aria-label="Close"><span aria-hidden="true">&times;</span></button>'
+			+ ( e.type_label ? '<p class="bftd-calv-pop-kind">' + esc( e.type_label ) + ( e.draft ? ' &middot; Draft' : '' ) + '</p>' : '' )
+			+ '<h2 id="bftd-calv-pop-title">' + esc( e.title ) + '</h2>'
+			+ '<p class="bftd-calv-pop-when">' + esc( dayName( e.date ) + ', ' + clock( e.start ) + ' to ' + clock( e.end ) ) + '</p>'
+			+ ( who ? '<p class="bftd-calv-pop-who">' + esc( who ) + '</p>' : '' )
+			+ '</div><div class="bftd-calv-pop-body">';
 		if ( 'moved' === e.status ) h += '<p class="description">Rescheduled to ' + esc( e.moved_to ) + '.</p>';
 		if ( 'ghl' === e.kind ) h += '<p class="description">Made in GoHighLevel, not on a student\'s schedule.</p>';
 		else if ( 'held' === e.status ) h += '<p class="description">Taught.</p>';
@@ -264,22 +276,25 @@
 		else if ( e.in_ghl ) h += '<p class="description">In GoHighLevel.</p>';
 		if ( e.can_edit ) {
 			h += '<form class="bftd-calv-edit">'
-				+ '<label>Date <input type="date" name="date" value="' + e.date + '" required></label>'
-				+ '<label>Time <input type="time" name="time" value="' + e.start + '" step="300" required></label>'
-				+ ( 'session' === e.kind ? '<label>Minutes <input type="number" name="minutes" value="' + length + '" min="15" step="5"></label>' + tutorSelect( e.tutor ) : '' )
+				+ '<div class="bftd-calv-pop-row"><label>Date <input type="date" name="date" value="' + e.date + '" required></label>'
+				+ '<label>Time <input type="time" name="time" value="' + e.start + '" step="300" required></label></div>'
+				+ ( 'session' === e.kind ? '<div class="bftd-calv-pop-row"><label>Minutes <input type="number" name="minutes" value="' + length + '" min="15" step="5"></label>' + tutorSelect( e.tutor ) + '</div>' : '' )
 				+ '<label>Reason <input type="text" name="reason" placeholder="For example: family away"></label>'
 				+ '<p class="bftd-calv-said" role="alert"></p>'
-				+ '<p><button type="submit" class="button button-primary">Save changes</button> '
-				+ '<button type="button" class="button bftd-calv-cancel">Cancel this session</button> '
-				+ '<button type="button" class="button-link bftd-calv-delete">Delete, telling nobody</button></p></form>';
+				+ '<p class="bftd-calv-pop-do"><button type="submit" class="button button-primary">Save changes</button>'
+				+ '<button type="button" class="button bftd-calv-cancel">Cancel this session</button></p>'
+				+ '<p class="bftd-calv-pop-quiet"><button type="button" class="button-link bftd-calv-delete">Delete, telling nobody</button></p></form>';
 		}
-		h += '<p>' + ( e.url ? '<a href="' + esc( e.url ) + '">Open ' + esc( e.student ) + '</a> &middot; ' : '' ) + '<button type="button" class="button-link bftd-calv-close">Close</button></p>';
+		h += '</div>';
+		if ( e.url ) h += '<div class="bftd-calv-pop-foot"><a class="bftd-calv-pop-open" href="' + esc( e.url ) + '">Open ' + esc( e.student ) + ' &rarr;</a></div>';
 		pop.innerHTML = h;
+		// Its colour says what it is, the same as the booking that was tapped.
+		pop.className = 'bftd-calv-pop ' + btn.className.split( ' ' ).filter( function ( c ) { return 0 === c.indexOf( 'is-' ); } ).join( ' ' );
+		if ( veil ) veil.hidden = false;
+		document.documentElement.classList.add( 'bftd-calv-modal' );
 		pop.hidden = false;
-		var at = btn.getBoundingClientRect(), box = root.getBoundingClientRect();
-		pop.style.top = Math.max( 0, at.top - box.top ) + 'px';
-		pop.style.left = Math.min( Math.max( 0, at.right - box.left + 8 ), root.clientWidth - 340 ) + 'px';
-		( pop.querySelector( 'input, button' ) || pop ).focus();
+		// The card itself takes focus, so a phone does not open its keyboard.
+		pop.focus();
 
 		var form = pop.querySelector( '.bftd-calv-edit' );
 		if ( ! form ) return;
@@ -320,6 +335,16 @@
 		if ( b ) openPop( state.events[ Number( b.getAttribute( 'data-i' ) ) ], b );
 	} );
 	pop.addEventListener( 'click', function ( ev ) { if ( ev.target.closest( '.bftd-calv-close' ) ) closePop(); } );
+	if ( veil ) veil.addEventListener( 'click', closePop );
+	// Tab stays inside the card while it is open.
+	pop.addEventListener( 'keydown', function ( ev ) {
+		if ( 'Tab' !== ev.key ) return;
+		var f = Array.prototype.filter.call( pop.querySelectorAll( 'a[href], button, input, select, textarea' ), function ( x ) { return ! x.disabled && x.offsetParent; } );
+		if ( ! f.length ) return;
+		var first = f[0], last = f[ f.length - 1 ];
+		if ( ev.shiftKey && ( document.activeElement === first || document.activeElement === pop ) ) { ev.preventDefault(); last.focus(); }
+		else if ( ! ev.shiftKey && document.activeElement === last ) { ev.preventDefault(); first.focus(); }
+	} );
 	document.addEventListener( 'keydown', function ( ev ) { if ( 'Escape' === ev.key && ! pop.hidden ) closePop(); } );
 	function step( n ) {
 		state.date = 'day' === state.view ? add( state.date, n ) : 'week' === state.view ? add( state.date, 7 * n )
