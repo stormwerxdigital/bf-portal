@@ -199,6 +199,33 @@ class BFTD_Schema {
 	}
 
 	/**
+	 * The starting Strengths pick list (1.207): the demo report's lines,
+	 * with "he" made general. Edited under Settings, Report wording.
+	 */
+	public static function strengths_master() {
+		return '<ul>'
+			. '<li>Cooperative, willing and fully engaged throughout the assessment</li>'
+			. '<li>Strong self-awareness: recognises and can explain their own reading confusion</li>'
+			. '<li>High motivation and buy-in, eager to begin and felt they learned a great deal</li>'
+			. '<li>No letter reversals of b, d, p or q, and left-to-right directionality is intact</li>'
+			. '</ul>';
+	}
+
+	/**
+	 * The starting Areas for growth pick list (1.207): the demo report's
+	 * lines without the demo student's own scores.
+	 */
+	public static function growth_master() {
+		return '<ul>'
+			. '<li>Phonemic awareness, hearing individual sounds in sequence</li>'
+			. '<li>Applying multi-letter spelling patterns, where two to four letters spell one sound</li>'
+			. '<li>Handwriting automaticity, consistent lowercase formation, and telling upper from lowercase</li>'
+			. '<li>Word and oral reading fluency</li>'
+			. '<li>Writing conventions: end punctuation, capitalisation and complete sentences</li>'
+			. '</ul>';
+	}
+
+	/**
 	 * The standing overview at the top of every diagnostic, as Laurel wrote
 	 * it (1.166).
 	 */
@@ -2046,14 +2073,23 @@ class BFTD_Schema {
 			// then reads its bullets as rows (BFTD_Fields::get, 'from_list').
 			'pair_table' => array( 'strengths', 'growth' ),
 			'fields'  => array(
+				// Each row picks from a list kept under Settings, Report
+				// wording, or takes the tutor's own words (Karl, 1.207). The
+				// lists start as the demo report's lines, made general.
 				'strengths' => array( 'type' => 'rows', 'label' => 'Strengths', 'add_label' => 'Add a strength', 'from_list' => 'item',
-					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Strength' ) ),
-					'help' => 'One strength per row. Shown in the first column of the table on the report.' ),
+					'master'         => self::strengths_master(),
+					'settings_label' => 'Strengths list',
+					'settings_note'  => 'One bullet per choice in the Strengths pick list on every diagnostic. A change here changes the choices from now on; a report keeps what it already says.',
+					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Strength', 'pick' => true ) ),
+					'help' => 'One strength per row. Pick from the list or type your own. Shown in the first column of the table on the report. The list is kept under Settings, Report wording.' ),
 				// "Areas for growth" again, at Laurel's request (1.172). The key
 				// stays 'growth', so nothing saved moves.
 				'growth'    => array( 'type' => 'rows', 'label' => 'Areas for growth', 'add_label' => 'Add an area for growth', 'from_list' => 'item',
-					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Area for growth' ) ),
-					'help' => 'One area for growth per row. Shown in the second column, beside the strengths.' ),
+					'master'         => self::growth_master(),
+					'settings_label' => 'Areas for growth list',
+					'settings_note'  => 'One bullet per choice in the Areas for growth pick list on every diagnostic. A change here changes the choices from now on; a report keeps what it already says.',
+					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Area for growth', 'pick' => true ) ),
+					'help' => 'One area for growth per row. Pick from the list or type your own. Shown in the second column, beside the strengths. The list is kept under Settings, Report wording.' ),
 			),
 		);
 

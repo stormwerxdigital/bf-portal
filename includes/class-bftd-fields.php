@@ -1238,6 +1238,15 @@ class BFTD_Fields {
 
 		echo '<div class="bftd-rows' . ( $stack ? ' is-stacked' : '' ) . '" data-section="' . esc_attr( $section_id ) . '" data-field="' . esc_attr( $key ) . '">';
 
+		// A column that picks from a list gets the list once, here (1.207).
+		foreach ( $cols as $col ) {
+			if ( empty( $col['pick'] ) ) continue;
+			echo '<datalist id="' . esc_attr( self::pick_id( $section_id, $key ) ) . '">';
+			foreach ( self::pick_choices( $section_id, $key ) as $choice ) echo '<option value="' . esc_attr( $choice ) . '"></option>';
+			echo '</datalist>';
+			break;
+		}
+
 		if ( $stack ) {
 			// One block per row instead of one line per row.
 			//
@@ -1306,9 +1315,31 @@ class BFTD_Fields {
 			echo '<input type="date" name="' . $name . '" value="' . esc_attr( (string) $val ) . '">';
 		} elseif ( 'number' === $col['type'] ) {
 			echo '<input type="number" name="' . $name . '" value="' . esc_attr( (string) $val ) . '">';
+		} elseif ( ! empty( $col['pick'] ) ) {
+			// Pick from the practice's list or type your own (1.207). The
+			// choices are one <datalist> per table, drawn by render_rows.
+			echo '<input type="text" class="bftd-pick" list="' . esc_attr( self::pick_id( $section_id, $key ) ) . '" autocomplete="off" placeholder="Pick from the list or type" name="' . $name . '" value="' . esc_attr( (string) $val ) . '">';
 		} else {
 			echo '<input type="text" name="' . $name . '" value="' . esc_attr( (string) $val ) . '">';
 		}
+	}
+
+	/** The id of a rows table's pick list. */
+	private static function pick_id( $section_id, $key ) {
+		return 'bftd-pick-' . preg_replace( '/[^a-z0-9_-]+/i', '-', $section_id . '-' . $key );
+	}
+
+	/**
+	 * The choices a picked column offers: the field's list from Settings,
+	 * Report wording (or as shipped), as plain text, one per bullet.
+	 */
+	public static function pick_choices( $section_id, $key ) {
+		$out = array();
+		foreach ( BFTD_Schema::master_lines( $section_id, $key ) as $line ) {
+			$text = trim( preg_replace( '/\s+/u', ' ', html_entity_decode( wp_strip_all_tags( $line ), ENT_QUOTES, 'UTF-8' ) ) );
+			if ( '' !== $text && ! in_array( $text, $out, true ) ) $out[] = $text;
+		}
+		return $out;
 	}
 
 	/**
