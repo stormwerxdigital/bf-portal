@@ -430,8 +430,9 @@ class BFTD_Calendar_View {
 					<?php if ( $manage ) : ?>
 						<h2>Tutors</h2>
 						<p><button type="button" class="button-link bftd-calv-all">All</button> &middot; <button type="button" class="button-link bftd-calv-none">None</button></p>
-						<?php foreach ( $tutors as $uid => $name ) : ?>
+						<?php $i = 0; foreach ( $tutors as $uid => $name ) : ?>
 							<label class="bftd-calv-tutor"><input type="checkbox" value="<?php echo (int) $uid; ?>" checked>
+								<span class="bftd-calv-swatch" data-i="<?php echo (int) ( $i++ % 8 ); ?>"></span>
 								<?php echo esc_html( $name ); ?></label>
 						<?php endforeach; ?>
 					<?php endif; ?>

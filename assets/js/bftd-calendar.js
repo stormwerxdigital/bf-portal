@@ -32,6 +32,8 @@
 	var MONTHS = [ 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' ];
 	var HOUR_MIN = 96;         // the least an hour takes in the day and week views; drawTimed() makes it taller when a booking needs it (1.203.2)
 	var tutorIds = Object.keys( C.tutors || {} ).map( Number );
+	/* The tutor's colour, matching their square in the side panel (1.206.1). */
+	function colour( tutor ) { var i = tutorIds.indexOf( Number( tutor ) ); return i < 0 ? 0 : i % 8; }
 
 	var state = { view: 'week', date: C.today, events: [], closed: {} };
 	try {
@@ -149,6 +151,7 @@
 		return '<button type="button" class="' + cls + '" data-i="' + state.events.indexOf( e ) + '"'
 			+ ( timed ? ' style="' + timed + '"' : '' ) + ' aria-label="' + esc( says ) + '" title="' + esc( says ) + '">'
 			// Time and type on one line, so the name has room (1.203.1).
+			+ '<span class="bftd-calv-swatch bftd-calv-ev-dot" data-i="' + colour( e.tutor ) + '" aria-hidden="true"></span>'
 			+ '<span class="bftd-calv-ev-t">' + esc( clock( e.start ) ) + ( e.type ? '<span class="bftd-calv-ev-y"> &middot; ' + ( 'assessment' === e.type ? 'Assessment' : 'Tutoring' ) + '</span>' : '' ) + '</span>'
 			+ '<span class="bftd-calv-ev-n">' + esc( e.title ) + '</span>'
 			+ ( 'moved' === e.status && e.moved_to ? '<span class="bftd-calv-ev-w">Moved to ' + esc( e.moved_to ) + '</span>' : '' )
