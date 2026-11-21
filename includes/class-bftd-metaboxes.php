@@ -2366,31 +2366,37 @@ class BFTD_MetaBoxes {
 	}
 
 	/**
-	 * The caregiver's welcome, sent once and only once.
+	 * The caregiver's welcome, sent once per student, by hand only (1.204).
 	 *
-	 * Called both when a caregiver is linked to a published student and, for
-	 * one linked while the record was still a draft, when that record is
-	 * published. The flag is what keeps a republish from welcoming somebody
-	 * who has been in the portal for months.
+	 * Nothing calls this by itself any more: linking a caregiver or publishing
+	 * a student sends nothing (Karl: no notifications to families sent
+	 * automatically, even welcome emails). It is sent from the Users list,
+	 * Send welcome email (BFTD_Welcome). The flag is set only once the email
+	 * has actually gone, so the list never says invited when nobody was.
+	 *
+	 * @return bool whether the email went out
 	 */
 	public static function send_welcome( $user_id, $student_id ) {
-		if ( class_exists( 'BFTD_Autosave' ) && BFTD_Autosave::$dry ) return;   // drawing a draft, not a save
+		if ( class_exists( 'BFTD_Autosave' ) && BFTD_Autosave::$dry ) return false;   // drawing a draft, not a save
 		$u = get_userdata( $user_id );
-		if ( ! $u || ! is_email( $u->user_email ) ) return;
+		if ( ! $u || ! is_email( $u->user_email ) ) return false;
 
 		$key = BFTD_Change_Notify::welcomed_key( $student_id );
-		if ( get_user_meta( $user_id, $key, true ) ) return;
-		update_user_meta( $user_id, $key, BFTD_Time::mysql() );
+		if ( get_user_meta( $user_id, $key, true ) ) return false;
 
-		BFTD_Notices::add( $user_id, 'system', $student_id, $student_id, '', 'Your portal is ready',
-			'Everything about ' . get_the_title( $student_id ) . ' is in one place.' );
-		BFTD_Emails::send( 'client_welcome', $u->user_email, array(
+		$sent = BFTD_Emails::send( 'client_welcome', $u->user_email, array(
 			'first_name'       => $u->first_name ? $u->first_name : $u->display_name,
 			'student_name'     => get_the_title( $student_id ),
 			'tutor_name'       => wp_get_current_user()->display_name,
 			'dashboard_url'    => BFTD_Dashboard::url( $student_id ),
 			'set_password_url' => wp_lostpassword_url(),
-		), array( 'student_id' => $student_id, 'post_id' => $student_id ) );
+		), array( 'student_id' => $student_id, 'post_id' => $student_id, 'reviewed' => true ) );
+		if ( ! $sent ) return false;
+
+		update_user_meta( $user_id, $key, BFTD_Time::mysql() );
+		BFTD_Notices::add( $user_id, 'system', $student_id, $student_id, '', 'Your portal is ready',
+			'Everything about ' . get_the_title( $student_id ) . ' is in one place.' );
+		return true;
 	}
 
 	private static function welcome( $user_id, $student_id, $event ) {
@@ -2406,11 +2412,9 @@ class BFTD_MetaBoxes {
 		);
 
 		if ( 'client_linked' === $event ) {
-			// "Your portal is ready" is only true once the student record is
-			// published. On a draft the caregiver would sign in to nothing,
-			// so this waits for the publish transition instead.
-			if ( ! BFTD_Change_Notify::is_published( $student_id ) ) return;
-			self::send_welcome( $user_id, $student_id );
+			// Linking a caregiver sends nothing (1.204): the welcome is sent by
+			// hand from the Users list once the family is ready.
+			return;
 		} else {
 			BFTD_Notices::add( $user_id, 'system', $student_id, $student_id, '', 'You have been assigned ' . get_the_title( $student_id ), '' );
 			BFTD_Emails::send( 'staff_assigned', $u->user_email, $tags, array( 'student_id' => $student_id, 'post_id' => $student_id ) );

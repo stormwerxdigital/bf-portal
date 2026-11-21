@@ -291,6 +291,14 @@ class BFTD_Emails {
 		$settings = self::settings();
 		if ( ! empty( $settings['paused'] ) ) return 'All outgoing email is paused in settings.';
 
+		// Families and teachers are never emailed automatically (Karl, 1.204):
+		// only a send somebody has clicked goes out, whatever the rule says.
+		// Booking notifications come from GoHighLevel, not from here.
+		$tpls = self::templates();
+		if ( 'client' === ( $tpls[ $key ]['audience'] ?? '' ) && empty( $context['reviewed'] ) ) {
+			return 'Families are only emailed when somebody sends it by hand.';
+		}
+
 		$rule = self::rule( $key );
 		if ( 'never' === $rule['mode'] ) return 'This email is switched off.';
 		if ( 'review' === $rule['mode'] && empty( $context['reviewed'] ) ) {
@@ -757,6 +765,9 @@ HTML;
 							<tr>
 								<td><strong><?php echo esc_html( $cfg['title'] ); ?></strong><br><span class="description"><?php echo esc_html( $cfg['when'] ); ?></span></td>
 								<td>
+									<?php if ( 'client' === ( $cfg['audience'] ?? '' ) ) : ?>
+										<p class="description"><strong>Families are never emailed automatically</strong> (1.204): this goes out only when somebody sends it by hand, whatever is chosen here.</p>
+									<?php endif; ?>
 									<?php foreach ( array( 'always' => 'Send automatically', 'review' => 'Hold for a tutor to review and send', 'never' => 'Never send' ) as $mode => $label ) : ?>
 										<label class="bftd-radio"><input type="radio" name="bftd_rule[<?php echo esc_attr( $key ); ?>][mode]" value="<?php echo esc_attr( $mode ); ?>" <?php checked( $r['mode'], $mode ); ?>> <?php echo esc_html( $label ); ?></label>
 									<?php endforeach; ?>

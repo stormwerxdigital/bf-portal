@@ -75,28 +75,14 @@ check(BFTD_Change_Notify::is_published(14) === false, 'a report awaiting review 
 $GLOBALS['STATUS'][15] = 'private';
 check(BFTD_Change_Notify::is_published(15) === false, 'and neither is a private one');
 
-/* ---- publishing is what welcomes a caregiver ---- */
-/* A caregiver linked while the student was a draft was deliberately not
-   told. If publishing does not tell them, they are never told at all. */
+/* ---- publishing welcomes nobody (1.204) ---- */
+/* Karl: no notifications to families sent automatically, even welcome
+   emails. The welcome is sent by hand from the Users list. */
 $GLOBALS['SENT'] = array(); $GLOBALS['NOTED'] = array();
 $post = new stdClass; $post->ID = 11; $post->post_type = BFTD_CPT::STUDENT;
 $GLOBALS['STATUS'][11] = 'publish';
 BFTD_Change_Notify::on_publish('publish','draft',$post);
-check(in_array('client_welcome',$GLOBALS['SENT'],true), 'publishing a drafted student welcomes the caregiver');
-check(count($GLOBALS['NOTED']) === 1, 'and puts one notice in their portal');
-
-/* Saving it again must not welcome them a second time. */
-$GLOBALS['SENT'] = array();
-BFTD_Change_Notify::on_publish('publish','draft',$post);
-check($GLOBALS['SENT'] === array(), 'and a later republish welcomes nobody twice');
-
-/* A caregiver added quietly from GoHighLevel is not welcomed by publishing (1.185). */
-$GLOBALS['UMETA'] = array(7 => array(BFTD_Change_Notify::quiet_key(11) => 1700000000)); $GLOBALS['SENT'] = array(); $GLOBALS['NOTED'] = array();
-BFTD_Change_Notify::on_publish('publish','draft',$post);
-check($GLOBALS['SENT'] === array() && $GLOBALS['NOTED'] === array(), 'a caregiver added from GoHighLevel is not emailed or noticed when the student is published');
-$GLOBALS['UMETA'] = array(7 => array(BFTD_Change_Notify::quiet_key(12) => 1700000000)); $GLOBALS['SENT'] = array();
-BFTD_Change_Notify::on_publish('publish','draft',$post);
-check(in_array('client_welcome',$GLOBALS['SENT'],true), 'quiet for that student only: on another student they are welcomed as usual');
+check($GLOBALS['SENT'] === array() && $GLOBALS['NOTED'] === array(), 'publishing a drafted student welcomes nobody: no email, no notice (1.204)');
 
 /* An update to an already published record is not a publish event. */
 $GLOBALS['UMETA'] = array(); $GLOBALS['SENT'] = array();
@@ -124,12 +110,15 @@ check(false !== strpos($css, '.bftd-change-bar.is-held'), 'and the held bar is s
 $paths = array(
   'class-bftd-change-notify.php' => array('render_bar','guard'),
   'class-bftd-threads.php'       => array('notify'),
-  'class-bftd-metaboxes.php'     => array('welcome'),
 );
 foreach ($paths as $file => $fns) {
   $src = file_get_contents(BFTD_PATH . 'includes/' . $file);
   check(false !== strpos($src, 'is_published'), "$file checks whether the record is published");
 }
+
+/* The welcome, now sent only by hand, is only ever for a published student (1.204). */
+$wsrc = file_get_contents(BFTD_PATH . 'includes/class-bftd-welcome.php');
+check(false !== strpos($wsrc, 'BFTD_CPT::students_for_client( $user_id )') && false === strpos($wsrc, 'students_of_client'), 'the welcome is offered only for published students, so nobody is welcomed to a draft');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

@@ -55,15 +55,10 @@ class BFTD_Change_Notify {
 	 * ready, and there is no later save that would tell them.
 	 */
 	public static function on_publish( $new_status, $old_status, $post ) {
-		if ( 'publish' !== $new_status || 'publish' === $old_status ) return;
-		if ( ! $post || BFTD_CPT::STUDENT !== $post->post_type ) return;
-
-		foreach ( BFTD_CPT::client_ids( $post->ID ) as $uid ) {
-			if ( get_user_meta( $uid, self::welcomed_key( $post->ID ), true ) ) continue;
-			// Added quietly from GoHighLevel: publishing does not tell them (Karl, 1.185).
-			if ( get_user_meta( $uid, self::quiet_key( $post->ID ), true ) ) continue;
-			BFTD_MetaBoxes::send_welcome( $uid, $post->ID );
-		}
+		// Publishing a student welcomes nobody (Karl, 1.204: no notifications
+		// to families sent automatically, even welcome emails). The welcome
+		// is sent by hand from the Users list, Send welcome email.
+		return;
 	}
 
 	/**
