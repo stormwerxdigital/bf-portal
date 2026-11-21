@@ -20,9 +20,11 @@ class BFTD_Roles {
   const STAFF_CAP = 'read';
   public static function is_staff($u = 0) { return true; }
   public static function can_manage($u = 0) { return true; }
+  public static function is_administrator($u = 0) { return false; }
   public static function staff_users() { return array((object) array('ID' => 1, 'display_name' => 'Test Tutor'), (object) array('ID' => 2, 'display_name' => 'Other Tutor')); }
 }
-class BFTD_CPT { const STUDENT = 'bftd_student'; }
+class BFTD_CPT { const STUDENT = 'bftd_student'; public static function students_of_staff($u) { return 1 === (int) $u ? array(501) : array(503); } }
+if (!function_exists('get_the_title')) { function get_the_title($id) { return array(501 => 'Pat Example', 503 => 'Robin Third')[$id] ?? 'Student ' . $id; } }
 if (!function_exists('get_posts')) { function get_posts($a) { return array(501); } }
 if (!function_exists('user_can')) { function user_can($u, $c, $id = 0) { return true; } }
 if (!function_exists('get_post_field')) { function get_post_field($f, $id) { return 'Pat Example'; } }
@@ -45,7 +47,7 @@ $event = array(
   'can_mark' => true, 'attend' => '', 'attend_on' => '', 'session_draft' => false,
   'who' => array(array('31', 'Pat Parent (Client)'), array('5', 'Rae T (Tutor)')),
 );
-$events = array($event, array_merge($event, array("id" => "x2", "key" => "k2", "start" => "16:00", "end" => "16:50", "status" => "held", "draft" => false, "can_edit" => false, "can_mark" => false)), array_merge($event, array("id" => "x3", "key" => "k3", "start" => "17:00", "end" => "17:50", "status" => "noshow", "title" => "Sam Other", "student" => "Sam Other", "draft" => false, "can_edit" => false, "can_mark" => false)));
+$events = array($event, array_merge($event, array("id" => "x2", "key" => "k2", "start" => "16:00", "end" => "16:50", "status" => "held", "draft" => false, "can_edit" => false, "can_mark" => false)), array_merge($event, array("id" => "x3", "key" => "k3", "start" => "17:00", "end" => "17:50", "status" => "noshow", "title" => "Sam Other", "student" => "Sam Other", "student_id" => 502, "draft" => false, "can_edit" => false, "can_mark" => false)));
 // Every request is kept in window.__posts, so a test can see what was sent.
 $stub = '<script>window.__posts = []; window.fetch = function (u, o) { var b = {}; if (o && o.body && o.body.forEach) o.body.forEach(function (v, k) { b[k] = v; }); window.__posts.push(b); return Promise.resolve({ json: function () { return Promise.resolve({ success: true, data: { events: ' . json_encode($events) . ', closed: {} } }); } }); };'
   . 'try { localStorage.clear(); } catch (e) {}</script>';

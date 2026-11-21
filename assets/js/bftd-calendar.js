@@ -117,7 +117,7 @@
 	function load() {
 		label.textContent = heading();
 		var r = range(), tutors = shownTutors(), mine = ++asked;
-		if ( ! tutors.length ) { state.events = []; draw(); return; }
+		if ( ! tutors.length ) { state.events = []; drawKids(); draw(); return; }
 		grid.setAttribute( 'aria-busy', 'true' );
 		post( { action: 'bftd_calendar_events', from: r[0], to: r[1], tutors: tutors } ).then( function ( res ) {
 			if ( mine !== asked ) return;   // a later request has taken over
@@ -125,6 +125,7 @@
 			if ( ! res || ! res.success ) { grid.innerHTML = '<p class="bftd-calv-msg">' + esc( res && res.data && res.data.message || 'The sessions could not be loaded.' ) + '</p>'; return; }
 			state.events = res.data.events || [];
 			state.closed = res.data.closed || {};
+			drawKids();
 			draw();
 		} ).catch( function () {
 			if ( mine !== asked ) return;
@@ -147,9 +148,56 @@
 			if ( 'held' === e.status && ! showAttended.checked ) return false;
 			if ( 'noshow' === e.status && ! showNoshow.checked ) return false;
 			// Search by student name (Karl, 1.210): any part of the name, any case.
+			// A student unticked under their tutor (1.212).
+			if ( 'session' === e.kind && kidsOff[ e.tutor ] && kidsOff[ e.tutor ][ e.student_id ] ) return false;
 			var q = search ? search.value.trim().toLowerCase() : '';
 			if ( q && String( e.student || e.title || '' ).toLowerCase().indexOf( q ) < 0 ) return false;
 			return true;
+		} );
+	}
+
+	/* ---- each tutor's students (Karl, 1.212) ----
+	   Under every tutor ticked, the students they teach, all ticked to start,
+	   so bookings can be narrowed student by student. Unticking a tutor
+	   forgets their choices; ticking them again starts with all ticked. */
+	var kidsOff = {};   // tutor id => { student id: true } for those unticked
+	function drawKids() {
+		Array.prototype.forEach.call( root.querySelectorAll( '.bftd-calv-kids' ), function ( x ) { x.parentNode.removeChild( x ); } );
+		if ( ! tutorBoxes.length ) return;
+		var on = {};
+		shownTutors().forEach( function ( t ) { on[ t ] = 1; } );
+		Object.keys( kidsOff ).forEach( function ( t ) { if ( ! on[ t ] ) delete kidsOff[ t ]; } );
+		tutorBoxes.forEach( function ( box ) {
+			var t = Number( box.value );
+			if ( ! on[ t ] ) return;
+			var off = kidsOff[ t ] = kidsOff[ t ] || {};
+			var seen = {}, rows = [];
+			( ( C.students || {} )[ t ] || [] ).forEach( function ( r ) { seen[ r[0] ] = 1; rows.push( r ); } );
+			// Anyone else they teach in the dates shown.
+			state.events.forEach( function ( e ) {
+				if ( 'session' === e.kind && Number( e.tutor ) === t && ! seen[ e.student_id ] ) { seen[ e.student_id ] = 1; rows.push( [ e.student_id, e.student ] ); }
+			} );
+			if ( ! rows.length ) return;
+			rows.sort( function ( a, b ) { return String( a[1] ).localeCompare( String( b[1] ) ); } );
+			var h = '<div class="bftd-calv-kids" data-t="' + t + '" role="group" aria-label="Students of ' + esc( C.tutors[ t ] || 'this tutor' ) + '">'
+				+ '<p class="bftd-calv-kids-all"><button type="button" class="button-link" data-k="all">All</button> &middot; <button type="button" class="button-link" data-k="none">None</button></p>';
+			rows.forEach( function ( r ) {
+				h += '<label class="bftd-calv-kid"><input type="checkbox" value="' + Number( r[0] ) + '"' + ( off[ r[0] ] ? '' : ' checked' ) + '> ' + esc( r[1] ) + '</label>';
+			} );
+			var wrap = document.createElement( 'div' );
+			wrap.innerHTML = h + '</div>';
+			var kids = wrap.firstChild;
+			box.closest( '.bftd-calv-tutor' ).insertAdjacentElement( 'afterend', kids );
+			kids.addEventListener( 'change', function ( ev ) {
+				var c = ev.target;
+				if ( c && 'checkbox' === c.type ) { off[ c.value ] = ! c.checked; draw(); }
+			} );
+			kids.addEventListener( 'click', function ( ev ) {
+				var k = ev.target.getAttribute && ev.target.getAttribute( 'data-k' );
+				if ( ! k ) return;
+				Array.prototype.forEach.call( kids.querySelectorAll( 'input' ), function ( c ) { c.checked = 'all' === k; off[ c.value ] = 'none' === k; } );
+				draw();
+			} );
 		} );
 	}
 
@@ -404,7 +452,23 @@
 	root.querySelector( '.bftd-calv-today' ).addEventListener( 'click', function () { state.date = C.today; load(); } );
 	viewEl.addEventListener( 'change', function () { state.view = viewEl.value; remember(); load(); } );
 	if ( search ) search.addEventListener( 'input', function () { draw(); } );
-	[ showGhl, showCancel, showMoved, showDraft, showHeld, showAttended, showNoshow ].forEach( function ( x ) { x.addEventListener( 'change', function () { remember(); draw(); } ); } );
+	// All (Karl, 1.212): ticks or unticks every filter, and shows part-ticked
+	// when only some are on.
+	var filters = [ showGhl, showDraft, showHeld, showAttended, showNoshow, showCancel, showMoved ];
+	var showAll = root.querySelector( '.bftd-calv-showall' );
+	function allState() {
+		if ( ! showAll ) return;
+		var on = filters.filter( function ( x ) { return x.checked; } ).length;
+		showAll.checked = on === filters.length;
+		showAll.indeterminate = on > 0 && on < filters.length;
+	}
+	if ( showAll ) showAll.addEventListener( 'change', function () {
+		filters.forEach( function ( x ) { x.checked = showAll.checked; } );
+		showAll.indeterminate = false;
+		remember(); draw();
+	} );
+	filters.forEach( function ( x ) { x.addEventListener( 'change', function () { allState(); remember(); draw(); } ); } );
+	allState();
 	tutorBoxes.forEach( function ( b ) { b.addEventListener( 'change', function () { remember(); load(); } ); } );
 	var all = root.querySelector( '.bftd-calv-all' ), none = root.querySelector( '.bftd-calv-none' );
 	if ( all ) all.addEventListener( 'click', function () { tutorBoxes.forEach( function ( b ) { b.checked = true; } ); remember(); load(); } );

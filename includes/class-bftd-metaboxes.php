@@ -379,6 +379,8 @@ class BFTD_MetaBoxes {
 					// Phone and email are not shown (Karl, 1.207.1). Still kept
 					// in step with the CRM; a form without them leaves them be.
 					if ( in_array( $key, self::not_shown(), true ) ) continue;
+					// School searches GoHighLevel and the school list (Karl, 1.212).
+					if ( 'school' === $key && class_exists( 'BFTD_Schools' ) ) { BFTD_Schools::render_field( $post->ID, $field ); continue; }
 					BFTD_Fields::render_field( $post->ID, 'student', $key, $field );
 					?>
 				<?php endforeach; ?>

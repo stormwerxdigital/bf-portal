@@ -23,8 +23,8 @@ $ns = body_of($src, 'not_shown');
 check(false !== strpos($ns, "array( 'phone', 'email' )"), 'Phone and Email are the fields not shown');
 
 $box = body_of($src, 'box_crm');
-check(1 === preg_match("#foreach \( self::crm_fields\(\) as \\\$key => \\\$field \) : \?>\s*<\?php.*?if \( in_array\( \\\$key, self::not_shown\(\), true \) \) continue;\s*BFTD_Fields::render_field#s", $box),
-  'the History box skips them before drawing each field');
+check(1 === preg_match("#foreach \( self::crm_fields\(\) as \\\$key => \\\$field \) : \?>\s*<\?php.*?if \( in_array\( \\\$key, self::not_shown\(\), true \) \) continue;\s*(//[^\n]*\s*if \( 'school' === [^\n]*\s*)?BFTD_Fields::render_field#s", $box),
+  'the History box skips them before drawing each field (School is drawn as the school search since 1.212)');
 
 $crm = body_of($src, 'crm_fields');
 check(false !== strpos($crm, "'phone'") && false !== strpos($crm, "'email'"), 'they are still CRM fields, so the sync keeps them');

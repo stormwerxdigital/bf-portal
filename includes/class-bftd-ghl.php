@@ -1154,6 +1154,11 @@ class BFTD_GHL {
 				if ( '' !== $v || '' === $g ) { BFTD_Fields::set( $sid, 'student', 'birth_date', $v ); $ok = true; }
 				break;
 			case 'school':
+				BFTD_Fields::set( $sid, 'student', 'school', sanitize_text_field( $g ) );
+				// Linked to the school list, without sending it straight back (1.212).
+				if ( class_exists( 'BFTD_Schools' ) ) BFTD_Schools::resolve_student( $sid, '', false );
+				$ok = true;
+				break;
 			case 'phone':
 			case 'email':
 				BFTD_Fields::set( $sid, 'student', $short, sanitize_text_field( $g ) );

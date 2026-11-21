@@ -50,6 +50,21 @@ class BFTD_Calendar_View {
 		return array( 0 => 'Purple', 1 => 'Blue', 2 => 'Green', 3 => 'Orange', 4 => 'Plum', 5 => 'Teal', 6 => 'Slate', 7 => 'Olive' );
 	}
 
+	/** tutor id => array( array( student id, name ) ), by name. */
+	public static function students_by_tutor( $tutor_ids ) {
+		$out = array();
+		foreach ( $tutor_ids as $uid ) {
+			$rows = array();
+			foreach ( BFTD_CPT::students_of_staff( (int) $uid ) as $sid ) {
+				if ( 'trash' === get_post_status( $sid ) ) continue;
+				$rows[] = array( (int) $sid, (string) get_the_title( $sid ) );
+			}
+			usort( $rows, function ( $a, $b ) { return strcasecmp( $a[1], $b[1] ); } );
+			$out[ (int) $uid ] = $rows;
+		}
+		return $out;
+	}
+
 	/** Each staff member's colour number, by user id, for ids in list order. */
 	public static function colour_map( $user_ids ) {
 		$out = array();
@@ -160,7 +175,11 @@ class BFTD_Calendar_View {
 		$viewer = (int) $viewer;
 		if ( BFTD_Roles::can_manage( $viewer ) ) {
 			$out = array();
-			foreach ( BFTD_Roles::staff_users() as $u ) $out[ (int) $u->ID ] = (string) $u->display_name;
+			foreach ( BFTD_Roles::staff_users() as $u ) {
+				// Administrators are not tutors, so not on the list (Karl, 1.212).
+				if ( BFTD_Roles::is_administrator( (int) $u->ID ) ) continue;
+				$out[ (int) $u->ID ] = (string) $u->display_name;
+			}
 			return $out;
 		}
 		$u = get_userdata( $viewer );
@@ -428,6 +447,8 @@ class BFTD_Calendar_View {
 			// booking's border and the swatch beside the name always match (1.206.1).
 			// A colour set on the profile wins (1.209.1).
 			'colours' => self::colour_map( array_keys( $tutors ) ),
+			// Each tutor's students, listed under every tutor ticked (Karl, 1.212).
+			'students' => $manage ? self::students_by_tutor( array_keys( $tutors ) ) : array(),
 		);
 		$students = self::bookable( $viewer );
 		?>
@@ -448,6 +469,7 @@ class BFTD_Calendar_View {
 					<option value="week" selected>Week</option>
 					<option value="month">Month</option>
 				</select>
+				<label class="bftd-calv-ghl bftd-calv-allf"><input type="checkbox" class="bftd-calv-showall"> All</label>
 				<label class="bftd-calv-ghl" title="Bookings sent to the CRM, and appointments made in it"><input type="checkbox" class="bftd-calv-showghl" checked> Scheduled</label>
 				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showdraft" checked> Drafts</label>
 				<label class="bftd-calv-ghl" title="Bookings before today, taught or not"><input type="checkbox" class="bftd-calv-showheld" checked> Past</label>

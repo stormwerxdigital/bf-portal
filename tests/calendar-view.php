@@ -48,6 +48,7 @@ class BFTD_Roles {
   const STAFF_CAP = 'bftd_manage_students';
   public static function can_manage($u = null) { return in_array((int) $u, $GLOBALS['MANAGERS'], true); }
   public static function is_staff($u = null) { return isset($GLOBALS['STAFF'][(int) $u]); }
+  public static function is_administrator($u = null) { return in_array((int) $u, $GLOBALS['ADMINS'] ?? array(), true); }
   public static function staff_users() { $o = array(); foreach ($GLOBALS['STAFF'] as $id => $n) $o[] = (object) array('ID' => $id, 'display_name' => $n); return $o; }
 }
 class BFTD_Audit { public static function log($e, $a = array()) { $GLOBALS['AUDIT'][] = $e . ': ' . $a['summary']; } }
@@ -79,6 +80,9 @@ function o($date, $time, $tutor, $status = 'booked', $min = 50) { return array('
 
 /* ---- who sees whom ---- */
 check(array(4 => 'Laurel Sanders', 6 => 'Candice Paluck') === BFTD_Calendar_View::tutors_for(4), 'a manager sees every tutor');
+$GLOBALS['STAFF'][1] = 'karlsanders'; $GLOBALS['ADMINS'] = array(1);
+check(array(4 => 'Laurel Sanders', 6 => 'Candice Paluck') === BFTD_Calendar_View::tutors_for(4), 'administrators are not on the tutor list (Karl, 1.212), senior managers are');
+unset($GLOBALS['STAFF'][1]); $GLOBALS['ADMINS'] = array();
 check(array(6 => 'Candice Paluck') === BFTD_Calendar_View::tutors_for(6), 'a tutor sees only themselves');
 
 $GLOBALS['OCC'][40] = array(o('2026-11-18', '16:00', 6), o('2026-11-19', '16:00', 6, 'held'), o('2026-11-20', '16:00', 6, 'cancelled'), o('2026-11-21', '16:00', 6, 'moved'), o('2026-11-30', '16:00', 6));

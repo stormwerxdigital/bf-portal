@@ -135,6 +135,29 @@ for (const [name, vp] of [['desktop', { width: 1340, height: 900 }], ['phone', {
     check(!(await p.evaluate(() => document.querySelector('.bftd-calv-pop .bftd-calv-attend'))), 'a booking someone cannot mark shows no attendance choice');
     await p.keyboard.press('Escape');
 
+    /* All (Karl, 1.212): ticks or unticks every filter. */
+    console.log('\nThe All filter:');
+    const ticks = () => p.evaluate(() => ({
+      all: document.querySelector('.bftd-calv-showall').checked,
+      part: document.querySelector('.bftd-calv-showall').indeterminate,
+      on: ['showghl', 'showdraft', 'showheld', 'showattended', 'shownoshow', 'showcancel', 'showmoved']
+        .filter(c => document.querySelector('.bftd-calv-' + c).checked).length,
+      shown: document.querySelectorAll('.bftd-calv-ev').length,
+    }));
+    let t = await ticks();
+    check(!t.all && t.part && t.on === 5, 'with some filters on, All shows part-ticked, got ' + JSON.stringify(t));
+    await p.click('.bftd-calv-showall'); await p.waitForTimeout(100);
+    t = await ticks();
+    check(t.all && !t.part && t.on === 7, 'ticking All ticks every filter, got ' + JSON.stringify(t));
+    await p.click('.bftd-calv-showall'); await p.waitForTimeout(100);
+    t = await ticks();
+    check(!t.all && t.on === 0 && t.shown === 0, 'unticking it unticks them all, got ' + JSON.stringify(t));
+    await p.click('.bftd-calv-showall'); await p.waitForTimeout(100);
+    await p.click('.bftd-calv-showcancel'); await p.waitForTimeout(100);
+    t = await ticks();
+    check(!t.all && t.part && t.on === 6 && t.shown === 3, 'and unticking one leaves All part-ticked, got ' + JSON.stringify(t));
+    await p.click('.bftd-calv-showcancel'); await p.waitForTimeout(100);
+
     /* Search by student name (Karl, 1.210). */
     console.log('\nSearching by student:');
     const all = () => p.evaluate(() => document.querySelectorAll('.bftd-calv-ev').length);
@@ -149,6 +172,44 @@ for (const [name, vp] of [['desktop', { width: 1340, height: 900 }], ['phone', {
     check(0 === await all(), 'a name with no bookings shows none');
     await p.fill('.bftd-calv-search', ''); await p.waitForTimeout(100);
     check(3 === await all(), 'and clearing it brings them all back');
+
+    /* Each ticked tutor's students, all ticked to start (Karl, 1.212). */
+    console.log('\nEach tutor\'s students:');
+    const kids = () => p.evaluate(() => [...document.querySelectorAll('.bftd-calv-kids')].map(k => ({
+      t: k.dataset.t, names: [...k.querySelectorAll('.bftd-calv-kid')].map(l => l.textContent.trim()),
+      on: [...k.querySelectorAll('input')].filter(c => c.checked).length })));
+    let k = await kids();
+    check(k.length === 2 && k[0].t === '1' && k[0].names.join('|') === 'Pat Example|Sam Other' && k[0].on === 2 && k[1].names.join('|') === 'Robin Third',
+      'under every ticked tutor, their students (assigned, or booked with them), all ticked, got ' + JSON.stringify(k));
+    await p.locator('.bftd-calv-kids[data-t="1"] .bftd-calv-kid', { hasText: 'Pat Example' }).locator('input').click(); await p.waitForTimeout(100);
+    check(1 === await all(), 'unticking a student hides their bookings');
+    await p.click('.bftd-calv-tutor input[value="2"]'); await p.waitForTimeout(200);
+    k = await kids();
+    check(k.length === 1 && k[0].t === '1' && k[0].on === 1 && 1 === await all(), 'unticking a tutor drops their list and keeps the others as they were');
+    await p.click('.bftd-calv-tutor input[value="1"]'); await p.waitForTimeout(200);
+    check(0 === (await kids()).length, 'with no tutor ticked there is no list');
+    await p.click('.bftd-calv-tutor input[value="1"]'); await p.click('.bftd-calv-tutor input[value="2"]'); await p.waitForTimeout(250);
+    k = await kids();
+    check(k[0].on === 2 && 3 === await all(), 'ticking a tutor again starts with all their students ticked');
+    await p.locator('.bftd-calv-kids[data-t="1"] [data-k="none"]').click(); await p.waitForTimeout(100);
+    check(0 === await all() && 0 === (await kids())[0].on, 'None unticks all of a tutor\'s students');
+    await p.locator('.bftd-calv-kids[data-t="1"] [data-k="all"]').click(); await p.waitForTimeout(100);
+    check(3 === await all(), 'and All ticks them again');
+
+    /* Every day square is white unless closed (Karl, 1.212). */
+    console.log('\nDay squares:');
+    const days = (sel) => p.evaluate((sel) => [...document.querySelectorAll(sel)].map(c => ({
+      closed: c.classList.contains('is-closed'), today: c.classList.contains('is-today'), other: c.classList.contains('is-other'),
+      bg: getComputedStyle(c).backgroundColor })), sel);
+    let d = await days('.bftd-calv-col');
+    check(d.length === 7 && d.filter(x => !x.closed).every(x => x.bg === 'rgb(255, 255, 255)'), 'in the week, every open day is white, today too, got ' + JSON.stringify([...new Set(d.filter(x => !x.closed).map(x => x.bg))]));
+    await p.selectOption('.bftd-calv-view', 'month'); await p.waitForTimeout(250);
+    d = await days('.bftd-calv-cell');
+    check(d.length === 42 && d.some(x => x.other) && d.filter(x => !x.closed).every(x => x.bg === 'rgb(255, 255, 255)'),
+      'in the month, every open day is white, other months\' days too, got ' + JSON.stringify([...new Set(d.filter(x => !x.closed).map(x => x.bg))]));
+    const mark = await p.evaluate(() => { const b = document.querySelector('.bftd-calv-cell.is-today > .bftd-calv-goday'); return b && getComputedStyle(b).backgroundColor; });
+    check(mark === 'rgb(112, 86, 127)', 'today is marked on its date number instead, got ' + mark);
+    await p.selectOption('.bftd-calv-view', 'week'); await p.waitForTimeout(200);
   }
   await p.close();
 }

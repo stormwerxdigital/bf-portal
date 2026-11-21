@@ -3767,3 +3767,89 @@ function bftdThumb( id, thumb, full ) {
 	$who.add( $date ).on( 'change', ask );
 	$( ask );
 }( jQuery ) );
+
+/* --------------------------------------------------------------------------
+   School on the student's History (Karl, 1.212): a search of GoHighLevel's
+   Companies and the portal's school list. Picking one links it; a name on
+   neither is offered as a new school, and saving adds it. Close names are
+   offered as "Did you mean". Arrow keys move, Enter picks, Escape closes.
+   -------------------------------------------------------------------------- */
+( function ( $ ) {
+	'use strict';
+	var $in = $( '#bftd_student_school' );
+	if ( ! $in.length || ! window.BFTD ) return;
+	var $pick = $in.siblings( 'input[name="bftd_school_pick"]' ), $list = $( '#bftd-school-list' ), $said = $in.closest( '.bftd-school' ).find( '.bftd-school-said' );
+	var timer = 0, asked = 0, items = [], at = -1;
+
+	function esc( t ) { return $( '<span>' ).text( t == null ? '' : String( t ) ).html(); }
+	function close() { $list.prop( 'hidden', true ).empty(); $in.attr( 'aria-expanded', 'false' ).removeAttr( 'aria-activedescendant' ); items = []; at = -1; }
+	function choose( it ) {
+		$in.val( it.name );
+		$pick.val( it.pick );
+		$said.text( it.say );
+		close();
+	}
+	function draw( d, q ) {
+		items = []; at = -1;
+		var h = '';
+		function group( title, rows ) {
+			if ( ! rows.length ) return;
+			h += '<div class="bftd-school-g" role="presentation">' + esc( title ) + '</div>';
+			rows.forEach( function ( r ) {
+				var i = items.length; items.push( r );
+				h += '<div class="bftd-school-o" role="option" id="bftd-school-o' + i + '" data-i="' + i + '" aria-selected="false">' + esc( r.name ) + ( r.tag ? ' <span class="bftd-school-tag">' + esc( r.tag ) + '</span>' : '' ) + '</div>';
+			} );
+		}
+		group( 'In GoHighLevel', ( d.ghl || [] ).map( function ( c ) {
+			return c.list_id
+				? { name: c.name, pick: 'list:' + c.list_id, tag: 'On our list', say: 'On the school list, linked to GoHighLevel.' }
+				: { name: c.name, pick: 'ghl:' + c.ghl_id, tag: 'Link and add to our list', say: 'Linked to GoHighLevel. Saving adds it to the school list.' };
+		} ) );
+		var inGhl = {}; ( d.ghl || [] ).forEach( function ( c ) { if ( c.list_id ) inGhl[ c.list_id ] = 1; } );
+		group( 'On our list', ( d.list || [] ).filter( function ( s ) { return ! inGhl[ s.id ]; } ).map( function ( s ) {
+			return { name: s.name, pick: 'list:' + s.id, tag: s.ghl ? 'GoHighLevel' : '', say: 'On the school list' + ( s.ghl ? ', linked to GoHighLevel.' : '.' ) };
+		} ) );
+		group( 'Did you mean', ( d.near || [] ).map( function ( n ) {
+			return { name: n.name, pick: n.pick, tag: 0 === n.pick.indexOf( 'ghl:' ) ? 'GoHighLevel' : 'On our list', say: 'Linked to ' + n.name + '.' };
+		} ) );
+		if ( ! d.exact ) group( '', [ { name: 'Add "' + q + '" as a new school', value: q, pick: 'new', say: 'Not on the school list yet. Saving adds it.', isNew: true } ] );
+		if ( d.ghl_error ) h += '<div class="bftd-school-g is-warn" role="presentation">' + esc( d.ghl_error ) + '</div>';
+		$list.html( h ).prop( 'hidden', ! items.length );
+		$in.attr( 'aria-expanded', items.length ? 'true' : 'false' );
+	}
+	function move( n ) {
+		if ( ! items.length ) return;
+		at = ( at + n + items.length ) % items.length;
+		$list.find( '.bftd-school-o' ).attr( 'aria-selected', 'false' ).removeClass( 'is-at' );
+		var $o = $( '#bftd-school-o' + at ).attr( 'aria-selected', 'true' ).addClass( 'is-at' );
+		$in.attr( 'aria-activedescendant', 'bftd-school-o' + at );
+		if ( $o[0] && $o[0].scrollIntoView ) $o[0].scrollIntoView( { block: 'nearest' } );
+	}
+	function pickAt( i ) {
+		var it = items[ i ]; if ( ! it ) return;
+		if ( it.isNew ) { $in.val( it.value ); $pick.val( 'new' ); $said.text( it.say ); close(); return; }
+		choose( it );
+	}
+	$in.on( 'input', function () {
+		$pick.val( '' );
+		var q = String( $in.val() || "" ).trim();
+		clearTimeout( timer );
+		if ( q.length < 2 ) { close(); return; }
+		timer = setTimeout( function () {
+			var mine = ++asked;
+			$.post( BFTD.ajax_url, { action: 'bftd_school_search', nonce: BFTD.nonce, q: q } ).done( function ( res ) {
+				if ( mine !== asked || ! res || ! res.success ) return;
+				draw( res.data, q );
+			} );
+		}, 200 );
+	} );
+	$in.on( 'keydown', function ( e ) {
+		if ( $list.prop( 'hidden' ) ) return;
+		if ( 'ArrowDown' === e.key ) { e.preventDefault(); move( 1 ); }
+		else if ( 'ArrowUp' === e.key ) { e.preventDefault(); move( -1 ); }
+		else if ( 'Enter' === e.key && at >= 0 ) { e.preventDefault(); pickAt( at ); }
+		else if ( 'Escape' === e.key ) { e.preventDefault(); close(); }
+	} );
+	$list.on( 'mousedown', '.bftd-school-o', function ( e ) { e.preventDefault(); pickAt( Number( $( this ).data( 'i' ) ) ); } );
+	$in.on( 'blur', function () { setTimeout( close, 150 ); } );
+}( jQuery ) );

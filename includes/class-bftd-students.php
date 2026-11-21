@@ -97,6 +97,8 @@ class BFTD_Students {
 			'tutor'  => isset( $_GET['tutor'] ) ? (int) $_GET['tutor'] : 0,
 			'client' => isset( $_GET['client'] ) ? (int) $_GET['client'] : 0,
 			'status' => isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : '',
+			// Students by school (Karl, 1.212).
+			'school' => isset( $_GET['school'] ) ? (int) $_GET['school'] : 0,
 		);
 	}
 
@@ -118,6 +120,7 @@ class BFTD_Students {
 		if ( '' !== $filters['q'] ) $narrow( BFTD_CPT::students_matching( $filters['q'] ) );
 		if ( $filters['tutor'] )    $narrow( BFTD_CPT::students_of_staff( $filters['tutor'] ) );
 		if ( $filters['client'] )   $narrow( BFTD_CPT::students_of_client( $filters['client'] ) );
+		if ( ! empty( $filters['school'] ) && class_exists( 'BFTD_Schools' ) ) $narrow( BFTD_Schools::students_at( $filters['school'] ) );
 
 		if ( ! $only ) return array();
 
@@ -330,8 +333,17 @@ class BFTD_Students {
 				</select>
 			<?php endif; ?>
 
+			<?php if ( class_exists( 'BFTD_Schools' ) && BFTD_Schools::all() ) : ?>
+				<select name="school" aria-label="School">
+					<option value="0">Every school</option>
+					<?php foreach ( BFTD_Schools::all() as $sid => $s ) : ?>
+						<option value="<?php echo (int) $sid; ?>"<?php selected( (int) ( $f['school'] ?? 0 ), (int) $sid ); ?>><?php echo esc_html( $s['name'] ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			<?php endif; ?>
+
 			<button type="submit" class="button">Filter</button>
-			<?php if ( '' !== $f['q'] || $f['tutor'] || $f['client'] || '' !== $f['status'] ) : ?>
+			<?php if ( '' !== $f['q'] || $f['tutor'] || $f['client'] || '' !== $f['status'] || ! empty( $f['school'] ) ) : ?>
 				<a class="button-link bftd-stu-clear" href="<?php echo esc_url( admin_url( 'admin.php?page=' . $slug ) ); ?>">Clear</a>
 			<?php endif; ?>
 

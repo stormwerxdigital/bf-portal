@@ -1514,11 +1514,12 @@ html.mce-fullscreen div.mce-fullscreen{left:0 !important;top:0 !important;right:
 .bftd-calv-head,.bftd-calv-times{display:grid}
 .bftd-calv-head{position:sticky;top:0;z-index:2;background:var(--bftd-sunk);border-bottom:1px solid var(--bftd-line)}
 .bftd-calv-head span{padding:8px 6px;text-align:center;font:600 13px/1.3 var(--bftd-b)}
-.bftd-calv-head span.is-today button{color:var(--bftd-purple);text-decoration:underline}
 .bftd-calv-hours span{display:block;box-sizing:border-box;padding:2px 6px 0 0;text-align:right;font-size:11px;color:var(--bftd-muted);border-top:1px solid var(--bftd-line)}
 .bftd-calv-col{position:relative;border-left:1px solid var(--bftd-line);
   background-image:repeating-linear-gradient(to bottom,var(--bftd-line) 0,var(--bftd-line) 1px,transparent 1px,transparent 48px)}
-.bftd-calv-col.is-today{background-color:var(--bftd-purple-wash)}
+/* Every day is white unless it is closed (Karl, 1.212). Today is marked on its date, not by a shade. */
+.bftd-calv-col:not(.is-closed),.bftd-calv-cell:not(.is-closed){background-color:var(--bftd-card)}
+.bftd-calv-head span.is-today button{display:inline-block;padding:1px 8px;border-radius:999px;background:var(--bftd-purple);color:#fff;text-decoration:none}
 /* One colour per tutor, and a pattern or border, not colour alone, for what happened. */
 .bftd-calv-ev{display:block;width:100%;box-sizing:border-box;text-align:left;cursor:pointer;overflow:hidden;
   border:1px solid rgba(0,0,0,.18);border-left-width:4px;border-radius:4px;padding:2px 5px;margin:0 0 2px;
@@ -1585,8 +1586,8 @@ html.mce-fullscreen div.mce-fullscreen{left:0 !important;top:0 !important;right:
 .bftd-calv-mhead,.bftd-calv-month{display:grid;grid-template-columns:repeat(7,minmax(110px,1fr))}
 .bftd-calv-mhead span{padding:8px 6px;text-align:center;font:600 13px/1.3 var(--bftd-b);background:var(--bftd-sunk);border-bottom:1px solid var(--bftd-line)}
 .bftd-calv-cell{min-height:104px;padding:4px;border-right:1px solid var(--bftd-line);border-bottom:1px solid var(--bftd-line)}
-.bftd-calv-cell.is-other{background:var(--bftd-sunk)}
-.bftd-calv-cell.is-today{background:var(--bftd-purple-wash)}
+.bftd-calv-cell.is-other > .bftd-calv-goday{color:var(--bftd-muted)}
+.bftd-calv-cell.is-today > .bftd-calv-goday{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 4px;box-sizing:border-box;border-radius:12px;background:var(--bftd-purple);color:#fff;text-decoration:none}
 .bftd-calv-cell > .bftd-calv-goday{display:block;margin-bottom:3px;font-weight:600}
 .bftd-calv-more{font-size:12px}
 .bftd-calv-key{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px}
@@ -1710,3 +1711,28 @@ html.bftd-calv-modal{overflow:hidden}
 /* A booking squeezed into a narrow lane opens to its full size on hover or
    focus, so its type, student and tutor can always be read (1.203). */
 .bftd-calv-col .bftd-calv-ev:hover,.bftd-calv-col .bftd-calv-ev:focus-visible{height:auto !important;min-height:var(--bftd-ev-h,0);z-index:6;overflow:visible;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+
+/* ------------------------------------------------------------------ */
+/* School search and the Schools page (1.212)                          */
+/* ------------------------------------------------------------------ */
+.bftd-school-box{position:relative}
+.bftd-school-box input[type=text]{width:100%;box-sizing:border-box}
+.bftd-school-list{position:absolute;z-index:50;left:0;right:0;top:calc(100% + 4px);max-height:320px;overflow:auto;background:var(--bftd-card);
+  border:1px solid var(--bftd-line);border-radius:8px;box-shadow:0 10px 28px rgba(36,30,42,.16);padding:4px 0}
+.bftd-school-g{padding:8px 12px 4px;font:600 12px/1.3 var(--bftd-b);color:var(--bftd-muted)}
+.bftd-school-g:empty{display:none}
+.bftd-school-g.is-warn{color:#8a1f1f}
+.bftd-school-o{padding:8px 12px;cursor:pointer;color:var(--bftd-ink)}
+.bftd-school-o:hover,.bftd-school-o.is-at{background:var(--bftd-purple-wash)}
+.bftd-school-tag{margin-left:6px;font-size:12px;color:var(--bftd-muted)}
+.bftd-sch-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:14px 0}
+.bftd-sch-form.bftd-sch-inline{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 8px 0 0}
+.bftd-sch-ghl{margin:0;color:var(--bftd-muted)}
+.bftd-sch-table td{vertical-align:middle}
+.bftd-sch-table input[type=text]{min-width:220px}
+.wp-core-ui .button-link.bftd-sch-del{color:var(--bftd-red)}
+.bftd-calv-allf{font-weight:600}
+/* One tutor's students under their name (1.212). */
+.bftd-calv-kids{margin:4px 0 10px 26px;padding:6px 0 6px 10px;border-left:2px solid var(--bftd-line)}
+.bftd-calv-kids-all{margin:0 0 4px;font-size:12px}
+.bftd-calv-kid{display:flex;align-items:center;gap:6px;margin:3px 0;font-size:13px}
