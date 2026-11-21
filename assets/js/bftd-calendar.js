@@ -283,7 +283,7 @@
 				+ '<p class="bftd-calv-said" role="alert"></p>'
 				+ '<p class="bftd-calv-pop-do"><button type="submit" class="button button-primary">Save changes</button>'
 				+ '<button type="button" class="button bftd-calv-cancel">Cancel this session</button></p>'
-				+ '<p class="bftd-calv-pop-quiet"><button type="button" class="button-link bftd-calv-delete">Delete, telling nobody</button></p></form>';
+				+ '<p class="bftd-calv-pop-quiet"><button type="button" class="button-link bftd-calv-delete">Delete</button></p></form>';
 		}
 		h += '</div>';
 		if ( e.url ) h += '<div class="bftd-calv-pop-foot"><a class="bftd-calv-pop-open" href="' + esc( e.url ) + '">Open ' + esc( e.student ) + ' &rarr;</a></div>';

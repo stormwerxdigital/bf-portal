@@ -46,7 +46,7 @@ for (const [name, vp] of [['desktop', { width: 1340, height: 900 }], ['phone', {
       veilCovers: (() => { const v = veil.getBoundingClientRect(); return v.left <= 0 && v.top <= 0 && v.right >= innerWidth && v.bottom >= innerHeight; })(),
       veilUnder: Number(vs.zIndex) < Number(getComputedStyle(pop).zIndex),
       x: xr && { label: x.getAttribute('aria-label'), dr: r.right - xr.right, dt: xr.top - r.top, w: xr.width },
-      gap: del.top - save.bottom, focus: document.activeElement === pop,
+      gap: del.top - save.bottom, focus: document.activeElement === pop, delText: pop.querySelector(".bftd-calv-delete").textContent.trim(),
       modal: pop.getAttribute('aria-modal'),
     };
   });
@@ -62,6 +62,7 @@ for (const [name, vp] of [['desktop', { width: 1340, height: 900 }], ['phone', {
   check(!!m.x && m.x.label === 'Close' && m.x.dr >= 0 && m.x.dr <= 24 && m.x.dt >= 0 && m.x.dt <= 24 && m.x.w >= 32,
     'a close X at the top right, big enough to tap, got ' + JSON.stringify(m.x));
   check(m.gap >= 14, 'room between Save changes and the links beneath, got ' + Math.round(m.gap) + 'px');
+  check(m.delText === 'Delete', 'the delete link just says Delete, got ' + m.delText);
   check(m.focus && m.modal === 'true', 'the card takes focus and is a modal dialog');
 
   await p.click('.bftd-calv-x'); await p.waitForTimeout(100);

@@ -26,12 +26,71 @@ class BFTD_Calendar_View {
 	/** The most days one request may ask for: a month view's six weeks. */
 	const MAX_DAYS = 42;
 
+	/** A staff member's chosen calendar colour, a key of colours() (1.209.1). */
+	const COLOUR_KEY = 'bftd_calendar_colour';
+
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ), 22 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
 		add_action( 'wp_ajax_bftd_calendar_events', array( __CLASS__, 'ajax_events' ) );
 		add_action( 'wp_ajax_bftd_calendar_ghl', array( __CLASS__, 'ajax_ghl' ) );
 		add_action( 'wp_ajax_bftd_calendar_book', array( __CLASS__, 'ajax_book' ) );
+		add_action( 'show_user_profile', array( __CLASS__, 'colour_field' ) );
+		add_action( 'edit_user_profile', array( __CLASS__, 'colour_field' ) );
+		add_action( 'personal_options_update', array( __CLASS__, 'save_colour' ) );
+		add_action( 'edit_user_profile_update', array( __CLASS__, 'save_colour' ) );
+	}
+
+	/**
+	 * The eight calendar colours, numbered as the stylesheet numbers them
+	 * (data-t 0 to 7). Staff without a set colour get the one for their place
+	 * in the tutor list, as before 1.209.1.
+	 */
+	public static function colours() {
+		return array( 0 => 'Purple', 1 => 'Blue', 2 => 'Green', 3 => 'Orange', 4 => 'Plum', 5 => 'Teal', 6 => 'Slate', 7 => 'Olive' );
+	}
+
+	/** Each staff member's colour number, by user id, for ids in list order. */
+	public static function colour_map( $user_ids ) {
+		$out = array();
+		$i   = 0;
+		foreach ( $user_ids as $uid ) {
+			$set = get_user_meta( (int) $uid, self::COLOUR_KEY, true );
+			$out[ (int) $uid ] = ( is_numeric( $set ) && isset( self::colours()[ (int) $set ] ) ) ? (int) $set : $i % 8;
+			$i++;
+		}
+		return $out;
+	}
+
+	/**
+	 * Calendar colour on a staff member's profile. Set by senior managers and
+	 * administrators only (Karl, 1.209.1: "We need to be able to set the color
+	 * per staff member for Sr Managers and Admins").
+	 */
+	public static function colour_field( $user ) {
+		if ( ! BFTD_Roles::can_administer() || ! BFTD_Roles::is_staff( $user->ID ) ) return;
+		$set = get_user_meta( $user->ID, self::COLOUR_KEY, true );
+		?>
+		<h2>Calendar</h2>
+		<table class="form-table" role="presentation"><tr>
+			<th><label for="bftd-calendar-colour">Calendar colour</label></th>
+			<td><select id="bftd-calendar-colour" name="bftd_calendar_colour">
+				<option value="">By place in the tutor list</option>
+				<?php foreach ( self::colours() as $k => $name ) : ?>
+					<option value="<?php echo (int) $k; ?>"<?php selected( (string) $set, (string) $k ); ?>><?php echo esc_html( $name ); ?></option>
+				<?php endforeach; ?>
+			</select>
+			<p class="description">The colour of this person's bookings and swatch on the Calendar.</p></td>
+		</tr></table>
+		<?php
+	}
+
+	public static function save_colour( $user_id ) {
+		if ( ! BFTD_Roles::can_administer() || ! current_user_can( 'edit_user', $user_id ) ) return;
+		if ( ! BFTD_Roles::is_staff( $user_id ) || ! isset( $_POST['bftd_calendar_colour'] ) ) return;
+		$v = sanitize_text_field( wp_unslash( $_POST['bftd_calendar_colour'] ) );
+		if ( '' === $v ) { delete_user_meta( $user_id, self::COLOUR_KEY ); return; }
+		if ( ctype_digit( $v ) && isset( self::colours()[ (int) $v ] ) ) update_user_meta( $user_id, self::COLOUR_KEY, (int) $v );
 	}
 
 	/**
@@ -350,7 +409,8 @@ class BFTD_Calendar_View {
 			'me'     => (int) $viewer,
 			// Each tutor's colour, numbered in the order of the side panel, so a
 			// booking's border and the swatch beside the name always match (1.206.1).
-			'colours' => array_flip( array_map( 'intval', array_keys( $tutors ) ) ),
+			// A colour set on the profile wins (1.209.1).
+			'colours' => self::colour_map( array_keys( $tutors ) ),
 		);
 		$students = self::bookable( $viewer );
 		?>
@@ -433,9 +493,9 @@ class BFTD_Calendar_View {
 					<?php if ( $manage ) : ?>
 						<h2>Tutors</h2>
 						<p><button type="button" class="button-link bftd-calv-all">All</button> &middot; <button type="button" class="button-link bftd-calv-none">None</button></p>
-						<?php $i = 0; foreach ( $tutors as $uid => $name ) : ?>
+						<?php foreach ( $tutors as $uid => $name ) : ?>
 							<label class="bftd-calv-tutor"><input type="checkbox" value="<?php echo (int) $uid; ?>" checked>
-								<span class="bftd-calv-swatch" data-t="<?php echo (int) ( $i++ % 8 ); ?>"></span>
+								<span class="bftd-calv-swatch" data-t="<?php echo (int) ( $config['colours'][ (int) $uid ] ?? 0 ); ?>"></span>
 								<?php echo esc_html( $name ); ?></label>
 						<?php endforeach; ?>
 					<?php endif; ?>
