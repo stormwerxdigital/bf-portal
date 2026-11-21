@@ -127,7 +127,9 @@
 
 	function visible() {
 		return state.events.filter( function ( e ) {
-			if ( 'ghl' === e.kind && ! showGhl.checked ) return false;
+			// Scheduled (1.205): everything in the CRM, whether the portal sent it
+			// there or it was made there.
+			if ( ( 'ghl' === e.kind || e.in_ghl ) && ! showGhl.checked ) return false;
 			if ( 'cancelled' === e.status && ! showCancel.checked ) return false;
 			if ( 'moved' === e.status && ! showMoved.checked ) return false;
 			if ( e.draft && ! showDraft.checked ) return false;   // draft students' bookings (1.203)

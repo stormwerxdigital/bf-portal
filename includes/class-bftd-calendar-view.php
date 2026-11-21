@@ -368,7 +368,7 @@ class BFTD_Calendar_View {
 					<option value="week" selected>Week</option>
 					<option value="month">Month</option>
 				</select>
-				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showghl" checked> CRM</label>
+				<label class="bftd-calv-ghl" title="Bookings sent to the CRM, and appointments made in it"><input type="checkbox" class="bftd-calv-showghl" checked> Scheduled</label>
 				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showdraft" checked> Drafts</label>
 				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showcancel"> Cancelled</label>
 				<label class="bftd-calv-ghl"><input type="checkbox" class="bftd-calv-showmoved"> Rescheduled</label>
