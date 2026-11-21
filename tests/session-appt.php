@@ -102,6 +102,30 @@ check(false === BFTD_Session_Appt::hold_unlinked(703, $pub(703)), 'a session alr
 $_POST = array();
 check(false === BFTD_Session_Appt::hold_unlinked(703, (object) array('ID' => 703, 'post_status' => 'draft')), 'and a draft saved as a draft is just saved');
 
+echo "\nPublishing a lesson already given, with no appointment (1.213.1):\n";
+$TR = array(); $_POST = array();
+$SESS[40][] = 705;
+BFTD_Fields::set(705, 'session', 'session_date', $d(-3)); BFTD_Fields::set(705, 'session', 'session_time', '14:00'); BFTD_Fields::set(705, 'session', 'delivered_by', 5);
+$n = count($BOOKED);
+check(false === BFTD_Session_Appt::hold_unlinked(705, $pub(705)), 'it publishes');
+$b = end($BOOKED);
+check(count($BOOKED) === $n + 1 && true === $b['quiet'] && 1 === $b['raw']['local'] && '14:00' === $b['raw']['time'] && 5 === $b['raw']['tutor'],
+  'with a new appointment at its own time and tutor, sent nowhere and announced to nobody');
+check($d(-3) . ' 14:00' === BFTD_Session_Appt::key_of(705), 'and linked to it');
+$OCC[] = $occ($d(-4), '16:00');
+$SESS[40][] = 706;
+BFTD_Fields::set(706, 'session', 'session_date', $d(-4)); BFTD_Fields::set(706, 'session', 'session_time', '15:30');
+$n = count($BOOKED);
+check(false === BFTD_Session_Appt::hold_unlinked(706, $pub(706)) && $d(-4) . ' 16:00' === BFTD_Session_Appt::key_of(706) && count($BOOKED) === $n,
+  'when that day already has an appointment of the student\'s, it is linked rather than a second made');
+$SESS[40][] = 707;
+BFTD_Fields::set(707, 'session', 'session_date', $d(2)); BFTD_Fields::set(707, 'session', 'session_time', '10:00');
+check(true === BFTD_Session_Appt::hold_unlinked(707, $pub(707)) && '' === BFTD_Session_Appt::key_of(707), 'a session for a later day still needs its appointment chosen');
+$SESS[40][] = 708;
+BFTD_Fields::set(708, 'session', 'session_date', $d(-1)); BFTD_Fields::set(708, 'session', 'session_time', '07:00');
+check(true === BFTD_Session_Appt::hold_unlinked(708, $pub(708)) && 'Rae already has a session then.' === get_transient('bftd_appt_err_1'),
+  'and one the Calendar\'s rules turn away stays a draft, saying why');
+
 echo "\nThe wiring:\n";
 $mb = file_get_contents(BFTD_PATH . 'includes/class-bftd-metaboxes.php');
 $a = strpos($mb, 'BFTD_Session_Appt::save_from_form( $post_id );'); $h = strpos($mb, 'self::hold_duplicate_draft( $post_id, $post );');

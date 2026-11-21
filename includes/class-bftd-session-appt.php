@@ -152,6 +152,14 @@ class BFTD_Session_Appt {
 		if ( 'publish' !== $post->post_status ) return false;
 		if ( '' !== self::key_of( $session_id ) ) return false;
 		if ( isset( $_POST['original_post_status'] ) && 'publish' === $_POST['original_post_status'] ) return false;
+		// A lesson already given is linked to that day's appointment, or one is
+		// made for it, and then it publishes (Karl, 1.213.1).
+		$auto = self::auto_link( $session_id );
+		if ( true === $auto ) return false;
+		// Why it could not be done, when the session had a date to try.
+		if ( is_wp_error( $auto ) && '' !== (string) BFTD_Fields::get( $session_id, 'session', 'session_date' ) ) {
+			set_transient( self::ERR . get_current_user_id(), $auto->get_error_message(), 60 );
+		}
 
 		remove_action( 'save_post', array( 'BFTD_MetaBoxes', 'save' ), 10 );
 		wp_update_post( array( 'ID' => $session_id, 'post_status' => 'draft' ) );
@@ -159,6 +167,38 @@ class BFTD_Session_Appt {
 
 		set_transient( 'bftd_held_' . get_current_user_id(), 'unlinked|', 60 );
 		return true;
+	}
+
+	/**
+	 * A session dated today or earlier with no appointment (Karl, 1.213.1:
+	 * "IF the appointment date is the past and there is no appointment,
+	 * create a new appointment with no notification to GHL. And then a
+	 * session can be published"). Its student's appointment that day, not yet
+	 * linked and nearest its time, is linked; with none, a new one is made at
+	 * the session's own time and tutor, kept here: no banner, no notice,
+	 * never sent to GoHighLevel. True once linked; otherwise why not.
+	 */
+	public static function auto_link( $session_id ) {
+		if ( '' !== self::key_of( $session_id ) ) return true;
+		$student = (int) BFTD_CPT::student_id( $session_id );
+		$date    = (string) BFTD_Fields::get( $session_id, 'session', 'session_date' );
+		$time    = (string) BFTD_Fields::get( $session_id, 'session', 'session_time' );
+		if ( ! $student || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) return new WP_Error( 'bftd_appt', 'The session has no student or date.' );
+		if ( $date > BFTD_Time::today() ) return new WP_Error( 'bftd_appt', 'A session for a later day needs its appointment chosen.' );
+
+		$taken = self::linked_keys( $student );
+		$best  = null;
+		$want  = preg_match( '/^\d{2}:\d{2}$/', $time ) ? BFTD_Schedule::minutes_of( $time ) : 0;
+		foreach ( BFTD_Schedule::occurrences( $student, $date, $date, 50 ) as $o ) {
+			if ( 'assessment' === ( $o['type'] ?? '' ) || isset( $taken[ $o['key'] ] ) ) continue;
+			$gap = abs( BFTD_Schedule::minutes_of( $o['time'] ) - $want );
+			if ( null === $best || $gap < $best[0] ) $best = array( $gap, $o['key'] );
+		}
+		if ( $best ) return self::link( $session_id, $student, $best[1] );
+
+		if ( ! preg_match( '/^\d{2}:\d{2}$/', $time ) ) return new WP_Error( 'bftd_appt', 'The session has no time to make its appointment at.' );
+		$tutor = (int) BFTD_Fields::get( $session_id, 'session', 'delivered_by' );
+		return self::create_and_link( $session_id, $student, $date, $time, 50, $tutor );
 	}
 
 	public static function ajax_list() {
