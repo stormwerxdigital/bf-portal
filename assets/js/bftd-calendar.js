@@ -146,7 +146,9 @@
 		var says = e.title + ', ' + clock( e.start ) + ' to ' + clock( e.end ) + ( who ? ', ' + who : '' )
 			+ ( e.type_label ? ', ' + e.type_label : '' )
 			+ ( 'cancelled' === e.status ? ', cancelled' : 'held' === e.status ? ', taught' : 'moved' === e.status ? ', rescheduled to ' + e.moved_to : '' ) + ( 'ghl' === e.kind ? ', made in GoHighLevel' : '' );
-		return '<button type="button" class="' + cls + '" data-i="' + state.events.indexOf( e ) + '"'
+		// The left border is the tutor's colour, the same as their swatch (1.206.1).
+		var t = ( C.colours && C.colours[ e.tutor ] !== undefined ) ? C.colours[ e.tutor ] % 8 : 0;
+		return '<button type="button" class="' + cls + '" data-t="' + t + '" data-i="' + state.events.indexOf( e ) + '"'
 			+ ( timed ? ' style="' + timed + '"' : '' ) + ' aria-label="' + esc( says ) + '" title="' + esc( says ) + '">'
 			// Time and type on one line, so the name has room (1.203.1).
 			+ '<span class="bftd-calv-ev-t">' + esc( clock( e.start ) ) + ( e.type ? '<span class="bftd-calv-ev-y"> &middot; ' + ( 'assessment' === e.type ? 'Assessment' : 'Tutoring' ) + '</span>' : '' ) + '</span>'

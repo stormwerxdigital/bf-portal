@@ -348,6 +348,9 @@ class BFTD_Calendar_View {
 			'tutors' => $tutors,
 			'manage' => $manage ? 1 : 0,
 			'me'     => (int) $viewer,
+			// Each tutor's colour, numbered in the order of the side panel, so a
+			// booking's border and the swatch beside the name always match (1.206.1).
+			'colours' => array_flip( array_map( 'intval', array_keys( $tutors ) ) ),
 		);
 		$students = self::bookable( $viewer );
 		?>
@@ -430,8 +433,9 @@ class BFTD_Calendar_View {
 					<?php if ( $manage ) : ?>
 						<h2>Tutors</h2>
 						<p><button type="button" class="button-link bftd-calv-all">All</button> &middot; <button type="button" class="button-link bftd-calv-none">None</button></p>
-						<?php foreach ( $tutors as $uid => $name ) : ?>
+						<?php $i = 0; foreach ( $tutors as $uid => $name ) : ?>
 							<label class="bftd-calv-tutor"><input type="checkbox" value="<?php echo (int) $uid; ?>" checked>
+								<span class="bftd-calv-swatch" data-t="<?php echo (int) ( $i++ % 8 ); ?>"></span>
 								<?php echo esc_html( $name ); ?></label>
 						<?php endforeach; ?>
 					<?php endif; ?>

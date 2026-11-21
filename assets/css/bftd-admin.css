@@ -1532,6 +1532,24 @@ html.mce-fullscreen div.mce-fullscreen{left:0 !important;top:0 !important;right:
 .bftd-calv-ev{border-left-color:#5c7a29;background:#eef4e2}
 .bftd-calv-ev.is-draft{border-left-color:#70567F;background:#efe9f6}
 .bftd-calv-ev.is-held{border-left-color:#b9c99c;background:#f7f9f2;color:#5f6b55}
+/* The left border is the tutor's colour, matching the swatch beside their name (Karl, 1.206.1). */
+.bftd-calv-ev[data-t="0"],.bftd-calv-swatch[data-t="0"]{border-left-color:#6b4c8a}
+.bftd-calv-ev[data-t="1"]{border-left-color:#2e6b8a}
+.bftd-calv-ev[data-t="2"]{border-left-color:#5c7a29}
+.bftd-calv-ev[data-t="3"]{border-left-color:#a35a14}
+.bftd-calv-ev[data-t="4"]{border-left-color:#8a2e5a}
+.bftd-calv-ev[data-t="5"]{border-left-color:#2e8a7a}
+.bftd-calv-ev[data-t="6"]{border-left-color:#5a5a8a}
+.bftd-calv-ev[data-t="7"]{border-left-color:#8a7a2e}
+.bftd-calv-ev{border-left-width:5px}
+.bftd-calv-swatch{display:inline-block;width:10px;height:10px;border-radius:2px;background:#6b4c8a}
+.bftd-calv-swatch[data-t="1"]{background:#2e6b8a}
+.bftd-calv-swatch[data-t="2"]{background:#5c7a29}
+.bftd-calv-swatch[data-t="3"]{background:#a35a14}
+.bftd-calv-swatch[data-t="4"]{background:#8a2e5a}
+.bftd-calv-swatch[data-t="5"]{background:#2e8a7a}
+.bftd-calv-swatch[data-t="6"]{background:#5a5a8a}
+.bftd-calv-swatch[data-t="7"]{background:#8a7a2e}
 .bftd-calv-ev.is-assessment{border-left-style:double;border-left-width:6px}
 .bftd-calv-ev.is-moved{background:repeating-linear-gradient(135deg,#f6f7f7 0,#f6f7f7 6px,#eceeef 6px,#eceeef 12px);color:#50575e;border-style:dotted}
 .bftd-calv-col.is-closed,.bftd-calv-cell.is-closed{background:repeating-linear-gradient(135deg,#eceeef 0,#eceeef 8px,#e2e4e7 8px,#e2e4e7 16px)}
