@@ -1736,3 +1736,15 @@ html.bftd-calv-modal{overflow:hidden}
 .bftd-calv-kids{margin:4px 0 10px 26px;padding:6px 0 6px 10px;border-left:2px solid var(--bftd-line)}
 .bftd-calv-kids-all{margin:0 0 4px;font-size:12px}
 .bftd-calv-kid{display:flex;align-items:center;gap:6px;margin:3px 0;font-size:13px}
+/* The booking card's stripe is the tutor's colour, the same as the
+   booking's left edge and their swatch; its background stays the state's
+   (Karl, 1.212.1). After the state rules, so the tutor wins the stripe. */
+.bftd-calv-pop[data-t="0"]{--calv-accent:#6b4c8a}
+.bftd-calv-pop[data-t="1"]{--calv-accent:#2e6b8a}
+.bftd-calv-pop[data-t="2"]{--calv-accent:#5c7a29}
+.bftd-calv-pop[data-t="3"]{--calv-accent:#a35a14}
+.bftd-calv-pop[data-t="4"]{--calv-accent:#8a2e5a}
+.bftd-calv-pop[data-t="5"]{--calv-accent:#2e8a7a}
+.bftd-calv-pop[data-t="6"]{--calv-accent:#5a5a8a}
+.bftd-calv-pop[data-t="7"]{--calv-accent:#8a7a2e}
+.bftd-calv-pop-who{display:flex;align-items:center;gap:6px}

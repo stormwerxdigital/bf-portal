@@ -13,7 +13,7 @@ function selected($a, $b) { if ((string) $a === (string) $b) echo ' selected'; }
 if (!function_exists('esc_html')) { function esc_html($s) { return htmlspecialchars((string) $s, ENT_QUOTES); } }
 if (!function_exists('esc_attr')) { function esc_attr($s) { return htmlspecialchars((string) $s, ENT_QUOTES); } }
 if (!function_exists('wp_json_encode')) { function wp_json_encode($v) { return json_encode($v); } }
-if (!function_exists('get_user_meta')) { function get_user_meta($id, $k = '', $s = false) { return ''; } }
+if (!function_exists('get_user_meta')) { function get_user_meta($id, $k = '', $s = false) { return (1 === (int) $id && 'bftd_calendar_colour' === $k) ? '2' : ''; } }
 function get_userdata($id) { return (object) array('ID' => $id, 'display_name' => 'Test Tutor'); }
 
 class BFTD_Roles {

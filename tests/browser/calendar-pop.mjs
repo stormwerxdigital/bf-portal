@@ -64,6 +64,15 @@ for (const [name, vp] of [['desktop', { width: 1340, height: 900 }], ['phone', {
   check(m.gap >= 14, 'room between Save changes and the links beneath, got ' + Math.round(m.gap) + 'px');
   check(m.delText === 'Delete', 'the delete link just says Delete, got ' + m.delText);
   check(m.focus && m.modal === 'true', 'the card takes focus and is a modal dialog');
+  /* The tutor's colour (Karl, 1.212.1): this tutor is Green, on a draft booking. */
+  const tc = await p.evaluate(() => {
+    const pop = document.querySelector('.bftd-calv-pop');
+    return { stripe: getComputedStyle(pop.querySelector('.bftd-calv-pop-head')).boxShadow,
+      swatch: (pop.querySelector('.bftd-calv-pop-who .bftd-calv-swatch') && getComputedStyle(pop.querySelector('.bftd-calv-pop-who .bftd-calv-swatch')).backgroundColor) || '',
+      edge: getComputedStyle(document.querySelector('.bftd-calv-ev.is-booked')).borderLeftColor };
+  });
+  check(/rgb\(92, 122, 41\)/.test(tc.stripe) && tc.swatch === 'rgb(92, 122, 41)' && tc.edge === 'rgb(92, 122, 41)',
+    'the card\'s stripe and the swatch by the tutor are the tutor\'s colour, as on the booking, got ' + JSON.stringify(tc));
 
   await p.click('.bftd-calv-x'); await p.waitForTimeout(100);
   let s = await shown();

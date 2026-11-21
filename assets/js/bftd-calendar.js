@@ -305,7 +305,7 @@
 	// A card in the middle of the screen over a dimmed, blurred calendar
 	// (Karl, 1.209). The veil and the X both close it, and so does Escape.
 	function closePop() {
-		pop.hidden = true; pop.innerHTML = ''; pop.className = 'bftd-calv-pop';
+		pop.hidden = true; pop.innerHTML = ''; pop.className = 'bftd-calv-pop'; pop.removeAttribute( 'data-t' );
 		if ( veil ) veil.hidden = true;
 		document.documentElement.classList.remove( 'bftd-calv-modal' );
 		if ( opened ) { opened.focus(); opened = null; }
@@ -327,7 +327,7 @@
 			+ ( e.type_label ? '<p class="bftd-calv-pop-kind">' + esc( e.type_label ) + ( e.draft ? ' &middot; Draft' : '' ) + '</p>' : '' )
 			+ '<h2 id="bftd-calv-pop-title">' + esc( e.title ) + '</h2>'
 			+ '<p class="bftd-calv-pop-when">' + esc( dayName( e.date ) + ', ' + clock( e.start ) + ' to ' + clock( e.end ) ) + '</p>'
-			+ ( who ? '<p class="bftd-calv-pop-who">' + esc( who ) + '</p>' : '' )
+			+ ( who ? '<p class="bftd-calv-pop-who"><span class="bftd-calv-swatch" data-t="' + ( btn.getAttribute( 'data-t' ) || 0 ) + '" aria-hidden="true"></span> ' + esc( who ) + '</p>' : '' )
 			+ '</div><div class="bftd-calv-pop-body">';
 		if ( 'moved' === e.status ) h += '<p class="description">Rescheduled to ' + esc( e.moved_to ) + '.</p>';
 		if ( 'ghl' === e.kind ) h += '<p class="description">Made in GoHighLevel, not on a student\'s schedule.</p>';
@@ -370,6 +370,8 @@
 		pop.innerHTML = h;
 		// Its colour says what it is, the same as the booking that was tapped.
 		pop.className = 'bftd-calv-pop ' + btn.className.split( ' ' ).filter( function ( c ) { return 0 === c.indexOf( 'is-' ); } ).join( ' ' );
+		// The stripe is the tutor's colour, as on the booking's left edge (Karl, 1.212.1).
+		if ( 'ghl' !== e.kind ) pop.setAttribute( 'data-t', btn.getAttribute( 'data-t' ) || '0' ); else pop.removeAttribute( 'data-t' );
 		if ( veil ) veil.hidden = false;
 		document.documentElement.classList.add( 'bftd-calv-modal' );
 		pop.hidden = false;
