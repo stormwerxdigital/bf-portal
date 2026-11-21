@@ -44,6 +44,8 @@
 }
 
 .bftd-wrap{max-width:1240px}
+/* The Calendar uses the screen, up to 1920px, for reading a week or a month (Karl, 1.206.2). */
+.bftd-wrap.bftd-calv{max-width:1920px}
 .bftd-wrap h1{font-family:var(--bftd-d);font-weight:800;color:var(--bftd-ink);letter-spacing:-.01em}
 .bftd-wrap h2{font-family:var(--bftd-d);font-weight:700;color:var(--bftd-ink);margin-top:28px}
 .bftd-lede{font-family:var(--bftd-b);font-size:14.5px;line-height:1.6;color:var(--bftd-muted);max-width:76ch}
