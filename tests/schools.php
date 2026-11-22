@@ -148,6 +148,43 @@ check(false !== strpos($gh, "BFTD_Schools::resolve_student( \$sid, '', false );"
 $st = file_get_contents(BFTD_PATH . 'includes/class-bftd-students.php');
 check(false !== strpos($st, "\$narrow( BFTD_Schools::students_at( \$filters['school'] ) );") && false !== strpos($st, '<option value="0">Every school</option>'), 'the Students list filters by school, alongside status');
 
+echo "\nThe Schools table, saved at once (1.213.2):\n";
+$ADMIN = true;
+$x = BFTD_Schools::add('Willow Creek Elem');
+$y = BFTD_Schools::add('Spruce Hill School');
+$z = BFTD_Schools::add('Spruce Hill Secondary');
+$STUDENTS[] = 30; BFTD_Fields::set(30, 'student', 'school', 'Spruce Hill Secondary'); BFTD_Schools::set_student(30, $z, false);
+list($r, $say) = BFTD_Schools::save_table(array('do' => 'save',
+  'name' => array($x => 'Willow Creek Elementary', $y => 'Spruce Hill School'),
+  'ghl' => array($x => 'cbr2', $y => ''),
+  'into' => array($z => $y)));
+check(true === $r && 'Willow Creek Elementary' === BFTD_Schools::get($x)['name'], 'one save renames');
+check(true === $r && 'cbr2' === BFTD_Schools::get($x)['ghl_id'], 'links a Company picked');
+check(null === BFTD_Schools::get($z) && $y === BFTD_Schools::of_student(30) && 'Spruce Hill School' === $school(30), 'and merges, moving the students');
+check('Saved: 1 renamed, 1 linked, 1 merged.' === $say, 'and says what it did, got ' . $say);
+list($r, $say) = BFTD_Schools::save_table(array('do' => 'save', 'name' => array($x => 'Willow Creek Elementary')));
+check(true === $r && 'Nothing was changed.' === $say, 'saving with nothing changed says so');
+list($r) = BFTD_Schools::save_table(array('do' => 'save', 'name' => array($x => 'Spruce Hill School')));
+check(is_wp_error($r) && 'Willow Creek Elementary' === BFTD_Schools::get($x)['name'], 'a rename onto another school is refused, saying why');
+list($r) = BFTD_Schools::save_table(array('do' => 'unlink:' . $x));
+check(true === $r && '' === BFTD_Schools::get($x)['ghl_id'], 'Unlink acts at once');
+list($r) = BFTD_Schools::save_table(array('do' => 'delete:' . $x));
+check(true === $r && null === BFTD_Schools::get($x), 'and so does Delete');
+
+if (!function_exists('admin_url')) { function admin_url($p = '') { return '/wp-admin/' . $p; } }
+if (!function_exists('esc_url')) { function esc_url($u) { return $u; } }
+if (!function_exists('wp_nonce_field')) { function wp_nonce_field($a) { echo '<input type="hidden" name="_wpnonce" value="n">'; } }
+if (!function_exists('esc_html')) { function esc_html($s) { return htmlspecialchars((string) $s); } }
+if (!function_exists('esc_attr')) { function esc_attr($s) { return htmlspecialchars((string) $s, ENT_QUOTES); } }
+if (!class_exists('BFTD_Students')) { class BFTD_Students { const SLUG = 'bftd-students'; } }
+ob_start(); BFTD_Schools::render_page(); $page = ob_get_clean();
+$form = (string) substr($page, (int) strpos($page, 'class="bftd-sch-save">'));
+$form = substr($form, 0, strpos($form, '</form>'));
+check('' !== $form && false !== strpos($form, 'value="bftd_school_save"') && 2 === substr_count($form, '>Save changes</button>'), 'the page has a Save changes button, above and below the table, for one form');
+check(count(BFTD_Schools::all()) === substr_count($form, 'name="name['), 'every school\'s name is in that form');
+check(false === strpos($page, '>Rename</button>') && false === strpos($page, '>Link</button>') && false === strpos($page, '>Merge</button>'), 'with no separate Rename, Link or Merge buttons left');
+check(false === strpos($form, '</span><button') && false !== strpos($form, 'Linked: ') ? true : (false === strpos($form, 'Linked: ')), 'and Unlink sits apart from the linked Company\'s name');
+
 $cv = file_get_contents(BFTD_PATH . 'includes/class-bftd-calendar-view.php');
 check(false !== strpos($cv, "\$linked = class_exists( 'BFTD_Schools' ) ? BFTD_Schools::get( BFTD_Schools::of_student( \$sid ) ) : null;") && false !== strpos($cv, "'school'     => \$school,"),
   'each Calendar booking carries the school its student is linked to, for the search (1.212.2)');

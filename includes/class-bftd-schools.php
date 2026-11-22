@@ -33,7 +33,7 @@ class BFTD_Schools {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ), 23 );
 		add_action( 'wp_ajax_bftd_school_search', array( __CLASS__, 'ajax_search' ) );
 		add_action( 'save_post', array( __CLASS__, 'on_save' ), 20, 2 );   // after the student's fields (priority 10)
-		foreach ( array( 'add', 'rename', 'merge', 'delete', 'link', 'unlink', 'refresh', 'import' ) as $a ) {
+		foreach ( array( 'add', 'rename', 'merge', 'delete', 'link', 'unlink', 'refresh', 'import', 'save' ) as $a ) {
 			add_action( 'admin_post_bftd_school_' . $a, array( __CLASS__, 'handle' ) );
 		}
 	}
@@ -451,10 +451,51 @@ class BFTD_Schools {
 				$say = count( self::companies() ) . ' Companies read from GoHighLevel.';
 				break;
 			case 'import': $say = self::import_from_students() . ' students linked to the list.'; break;
+			case 'save':   list( $r, $say ) = self::save_table( wp_unslash( $_POST ) ); break;
 		}
 		$args = is_wp_error( $r ) ? array( 'bftd_err' => rawurlencode( $r->get_error_message() ) ) : array( 'bftd_msg' => rawurlencode( $say ) );
 		wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php?page=' . self::SLUG ) ) );
 		exit;
+	}
+
+	/**
+	 * The Schools table, saved at once (Karl, 1.213.2: "you are missing the
+	 * save button in here"). Unlink and Delete act straight away; otherwise
+	 * every name changed is renamed, every Company picked is linked, and
+	 * every "Merge into" chosen is merged, last, so a school renamed and
+	 * merged in one save ends up under the name it is merged into.
+	 *
+	 * @return array( true|WP_Error, what was done )
+	 */
+	public static function save_table( $post ) {
+		$do = (string) ( $post['do'] ?? 'save' );
+		if ( preg_match( '/^(unlink|delete):(\d+)$/', $do, $m ) ) {
+			$r = 'unlink' === $m[1] ? self::link( (int) $m[2], '' ) : self::remove( (int) $m[2] );
+			return array( $r, 'unlink' === $m[1] ? 'No longer linked to GoHighLevel.' : 'Deleted.' );
+		}
+		$errors = array();
+		$n = array( 'renamed' => 0, 'linked' => 0, 'merged' => 0 );
+		foreach ( (array) ( $post['name'] ?? array() ) as $id => $name ) {
+			$s = self::get( (int) $id );
+			if ( ! $s || trim( (string) $name ) === $s['name'] ) continue;
+			$r = self::rename( (int) $id, (string) $name );
+			if ( is_wp_error( $r ) ) $errors[] = $r->get_error_message(); else $n['renamed']++;
+		}
+		foreach ( (array) ( $post['ghl'] ?? array() ) as $id => $gid ) {
+			$s = self::get( (int) $id );
+			if ( ! $s || '' === (string) $gid || '' !== (string) $s['ghl_id'] ) continue;
+			$r = self::link( (int) $id, sanitize_text_field( (string) $gid ) );
+			if ( is_wp_error( $r ) ) $errors[] = $r->get_error_message(); else $n['linked']++;
+		}
+		foreach ( (array) ( $post['into'] ?? array() ) as $id => $into ) {
+			if ( ! $into || ! self::get( (int) $id ) || ! self::get( (int) $into ) ) continue;
+			$r = self::merge( (int) $id, (int) $into );
+			if ( is_wp_error( $r ) ) $errors[] = $r->get_error_message(); else $n['merged']++;
+		}
+		$bits = array();
+		foreach ( $n as $what => $k ) if ( $k ) $bits[] = $k . ' ' . $what;
+		$say = $bits ? 'Saved: ' . implode( ', ', $bits ) . '.' : 'Nothing was changed.';
+		return array( $errors ? new WP_Error( 'bftd_school', ( $bits ? $say . ' ' : '' ) . implode( ' ', $errors ) ) : true, $say );
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -537,40 +578,47 @@ class BFTD_Schools {
 				</ul>
 			<?php endif; ?>
 
-			<table class="widefat striped bftd-sch-table">
-				<thead><tr><th scope="col">School</th><th scope="col">Students</th><th scope="col">GoHighLevel</th><th scope="col">Change</th></tr></thead>
-				<tbody>
-				<?php if ( ! $list ) : ?><tr><td colspan="4">No schools yet.</td></tr><?php endif; ?>
-				<?php foreach ( $list as $id => $s ) :
-					$n = (int) ( $counts[ $id ] ?? 0 );
-					$c = '' !== (string) $s['ghl_id'] ? self::company( $s['ghl_id'] ) : null; ?>
-					<tr>
-						<td><?php $form( 'rename', '<input type="hidden" name="id" value="' . (int) $id . '"><label class="screen-reader-text" for="bftd-sch-' . (int) $id . '">Name</label><input type="text" id="bftd-sch-' . (int) $id . '" name="name" value="' . esc_attr( $s['name'] ) . '"> <button class="button">Rename</button>', 'bftd-sch-inline' ); ?></td>
-						<td><?php if ( $n ) : ?><a href="<?php echo esc_url( admin_url( 'admin.php?page=' . BFTD_Students::SLUG . '&school=' . (int) $id ) ); ?>"><?php echo (int) $n; ?></a><?php else : ?>0<?php endif; ?></td>
-						<td><?php
-							if ( '' !== (string) $s['ghl_id'] ) {
-								echo esc_html( $c ? 'Linked: ' . $c['name'] : 'Linked' );
-								$form( 'unlink', '<input type="hidden" name="id" value="' . (int) $id . '"><button class="button-link">Unlink</button>', 'bftd-sch-inline' );
-							} elseif ( $comps ) {
-								$o = '<option value="">Link to a Company</option>';
-								foreach ( $comps as $cc ) $o .= '<option value="' . esc_attr( $cc['id'] ) . '"' . ( self::norm( $cc['name'] ) === self::norm( $s['name'] ) ? ' selected' : '' ) . '>' . esc_html( $cc['name'] ) . '</option>';
-								$form( 'link', '<input type="hidden" name="id" value="' . (int) $id . '"><label class="screen-reader-text" for="bftd-sch-l' . (int) $id . '">Company</label><select id="bftd-sch-l' . (int) $id . '" name="ghl_id" required>' . $o . '</select> <button class="button">Link</button>', 'bftd-sch-inline' );
-							} else {
-								echo 'Not linked';
-							}
-						?></td>
-						<td><?php
-							if ( count( $list ) > 1 ) {
-								$o = '<option value="">Merge into…</option>';
-								foreach ( $list as $oid => $os ) if ( (int) $oid !== (int) $id ) $o .= '<option value="' . (int) $oid . '">' . esc_html( $os['name'] ) . '</option>';
-								$form( 'merge', '<input type="hidden" name="id" value="' . (int) $id . '"><label class="screen-reader-text" for="bftd-sch-m' . (int) $id . '">Merge into</label><select id="bftd-sch-m' . (int) $id . '" name="into" required>' . $o . '</select> <button class="button">Merge</button>', 'bftd-sch-inline' );
-							}
-							if ( ! $n ) $form( 'delete', '<input type="hidden" name="id" value="' . (int) $id . '"><button class="button-link bftd-sch-del">Delete</button>', 'bftd-sch-inline' );
-						?></td>
-					</tr>
-				<?php endforeach; ?>
-				</tbody>
-			</table>
+			<?php // One form for the table, saved at once (1.213.2). ?>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="bftd-sch-save">
+				<input type="hidden" name="action" value="bftd_school_save">
+				<?php wp_nonce_field( 'bftd_school_save' ); ?>
+				<p class="bftd-sch-savebar"><button type="submit" class="button button-primary" name="do" value="save">Save changes</button>
+					<span class="description">Change names, pick Companies to link and schools to merge, then save once.</span></p>
+				<table class="widefat striped bftd-sch-table">
+					<thead><tr><th scope="col">School</th><th scope="col">Students</th><th scope="col">GoHighLevel</th><th scope="col">Merge or delete</th></tr></thead>
+					<tbody>
+					<?php if ( ! $list ) : ?><tr><td colspan="4">No schools yet.</td></tr><?php endif; ?>
+					<?php foreach ( $list as $id => $s ) :
+						$n = (int) ( $counts[ $id ] ?? 0 );
+						$c = '' !== (string) $s['ghl_id'] ? self::company( $s['ghl_id'] ) : null; ?>
+						<tr>
+							<td><label class="screen-reader-text" for="bftd-sch-<?php echo (int) $id; ?>">Name</label>
+								<input type="text" id="bftd-sch-<?php echo (int) $id; ?>" name="name[<?php echo (int) $id; ?>]" value="<?php echo esc_attr( $s['name'] ); ?>"></td>
+							<td><?php if ( $n ) : ?><a href="<?php echo esc_url( admin_url( 'admin.php?page=' . BFTD_Students::SLUG . '&school=' . (int) $id ) ); ?>"><?php echo (int) $n; ?></a><?php else : ?>0<?php endif; ?></td>
+							<td class="bftd-sch-ghlcell"><?php if ( '' !== (string) $s['ghl_id'] ) : ?>
+									<span><?php echo esc_html( $c ? 'Linked: ' . $c['name'] : 'Linked' ); ?></span>
+									<button type="submit" class="button-link" name="do" value="unlink:<?php echo (int) $id; ?>">Unlink</button>
+								<?php elseif ( $comps ) : ?>
+									<label class="screen-reader-text" for="bftd-sch-l<?php echo (int) $id; ?>">Company</label>
+									<select id="bftd-sch-l<?php echo (int) $id; ?>" name="ghl[<?php echo (int) $id; ?>]">
+										<option value="">Not linked</option>
+										<?php foreach ( $comps as $cc ) : ?><option value="<?php echo esc_attr( $cc['id'] ); ?>"><?php echo esc_html( $cc['name'] ); ?></option><?php endforeach; ?>
+									</select>
+								<?php else : ?>Not linked<?php endif; ?></td>
+							<td class="bftd-sch-ghlcell"><?php if ( count( $list ) > 1 ) : ?>
+									<label class="screen-reader-text" for="bftd-sch-m<?php echo (int) $id; ?>">Merge into</label>
+									<select id="bftd-sch-m<?php echo (int) $id; ?>" name="into[<?php echo (int) $id; ?>]">
+										<option value="">Keep</option>
+										<?php foreach ( $list as $oid => $os ) : if ( (int) $oid === (int) $id ) continue; ?><option value="<?php echo (int) $oid; ?>">Merge into <?php echo esc_html( $os['name'] ); ?></option><?php endforeach; ?>
+									</select>
+								<?php endif; ?>
+								<?php if ( ! $n ) : ?><button type="submit" class="button-link bftd-sch-del" name="do" value="delete:<?php echo (int) $id; ?>">Delete</button><?php endif; ?></td>
+						</tr>
+					<?php endforeach; ?>
+					</tbody>
+				</table>
+				<?php if ( $list ) : ?><p class="bftd-sch-savebar"><button type="submit" class="button button-primary" name="do" value="save">Save changes</button></p><?php endif; ?>
+			</form>
 		</div>
 		<?php
 	}

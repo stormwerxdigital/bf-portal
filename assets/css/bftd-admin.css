@@ -1755,3 +1755,7 @@ html.bftd-calv-modal{overflow:hidden}
 .bftd-appt-err{color:#8a1f1f;font-weight:600}
 .bftd-appt-new{margin-top:10px}
 .bftd-calv-pop-foot{display:flex;flex-wrap:wrap;gap:8px 20px}
+.bftd-sch-savebar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:14px 0}
+.bftd-sch-ghlcell{white-space:normal}
+.bftd-sch-ghlcell > span{margin-right:10px}
+.bftd-sch-table select{max-width:100%}
