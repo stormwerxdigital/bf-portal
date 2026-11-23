@@ -566,6 +566,16 @@ class BFTD_Fields {
 
 		$type = isset( $field['type'] ) ? $field['type'] : 'text';
 
+		// Strengths and areas typed before the tick boxes (1.215): shown only
+		// on a report that has some, so they can still be read and changed.
+		if ( ! empty( $field['legacy'] ) && ! self::has_value( self::get( $post_id, $section_id, $key, $field ) ) ) return;
+
+		// Every item of the practice's list, as tick boxes (1.215).
+		if ( 'picks' === $type && class_exists( 'BFTD_Picks' ) ) {
+			BFTD_Picks::render( $post_id, $section_id, $key, $field );
+			return;
+		}
+
 		// A figure worked out from two boxes above it is not a box anybody
 		// fills in. It is shown rather than asked for, because an empty input
 		// that silently ignores what is typed into it is worse than no input.
@@ -1759,6 +1769,8 @@ class BFTD_Fields {
 				// Every figure in it came from somewhere else, so there is
 				// nothing posted and nothing to keep.
 				return '';
+			case 'picks':
+				return class_exists( 'BFTD_Picks' ) ? BFTD_Picks::sanitize( $raw, $field ) : array();
 			case 'ticklist':
 				// Only lines the master list offers, or that this report
 				// already had ticked: nothing posted can add a line of its own

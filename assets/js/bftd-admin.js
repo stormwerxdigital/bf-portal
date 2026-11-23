@@ -3885,3 +3885,26 @@ function bftdThumb( id, thumb, full ) {
 	} );
 	follow();
 }( jQuery ) );
+
+/* --------------------------------------------------------------------------
+   Strengths and Areas for growth tick lists (Karl, 1.215). Rows marked Pick
+   one are levels of one skill, so ticking one unticks the others in its
+   group; a count says how many are ticked, against the goal where there is
+   one (6 to 8 strengths).
+   -------------------------------------------------------------------------- */
+( function ( $ ) {
+	'use strict';
+	$( '.bftd-picks' ).each( function () {
+		var $box = $( this ), goal = String( $box.data( 'goal' ) || '' );
+		function count() {
+			var n = $box.find( 'input[type=checkbox]:checked' ).length;
+			$box.find( '.bftd-picks-count' ).text( n + ' ticked' + ( goal ? ' (goal ' + goal + ')' : '' ) );
+		}
+		$box.on( 'change', 'input[type=checkbox]', function () {
+			var g = $( this ).data( 'group' );
+			if ( g && this.checked ) $box.find( 'input[data-group="' + g + '"]' ).not( this ).prop( 'checked', false );
+			count();
+		} );
+		count();
+	} );
+}( jQuery ) );

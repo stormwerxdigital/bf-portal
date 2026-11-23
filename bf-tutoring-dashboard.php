@@ -5,7 +5,7 @@
  * Primary Branch: main
  * Plugin URI:  https://bftutoring.com
  * Description: The parent portal and the tutor back end for Brilliant Futures Tutoring. Reading diagnostics, living progress reports, lesson records, per-section conversations, a full activity log, and customisable email with send rules.
- * Version:     1.214.0
+ * Version:     1.215.0
  * Author:      Stormwerx Digital
  * Author URI:  https://stormwerxdigital.com
  * Text Domain: bftd
@@ -13,12 +13,12 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'BFTD_VERSION', '1.214.0' );
+define( 'BFTD_VERSION', '1.215.0' );
 define( 'BFTD_PATH', plugin_dir_path( __FILE__ ) );
 define( 'BFTD_URL', plugin_dir_url( __FILE__ ) );
 
 foreach ( array(
-	'time', 'schema', 'roles', 'cpt', 'access', 'audit', 'access-log',
+	'time', 'picks', 'schema', 'roles', 'cpt', 'access', 'audit', 'access-log',
 	'emails', 'notices', 'attachments', 'threads', 'fields', 'library', 'skills', 'activities', 'library-view', 'items',
 	'schedule', 'change-notify', 'autosave', 'crm', 'ghl', 'calendars', 'bookings', 'send-window', 'calendar-view', 'attendance', 'schools', 'session-appt', 'forecast', 'tutor-notes', 'prefill', 'derived', 'charts', 'sample', 'report-view', 'preview', 'metaboxes', 'brand', 'admin-experience',
 	'pay-period', 'stat-holidays', 'pay', 'stat-pay', 'pay-profile', 'accessibility', 'panels', 'welcome',

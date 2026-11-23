@@ -1054,6 +1054,8 @@ class BFTD_Report_View {
 		// Two lists drawn side by side as one table (Strengths | Weaknesses).
 		$paired = ! empty( $section['pair_table'] ) ? (array) $section['pair_table'] : array();
 		if ( $paired ) echo self::pair_table( $section, $values, $paired );
+		// What a tick list keeps from before it, drawn by the table too (1.215).
+		foreach ( $paired as $pk ) if ( ! empty( $section['fields'][ $pk ]['legacy_of'] ) ) $paired[] = $section['fields'][ $pk ]['legacy_of'];
 
 		// Ticked lines, then the tutor's own, as one list (the instructional
 		// plan, 1.165).
@@ -1123,6 +1125,12 @@ class BFTD_Report_View {
 	 * out, and with nothing in either there is no table.
 	 */
 	public static function pair_table( $section, $values, $keys ) {
+		// Tick lists (1.215): the ticked items under their headings, then
+		// anything typed on the report before the lists, in one cell each.
+		$grouped = false;
+		foreach ( $keys as $key ) if ( 'picks' === ( $section['fields'][ $key ]['type'] ?? '' ) ) $grouped = true;
+		if ( $grouped ) return self::pick_table( $section, $values, $keys );
+
 		$cols = array();
 		foreach ( $keys as $key ) {
 			$field = isset( $section['fields'][ $key ] ) ? $section['fields'][ $key ] : null;
@@ -1148,6 +1156,49 @@ class BFTD_Report_View {
 			$out .= '</tr>';
 		}
 		return $out . '</tbody></table></div>';
+	}
+
+	/**
+	 * Strengths and Areas for growth from the tick lists (1.215): each column
+	 * the items ticked, under the headings they belong to (a heading only
+	 * where something under it is ticked), then what was typed before the
+	 * lists. A column with nothing is left out, and with neither, no table.
+	 */
+	private static function pick_table( $section, $values, $keys ) {
+		$cols = array();
+		foreach ( $keys as $key ) {
+			$field = $section['fields'][ $key ] ?? null;
+			if ( ! $field ) continue;
+			$html  = '';
+			foreach ( BFTD_Picks::grouped( $values[ $key ] ?? array() ) as $heading => $items ) {
+				if ( '' !== $heading ) $html .= '<p class="pick-h"><strong>' . esc_html( $heading ) . '</strong></p>';
+				$html .= '<ul class="pick-list">';
+				foreach ( $items as $t ) $html .= '<li>' . esc_html( $t ) . '</li>';
+				$html .= '</ul>';
+			}
+			$old = array();
+			if ( ! empty( $field['legacy_of'] ) ) {
+				$lf = $section['fields'][ $field['legacy_of'] ] ?? array();
+				$lc = $lf['from_list'] ?? 'item';
+				foreach ( BFTD_Fields::visible_rows( $values[ $field['legacy_of'] ] ?? array() ) as $row ) {
+					$t = trim( (string) ( $row[ $lc ] ?? '' ) );
+					if ( '' !== $t ) $old[] = $t;
+				}
+			}
+			if ( $old ) {
+				$html .= '<ul class="pick-list">';
+				foreach ( $old as $t ) $html .= '<li>' . esc_html( $t ) . '</li>';
+				$html .= '</ul>';
+			}
+			if ( '' !== $html ) $cols[] = array( 'label' => $field['label'], 'html' => $html );
+		}
+		if ( ! $cols ) return '';
+		$w   = round( 100 / count( $cols ), 2 );
+		$out = '<div class="tablewrap"><table class="doc pair-table pick-table"><colgroup>' . str_repeat( '<col style="width:' . $w . '%">', count( $cols ) ) . '</colgroup><thead><tr>';
+		foreach ( $cols as $c ) $out .= '<th>' . esc_html( $c['label'] ) . '</th>';
+		$out .= '</tr></thead><tbody><tr>';
+		foreach ( $cols as $c ) $out .= '<td>' . $c['html'] . '</td>';
+		return $out . '</tr></tbody></table></div>';
 	}
 
 	/**

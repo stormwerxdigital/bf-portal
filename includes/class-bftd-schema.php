@@ -1,5 +1,7 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) exit;
+// The Strengths and Areas for growth tick lists, which the schema ships (1.215).
+require_once __DIR__ . '/class-bftd-picks.php';
 
 /**
  * The single source of truth for how the admin maps onto the parent-facing
@@ -195,33 +197,6 @@ class BFTD_Schema {
 			. '<li>Build vocabulary and spelling skills through explicit instruction, including morphology, plus a home activity of audiobooks with printed text.</li>'
 			. '<li>Focus on comprehension using the KAT (Knowledge, Acquisition, and Transformation) method of instruction.</li>'
 			. '<li>Regular progress updates, including activities introduced and completed, shared via a Google document that the parent and any designated party may access at any time.</li>'
-			. '</ul>';
-	}
-
-	/**
-	 * The starting Strengths pick list (1.207): the demo report's lines,
-	 * with "he" made general. Edited under Settings, Report wording.
-	 */
-	public static function strengths_master() {
-		return '<ul>'
-			. '<li>Cooperative, willing and fully engaged throughout the assessment</li>'
-			. '<li>Strong self-awareness: recognises and can explain their own reading confusion</li>'
-			. '<li>High motivation and buy-in, eager to begin and felt they learned a great deal</li>'
-			. '<li>No letter reversals of b, d, p or q, and left-to-right directionality is intact</li>'
-			. '</ul>';
-	}
-
-	/**
-	 * The starting Areas for growth pick list (1.207): the demo report's
-	 * lines without the demo student's own scores.
-	 */
-	public static function growth_master() {
-		return '<ul>'
-			. '<li>Phonemic awareness, hearing individual sounds in sequence</li>'
-			. '<li>Applying multi-letter spelling patterns, where two to four letters spell one sound</li>'
-			. '<li>Handwriting automaticity, consistent lowercase formation, and telling upper from lowercase</li>'
-			. '<li>Word and oral reading fluency</li>'
-			. '<li>Writing conventions: end punctuation, capitalisation and complete sentences</li>'
 			. '</ul>';
 	}
 
@@ -2076,25 +2051,35 @@ class BFTD_Schema {
 			// Strengths in the first column, Weaknesses in the second (Karl,
 			// 1.155). Both lists were bulleted editors before; a report saved
 			// then reads its bullets as rows (BFTD_Fields::get, 'from_list').
-			'pair_table' => array( 'strengths', 'growth' ),
+			// The ticked items, then anything typed before the tick boxes (1.215).
+			'pair_table' => array( 'strengths_picks', 'growth_picks' ),
 			'fields'  => array(
-				// Each row picks from a list kept under Settings, Report
-				// wording, or takes the tutor's own words (Karl, 1.207). The
-				// lists start as the demo report's lines, made general.
-				'strengths' => array( 'type' => 'rows', 'label' => 'Strengths', 'add_label' => 'Add a strength', 'from_list' => 'item',
-					'master'         => self::strengths_master(),
-					'settings_label' => 'Strengths list',
-					'settings_note'  => 'One bullet per choice in the Strengths pick list on every diagnostic. A change here changes the choices from now on; a report keeps what it already says.',
-					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Strength', 'pick' => true ) ),
-					'help' => 'One strength per row. Pick from the list or type your own. Shown in the first column of the table on the report. The list is kept under Settings, Report wording.' ),
+				// Every item of the practice's list as a tick box, under its
+				// heading, with guidance only tutors see (Karl, 1.215, from
+				// the "NEW Portal Updates" document).
+				'strengths_picks' => array( 'type' => 'picks', 'label' => 'Strengths', 'legacy_of' => 'strengths',
+					'picks_of'       => array( 'sec-strengths-areas-for-growth', 'strengths_picks' ),
+					'master'         => BFTD_Picks::strengths_shipped(),
+					'goal'           => '6 to 8',
+					'instructions'   => 'Check only the items observed. The goal is 6-8 strengths. Rows marked Pick one are levels of the same skill, so check only one from that group.',
+					'settings_label' => 'Strengths tick list',
+					'settings_note'  => 'One bullet per heading, and under it one bullet per item, written: what the family reads | guidance for the tutor. Items whose guidance starts "Pick one", one after another, are one group: ticking one unticks the others. A change here changes the list from now on; a report keeps what it already says.' ),
+				'growth_picks' => array( 'type' => 'picks', 'label' => 'Areas for growth', 'legacy_of' => 'growth',
+					'picks_of'       => array( 'sec-strengths-areas-for-growth', 'growth_picks' ),
+					'master'         => BFTD_Picks::growth_shipped(),
+					'instructions'   => 'Check only the items observed. A section heading appears in the report when any item under it is checked. Rows marked Pick one are levels of the same skill, so check only one from that group.',
+					'settings_label' => 'Areas for growth tick list',
+					'settings_note'  => 'One bullet per heading, and under it one bullet per item, written: what the family reads | guidance for the tutor. Items whose guidance starts "Pick one", one after another, are one group: ticking one unticks the others. A change here changes the list from now on; a report keeps what it already says.' ),
+				// Typed before the tick boxes: kept, shown only where a report
+				// has some (1.215). The pick lists of 1.207 are gone with them.
+				'strengths' => array( 'type' => 'rows', 'label' => 'Strengths typed before the tick list', 'add_label' => 'Add a strength', 'from_list' => 'item', 'legacy' => true,
+					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Strength' ) ),
+					'help' => 'Typed on this report before the tick list. Shown on the report after the ticked strengths.' ),
 				// "Areas for growth" again, at Laurel's request (1.172). The key
 				// stays 'growth', so nothing saved moves.
-				'growth'    => array( 'type' => 'rows', 'label' => 'Areas for growth', 'add_label' => 'Add an area for growth', 'from_list' => 'item',
-					'master'         => self::growth_master(),
-					'settings_label' => 'Areas for growth list',
-					'settings_note'  => 'One bullet per choice in the Areas for growth pick list on every diagnostic. A change here changes the choices from now on; a report keeps what it already says.',
-					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Area for growth', 'pick' => true ) ),
-					'help' => 'One area for growth per row. Pick from the list or type your own. Shown in the second column, beside the strengths. The list is kept under Settings, Report wording.' ),
+				'growth'    => array( 'type' => 'rows', 'label' => 'Areas for growth typed before the tick list', 'add_label' => 'Add an area for growth', 'from_list' => 'item', 'legacy' => true,
+					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Area for growth' ) ),
+					'help' => 'Typed on this report before the tick list. Shown on the report after the ticked areas.' ),
 			),
 		);
 

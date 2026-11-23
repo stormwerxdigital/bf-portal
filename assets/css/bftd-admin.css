@@ -1759,3 +1759,12 @@ html.bftd-calv-modal{overflow:hidden}
 .bftd-sch-ghlcell{white-space:normal}
 .bftd-sch-ghlcell > span{margin-right:10px}
 .bftd-sch-table select{max-width:100%}
+/* Strengths and Areas for growth tick lists (1.215). */
+.bftd-picks-how{margin:0 0 10px;padding:10px 12px;border-left:4px solid var(--bftd-purple);background:var(--bftd-purple-wash)}
+.bftd-picks-count{margin:0 0 8px;font-weight:600}
+.bftd-picks-table{margin-bottom:14px}
+.bftd-picks-table td{vertical-align:top}
+.bftd-picks-tick{width:36px;text-align:center}
+.bftd-picks-h th{background:var(--bftd-sunk);font-weight:700}
+.bftd-picks-guide{color:var(--bftd-muted);font-size:13px}
+.bftd-picks-table tr.is-pick-one .bftd-picks-guide{font-style:italic}
