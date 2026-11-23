@@ -3908,3 +3908,13 @@ function bftdThumb( id, thumb, full ) {
 		count();
 	} );
 }( jQuery ) );
+
+/* A student's start from an appointment (Karl, 1.217): New appointment shows its fields. */
+( function ( $ ) {
+	'use strict';
+	var $pick = $( '#bftd-start-pick' );
+	if ( ! $pick.length ) return;
+	function follow() { $( '.bftd-start-new' ).prop( 'hidden', 'new' !== $pick.val() ); }
+	$pick.on( 'change', follow );
+	follow();
+}( jQuery ) );

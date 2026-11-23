@@ -36,9 +36,10 @@ class BFTD_Forecast {
 	const PASS = 'bftd_forecast_pass';
 
 	public static function redo_all() {
-		if ( '2' === (string) get_option( self::PASS, '' ) ) return;
-		update_option( self::PASS, '2', false );
+		if ( '3' === (string) get_option( self::PASS, '' ) ) return;   // 3 since 1.217: starts linked, Sessions per week from the schedule
+		update_option( self::PASS, '3', false );
 		foreach ( get_posts( array( 'post_type' => BFTD_CPT::STUDENT, 'post_status' => array( 'publish', 'draft', 'pending', 'private' ), 'posts_per_page' => -1, 'fields' => 'ids', 'no_found_rows' => true ) ) as $sid ) {
+			if ( class_exists( 'BFTD_Start_Appt' ) ) BFTD_Start_Appt::auto_link( $sid );
 			self::apply( $sid );
 		}
 	}
@@ -155,6 +156,13 @@ class BFTD_Forecast {
 	public static function apply( $student_id ) {
 		$student_id = (int) $student_id;
 		if ( ! $student_id ) return;
+		// Sessions per week is what the student's basic weekly schedule says,
+		// once they have one (Karl, 1.217: "we will set a basic schedule
+		// instead of linking each appointment"), so the two never disagree.
+		$weekly = count( self::booked_weekdays( $student_id ) );
+		if ( $weekly >= 1 && $weekly <= 5 && $weekly !== self::per_week( $student_id ) ) {
+			BFTD_Fields::set( $student_id, 'student', 'per_week', (string) $weekly );
+		}
 		$now    = (string) BFTD_Fields::get( $student_id, 'student', 'attend_to' );
 		$filled = (string) get_post_meta( $student_id, self::AUTO_KEY, true );
 		if ( '' !== $now && $now !== $filled ) return;   // typed by somebody: theirs

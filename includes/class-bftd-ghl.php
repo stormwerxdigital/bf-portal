@@ -1144,7 +1144,8 @@ class BFTD_GHL {
 			case 'fromto':
 				$sp = BFTD_CRM::split_span( $g );
 				if ( '' === $g || '' !== $sp['from'] || '' !== $sp['to'] ) {
-					BFTD_Fields::set( $sid, 'student', 'attend_from', $sp['from'] );
+					// A start linked to an appointment comes from the Calendar, not from here (1.217).
+					if ( ! class_exists( 'BFTD_Start_Appt' ) || '' === BFTD_Start_Appt::key_of( $sid ) ) BFTD_Fields::set( $sid, 'student', 'attend_from', $sp['from'] );
 					BFTD_Fields::set( $sid, 'student', 'attend_to', $sp['to'] );
 					$ok = true;
 				}

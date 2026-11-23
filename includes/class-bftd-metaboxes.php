@@ -381,6 +381,8 @@ class BFTD_MetaBoxes {
 					if ( in_array( $key, self::not_shown(), true ) ) continue;
 					// School searches GoHighLevel and the school list (Karl, 1.212).
 					if ( 'school' === $key && class_exists( 'BFTD_Schools' ) ) { BFTD_Schools::render_field( $post->ID, $field ); continue; }
+					// Attending from comes from an appointment (Karl, 1.217).
+					if ( 'attend_from' === $key && class_exists( 'BFTD_Start_Appt' ) ) { BFTD_Start_Appt::render_field( $post, $field ); continue; }
 					BFTD_Fields::render_field( $post->ID, 'student', $key, $field );
 					?>
 				<?php endforeach; ?>

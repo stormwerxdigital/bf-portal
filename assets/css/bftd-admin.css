@@ -1772,3 +1772,7 @@ html.bftd-calv-modal{overflow:hidden}
 .bftd-picks-table tr.is-pick-one .bftd-picks-guide{font-style:italic}
 .bftd-stu-end{white-space:nowrap}
 .bftd-stu-forecast{display:block;font-size:12px;color:var(--bftd-muted)}
+.bftd-start select{max-width:100%;min-width:280px}
+.bftd-start-now{margin:0 0 6px}
+.bftd-start-new{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0 12px;margin-top:8px}
+.bftd-start-new .description{grid-column:1/-1}

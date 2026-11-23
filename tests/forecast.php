@@ -92,7 +92,17 @@ check('2027-02-05' === BFTD_Forecast::forecast(9), 'before the bookings, the ses
 $set('lessons_bank', 12);
 check('2027-02-12' === BFTD_Forecast::forecast(9), 'and after them too: the 11th and 12th on Tuesday 9 and Friday 12 Feb, got ' . BFTD_Forecast::forecast(9));
 $set('lessons_bank', 10);
+/* Sessions per week follows the basic schedule (Karl, 1.217: "a schedule will
+   be the day or days they will be attending, its always the same"). */
+$set('per_week', '3');
+BFTD_Forecast::apply(9);
+check('2' === BFTD_Fields::get(9, 'student', 'per_week'), 'Sessions per week is set to the days of their schedule, two, got ' . BFTD_Fields::get(9, 'student', 'per_week'));
+$RULES = array(array('day' => '3', 'repeat' => 'weekly'));
+BFTD_Forecast::apply(9);
+check('1' === BFTD_Fields::get(9, 'student', 'per_week'), 'and one when they come one day a week');
 $RULES = array(); $OCC = array();
+$set('per_week', '');
+$set('attend_to', '');
 
 echo "\nAttending to:\n";
 $set('attend_to', '');
@@ -113,7 +123,7 @@ echo "\nThe student record:\n";
 $mb = file_get_contents(BFTD_PATH . 'includes/class-bftd-metaboxes.php');
 check(false !== strpos($mb, "'per_week'     => array( 'type' => 'select', 'label' => 'Sessions per week', 'default' => '2'"), 'Student details has Sessions per week, two to start');
 $fc = file_get_contents(BFTD_PATH . 'includes/class-bftd-forecast.php');
-check(false !== strpos($fc, "add_action( 'admin_init', array( __CLASS__, 'redo_all' ) );") && false !== strpos($fc, "if ( '2' === (string) get_option( self::PASS, '' ) ) return;"), 'every student is worked out again once after the update');
+check(false !== strpos($fc, "add_action( 'admin_init', array( __CLASS__, 'redo_all' ) );") && false !== strpos($fc, "if ( '3' === (string) get_option( self::PASS, '' ) ) return;"), 'every student is worked out again once after the update');
 
 echo $fail ? "\n$fail failure(s)\n" : "\nAll checks passed.\n";
 exit($fail ? 1 : 0);
