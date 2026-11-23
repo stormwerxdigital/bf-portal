@@ -46,6 +46,8 @@
 .bftd-wrap{max-width:1240px}
 /* The Calendar uses the screen, up to 1920px, for reading a week or a month (Karl, 1.206.2). */
 .bftd-wrap.bftd-calv{max-width:1920px}
+/* And the Students list, which has a column more since 1.216.2 (Karl). */
+.bftd-wrap.bftd-stu-list{max-width:1920px}
 .bftd-wrap h1{font-family:var(--bftd-d);font-weight:800;color:var(--bftd-ink);letter-spacing:-.01em}
 .bftd-wrap h2{font-family:var(--bftd-d);font-weight:700;color:var(--bftd-ink);margin-top:28px}
 .bftd-lede{font-family:var(--bftd-b);font-size:14.5px;line-height:1.6;color:var(--bftd-muted);max-width:76ch}
@@ -1768,3 +1770,5 @@ html.bftd-calv-modal{overflow:hidden}
 .bftd-picks-h th{background:var(--bftd-sunk);font-weight:700}
 .bftd-picks-guide{color:var(--bftd-muted);font-size:13px}
 .bftd-picks-table tr.is-pick-one .bftd-picks-guide{font-style:italic}
+.bftd-stu-end{white-space:nowrap}
+.bftd-stu-forecast{display:block;font-size:12px;color:var(--bftd-muted)}

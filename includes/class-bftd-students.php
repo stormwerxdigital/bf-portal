@@ -241,6 +241,10 @@ class BFTD_Students {
 				'purchased' => $purchased,
 				'used'      => $spent,
 				'left'      => max( 0, $purchased - $spent ),
+				// Attending to, and whether the forecast filled it in (Karl, 1.216.2).
+				'end'       => (string) BFTD_Fields::get( $id, 'student', 'attend_to' ),
+				'end_auto'  => class_exists( 'BFTD_Forecast' ) && '' !== (string) get_post_meta( $id, BFTD_Forecast::AUTO_KEY, true )
+					&& (string) get_post_meta( $id, BFTD_Forecast::AUTO_KEY, true ) === (string) BFTD_Fields::get( $id, 'student', 'attend_to' ),
 				'record'    => (string) get_post_status( $id ),
 				'draft'     => ( 'publish' !== get_post_status( $id ) ),
 				'drafts'    => isset( $records[ $id ] ) ? (int) $records[ $id ]['draft'] : 0,
@@ -264,7 +268,7 @@ class BFTD_Students {
 		$groups = self::by_tutor( $rows );
 		$narrow = ( '' !== $f['q'] || $f['tutor'] || $f['client'] || '' !== $f['status'] );
 		?>
-		<div class="wrap bftd-wrap bftd-stu">
+		<div class="wrap bftd-wrap bftd-stu bftd-stu-list">
 			<h1 class="wp-heading-inline">Students</h1>
 			<a href="<?php echo esc_url( admin_url( 'post-new.php?post_type=' . BFTD_CPT::STUDENT ) ); ?>" class="page-title-action">Add Student</a>
 			<hr class="wp-header-end">
@@ -412,6 +416,7 @@ class BFTD_Students {
 						<th>Caregivers</th>
 						<th>Tutors</th>
 						<th class="num">Sessions left</th>
+						<th>End date</th>
 						<th>Status</th>
 						<th>Record</th>
 					</tr>
@@ -460,6 +465,14 @@ class BFTD_Students {
 				: '<span class="bftd-none">Unassigned</span>';
 				echo self::ghl_note( $ghl['tutors'], $row['id'] ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in ghl_note ?></td>
 			<td class="num" data-l="Sessions left"><?php self::bank_cell( $row ); ?></td>
+			<td data-l="End date" class="bftd-stu-end"><?php
+				if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $row['end'] ) ) {
+					echo esc_html( BFTD_Time::format( 'j M Y', BFTD_Time::stamp( $row['end'], '12:00' ) ) );
+					if ( ! empty( $row['end_auto'] ) ) echo ' <span class="bftd-stu-forecast">forecast</span>';
+				} else {
+					echo '<span class="bftd-none">Not set</span>';
+				}
+			?></td>
 			<td data-l="Status"><?php
 				self::status_cell( $row['status'] );
 				if ( ! empty( $row['drafts'] ) ) {

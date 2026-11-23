@@ -88,6 +88,9 @@ for($i=0;$i<60;$i++){
     '_bftd_student__lessons_bank'=>($i%6===0?0:20),
   );
   if($i===11) $GLOBALS['META'][$sid]['_bftd_assigned_staff']=array();
+  // End dates (1.216.2): one forecast, one typed.
+  if($i===1){ $GLOBALS['META'][$sid]['_bftd_student__attend_to']='2027-02-11'; $GLOBALS['META'][$sid]['_bftd_attend_to_auto']='2027-02-11'; }
+  if($i===2){ $GLOBALS['META'][$sid]['_bftd_student__attend_to']='2027-03-01'; }
   // A child nobody is linked to yet, so the empty branch of the caregivers
   // cell is actually drawn rather than reasoned about.
   if($i===13){ $GLOBALS['META'][$sid]['_bftd_client_user_id']=array(); $GLOBALS['META'][$sid]['_bftd_client_primary']=0; }
@@ -102,6 +105,7 @@ for($i=0;$i<60;$i++){
   }
 }
 
+require_once BFTD_PATH . 'includes/class-bftd-forecast.php';
 ob_start(); BFTD_Students::render(); $html = ob_get_clean();
 $css = file_get_contents(BFTD_PATH.'assets/css/bftd-admin.css');
 file_put_contents(__DIR__.'/students.html',

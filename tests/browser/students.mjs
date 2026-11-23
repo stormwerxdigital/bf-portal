@@ -125,6 +125,16 @@ check(mark && ratio(mark.fg, mark.bg) >= 4.5,
   'the marker is readable, ' + (mark ? ratio(mark.fg, mark.bg).toFixed(2) : '?') + ':1');
 
 /* Narrow. A practice looks at this on a laptop beside a video call. */
+/* End date, and room for it (Karl, 1.216.2). */
+const ends = await p.evaluate(() => ({
+  head: [...document.querySelectorAll('.bftd-stu-list thead th')].map(t => t.textContent.trim()),
+  cells: [...document.querySelectorAll('td.bftd-stu-end')].map(t => t.textContent.replace(/\s+/g, ' ').trim()),
+  max: getComputedStyle(document.querySelector('.bftd-stu-list')).maxWidth,
+}));
+check(ends.head.includes('End date') && ends.head.indexOf('End date') === ends.head.indexOf('Sessions left') + 1, 'an End date column follows Sessions left, got ' + JSON.stringify(ends.head));
+check(ends.cells.some(c => /11 Feb 2027 forecast/.test(c)) && ends.cells.some(c => c === '1 Mar 2027') && ends.cells.some(c => c === 'Not set'), 'showing the date, marked when it is the forecast, or Not set');
+check(ends.max === '1920px', 'and the page fills the screen up to 1920px, got ' + ends.max);
+
 await p.setViewportSize({ width: 700, height: 900 });
 await p.waitForTimeout(150);
 const narrow = await p.evaluate(() => ({
