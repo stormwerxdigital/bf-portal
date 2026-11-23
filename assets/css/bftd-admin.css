@@ -1775,7 +1775,7 @@ html.bftd-calv-modal{overflow:hidden}
 /* A student's start appointment (1.217.1): fits its column, and New
    appointment's fields stay hidden until chosen. */
 .bftd-start select{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
-.bftd-start-now{margin:0 0 6px}
+.bftd-start-now{margin:4px 0 0}
 .bftd-start-new[hidden]{display:none}
 .bftd-start-new{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-top:10px;padding:10px;border:1px solid var(--bftd-line);border-radius:8px;background:var(--bftd-sunk)}
 .bftd-start-new p{margin:0;min-width:0}

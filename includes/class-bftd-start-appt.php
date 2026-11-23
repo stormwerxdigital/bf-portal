@@ -128,13 +128,7 @@ class BFTD_Start_Appt {
 		?>
 		<div class="bftd-field bftd-start">
 			<label class="bftd-label" for="bftd-start-pick"><?php echo esc_html( $field['label'] ?? 'Attending from' ); ?></label>
-			<?php if ( $err ) : ?><p class="bftd-appt-err" role="alert"><?php echo esc_html( $err ); ?></p><?php endif; ?>
-			<p class="bftd-start-now"><?php
-				if ( $o && class_exists( 'BFTD_Session_Appt' ) ) echo '<strong>' . esc_html( BFTD_Session_Appt::label( $o ) ) . '</strong>';
-				elseif ( '' !== $key ) echo '<strong>' . esc_html( BFTD_Time::day( substr( $key, 0, 10 ) ) ) . '</strong> (no longer on the schedule)';
-				elseif ( '' !== $from ) echo esc_html( BFTD_Time::day( $from ) ) . '. No appointment linked.';
-				else echo 'No start yet. It comes from an appointment.';
-			?></p>
+			<?php // The menu straight under the label, level with the fields beside it; what it is set to goes under it (1.217.2). ?>
 			<select id="bftd-start-pick" name="bftd_start_appt">
 				<option value=""><?php echo '' !== $key ? 'Keep this one' : 'Choose their first appointment'; ?></option>
 				<?php foreach ( $list as $a ) : if ( $a['key'] === $key ) continue; ?>
@@ -142,6 +136,13 @@ class BFTD_Start_Appt {
 				<?php endforeach; ?>
 				<option value="new">New appointment…</option>
 			</select>
+			<?php if ( $err ) : ?><p class="bftd-appt-err" role="alert"><?php echo esc_html( $err ); ?></p><?php endif; ?>
+			<p class="description bftd-start-now"><?php
+				if ( $o && class_exists( 'BFTD_Session_Appt' ) ) echo '<strong>' . esc_html( BFTD_Session_Appt::label( $o ) ) . '</strong>';
+				elseif ( '' !== $key ) echo '<strong>' . esc_html( BFTD_Time::day( substr( $key, 0, 10 ) ) ) . '</strong> (no longer on the schedule)';
+				elseif ( '' !== $from ) echo esc_html( BFTD_Time::day( $from ) ) . '. No appointment linked.';
+				else echo 'No start yet. It comes from an appointment.';
+			?></p>
 			<div class="bftd-start-new" hidden>
 				<p><label class="bftd-label" for="bftd-start-date">Date</label><input type="date" id="bftd-start-date" name="bftd_start_new[date]" value="<?php echo esc_attr( '' !== $from ? $from : BFTD_Time::today() ); ?>"></p>
 				<p><label class="bftd-label" for="bftd-start-time">Time</label><input type="time" id="bftd-start-time" name="bftd_start_new[time]" step="300"></p>

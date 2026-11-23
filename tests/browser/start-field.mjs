@@ -29,6 +29,10 @@ const m = () => p.evaluate(() => {
   return { cellR: cell.right, selR: sel.right, shown: getComputedStyle(box).display !== 'none' && b.height > 0, boxR: b.right, innerR: inner.length ? Math.max(...inner) : 0 };
 });
 
+/* Level with the field beside it (Karl, 1.217.2: "properly align these"). */
+const tops = await p.evaluate(() => ({ menu: Math.round(document.querySelector('#bftd-start-pick').getBoundingClientRect().top), beside: Math.round(document.querySelector('.grid4 > .bftd-field input').getBoundingClientRect().top), now: Math.round(document.querySelector('.bftd-start-now').getBoundingClientRect().top) }));
+check(Math.abs(tops.menu - tops.beside) <= 1, 'the menu lines up with the box in the next column, got ' + JSON.stringify(tops));
+check(tops.now > tops.menu, 'and what it is set to is said under it, not above');
 check(errors.length === 0, 'the admin script loads without errors' + (errors.length ? ': ' + errors[0] : ''));
 let s = await m();
 check(!s.shown, 'New appointment\'s fields are hidden while an appointment is being chosen');
