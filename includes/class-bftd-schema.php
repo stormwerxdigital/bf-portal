@@ -283,7 +283,8 @@ class BFTD_Schema {
 			. '<p>In fact, there is a direct correlation between oral reading fluency and printing 40 lowercase letters of the alphabet (a to z plus a to n) in one minute.</p>'
 			. '<p>For a more detailed explanation: <a href="https://bftutoring.com/reading-assessments/" target="_blank" rel="noopener">BFTutoring Reading Assessment</a></p>'
 			. '<p>Goal of the one minute timing: 40 lowercase letters per minute, a to z plus a to n.</p>'
-			. '<p>Students are unassisted by their tutor but are free to recite the alphabet to themselves. While monitoring letter formation, the tutor also assesses posture and pencil grip, which can affect ease of handwriting over an extended period.</p>';
+			. '<p>Students are unassisted by their tutor but are free to recite the alphabet to themselves. While monitoring letter formation, the tutor also assesses posture and pencil grip, which can affect ease of handwriting over an extended period.</p>'
+			. '<p>This is the only activity that uses letter names. Letter names have a purpose, just not in teaching reading or spelling. Letters rarely say their names. For reading and spelling, the brain works with sounds, not letter names. Mapping sounds straight to their symbols, without the detour through letter names, is critical for struggling readers. It lightens the mental load.</p>';
 	}
 
 	/**
@@ -325,7 +326,10 @@ class BFTD_Schema {
 	}
 
 	public static function wordreading_method() {
-		return '<p>It raises word reading fluency, and with it reading grade level, by rapidly strengthening the skills with the greatest effect on real reading: accurate decoding, flexible word solving, comprehension and written language. Rather than moving slowly through levels or rule based sequences, students learn one way of thinking about words and apply it to everything they read.</p>';
+		return '<p>It raises word reading fluency, and with it reading grade level, by building the skills that matter most for real reading:</p>'
+			. '<ul><li>accurate decoding,</li><li>flexible word solving,</li><li>comprehension &amp;</li><li>written language</li></ul>'
+			. '<p>Instead of inching through levels or rule-based sequences, students learn one way of thinking about words and apply it to everything they read.</p>'
+			. '<p>Studying spelling patterns instead of rules brings logic to English. Students spell and read words that use those patterns. Then they read real text with instant feedback, so the patterns stick. It&#8217;s not memorization. It&#8217;s pattern recognition. It&#8217;s not mastery one step at a time. It&#8217;s a spiral staircase that keeps climbing, with review built in.</p>';
 	}
 
 	/**
@@ -1621,6 +1625,7 @@ class BFTD_Schema {
 							'lowercase' => 'Lowercase letters, even if out of order',
 							'bottom_up' => 'Letters formed from bottom to top, provided the finished letter is correct',
 							'capitals'  => 'Capital letters, because the number of letters written correctly is what matters for handwriting fluency',
+							'direction' => 'Directionality issue: the shape is right but the strokes went the wrong way',
 						),
 					),
 					'incorrect' => array(
@@ -1631,7 +1636,7 @@ class BFTD_Schema {
 							// it could mean there were none, or that nobody
 							// looked. This one says which.
 							'reversals' => array(
-								'label' => 'Reversals. Examples of reversals are b for d, p for q, n for u',
+								'label' => 'Reversals: the final letter is mirrored or flipped. Common: b/d, p/q. Less common: n/u, s, z, j, J, N. Least common: e, g, k, a',
 								'empty' => 'No reversals',
 							),
 							// Anything else that cost a letter, such as one too

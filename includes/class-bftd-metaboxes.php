@@ -473,7 +473,7 @@ class BFTD_MetaBoxes {
 				'past'     => 'Past student',
 			), 'help' => 'A new student starts as pending, at their reading diagnostic. Kept the same in GoHighLevel.' ),
 			'attend_from'   => array( 'type' => 'date',   'label' => 'Attending from' ),
-			'attend_to'     => array( 'type' => 'date',   'label' => 'Attending to', 'help' => 'Left empty while they are still with us.' ),
+			'attend_to'     => array( 'type' => 'date',   'label' => 'Attending to', 'help' => 'Forecast from Sessions purchased, their bookings and Sessions per week. Type a date to set it yourself.' ),
 		);
 	}
 
@@ -486,6 +486,8 @@ class BFTD_MetaBoxes {
 				'both'      => 'Both',
 			) ),
 			'lessons_bank' => array( 'type' => 'number', 'label' => 'Sessions purchased' ),
+			// How often they come, for forecasting Attending to (Karl, 1.214).
+			'per_week'     => array( 'type' => 'select', 'label' => 'Sessions per week', 'default' => '2', 'options' => array( '1' => '1 a week', '2' => '2 a week', '3' => '3 a week', '4' => '4 a week', '5' => '5 a week' ) ),
 			'join_url'     => array( 'type' => 'text',   'label' => 'Joining link' ),
 			'recording_days' => array( 'type' => 'number', 'label' => 'Recordings stay available for, in days', 'default' => '14' ),
 		);

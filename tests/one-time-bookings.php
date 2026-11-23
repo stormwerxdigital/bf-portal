@@ -93,7 +93,7 @@ check(1 === BFTD_Schedule::bank(10)['booked'] && 1 === BFTD_Schedule::bank(10)['
 
 BFTD_Schedule::save_rules(10, array(
   array('repeat' => 'once', 'from' => $D3, 'time' => '19:30', 'minutes' => 45),
-  array('repeat' => 'weekly', 'from' => $T, 'time' => '16:00', 'until' => BFTD_Time::add_days($T, 20)),
+  array('repeat' => 'weekly', 'from' => open_day($T), 'time' => '16:00', 'until' => BFTD_Time::add_days(open_day($T), 20)),   // not a Sunday, which is never booked
 ));
 $weekly = array_values(array_filter(booked(10), function ($o) { return ! $o['once']; }));
 check(3 === count($weekly), 'a weekly booking repeats only until its end date, got ' . count($weekly));

@@ -89,7 +89,7 @@ check('criteria' === $m['type'], 'the marking scheme is its own kind of field');
 check(isset($m['groups']['correct'], $m['groups']['incorrect']), 'with a correct half and an incorrect half');
 check('sage' === $m['groups']['correct']['tone'] && 'clay' === $m['groups']['incorrect']['tone'],
   'told apart by the report\'s own two tones');
-check(3 === count($m['groups']['correct']['rows']), 'three rules count as correct');
+check(4 === count($m['groups']['correct']['rows']), 'four rules count as correct, directionality the fourth (1.214)');
 check(array('reversals', 'other') === array_keys($m['groups']['incorrect']['rows']), 'two count as incorrect: reversals, and anything other');
 check(!empty($m['groups']['incorrect']['rows']['other']['only_if_said']), 'the other row is left off the report unless something is said');
 check(false !== strpos($m['footer']['value'], 'a b c d'), 'the alphabet is printed underneath');

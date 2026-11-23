@@ -50,7 +50,7 @@ check(false !== strpos($text, 'the student completed a one minute handwriting ta
   'which is the practice\'s own words');
 check(false !== strpos($body['shipped'], 'https://bftutoring.com/reading-assessments/'),
   'including the link out to the fuller explanation');
-check(6 === substr_count($body['shipped'], '<p>'), 'in six paragraphs');
+check(7 === substr_count($body['shipped'], '<p>'), 'in seven paragraphs, letter names the seventh (1.214)');
 
 /* It says "the student", which is right for a girl, a boy and a grown adult
    learner without anybody editing it or a name being merged in. */
