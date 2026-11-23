@@ -74,6 +74,25 @@ class BFTD_GHL {
 
 	public static function hourly() {
 		self::sync( 0, 'the hourly sync' );
+		// Current and pending students come in by themselves (Karl, 1.217.4:
+		// "all current or pending students are to be brought in automatically").
+		if ( self::configured() ) self::import_missing( true );
+	}
+
+	/**
+	 * Students here that are not linked to GoHighLevel, by their name as
+	 * compared: lowercase, single spaces. A GoHighLevel student with one of
+	 * these names is probably already here, so it is left to be linked by
+	 * hand rather than brought in a second time.
+	 */
+	public static function unlinked_names() {
+		$out = array();
+		foreach ( get_posts( array( 'post_type' => BFTD_CPT::STUDENT, 'post_status' => array( 'publish', 'draft', 'pending', 'private' ), 'posts_per_page' => -1, 'fields' => 'ids', 'no_found_rows' => true ) ) as $sid ) {
+			if ( '' !== BFTD_CRM::linked( $sid ) ) continue;
+			$out[ self::name_key( get_the_title( $sid ) ) ] = (int) $sid;
+		}
+		unset( $out[''] );
+		return $out;
 	}
 
 	public static function token() {
@@ -615,21 +634,24 @@ class BFTD_GHL {
 	/**
 	 * Every current or pending GoHighLevel student with no student here,
 	 * made a draft student and linked. Past students, and any with no
-	 * status, stay in GoHighLevel only (Karl, 1.181). Only when asked, by
-	 * somebody allowed to: it is how a prospect from an enquiry arrives,
-	 * and nobody here decides that by accident. Drafts, so somebody still
-	 * decides when each becomes real.
+	 * status, stay in GoHighLevel only (Karl, 1.181). Every hour since
+	 * 1.217.4, and on asking. Drafts, so somebody still decides when each
+	 * becomes real; careful skips one named like an unlinked student here.
 	 *
 	 * @return array( made, skipped )
 	 */
-	public static function import_missing() {
+	public static function import_missing( $careful = false ) {
 		$all = self::students( true );
 		if ( ! $all['ok'] ) return array( 0, 0 );
 		$want = self::to_bring_in( $all );
+		// Brought in by itself each hour since 1.217.4: one with the name of a
+		// student here who is not linked yet waits to be linked by hand.
+		$here = $careful ? self::unlinked_names() : array();
 		$made = 0; $skipped = 0;
 		foreach ( $all['records'] as $rid => $g ) {
 			if ( ! isset( $want[ $rid ] ) ) continue;
 			if ( '' === trim( $g['name'] ) ) { $skipped++; continue; }   // a student needs a name
+			if ( isset( $here[ self::name_key( $g['name'] ) ] ) ) { $skipped++; continue; }
 			$res = BFTD_CRM::upsert( self::to_incoming( $rid, $g['props'] ?? array() ) );
 			if ( is_wp_error( $res ) || empty( $res['created'] ) ) { $skipped++; continue; }
 			$made++;

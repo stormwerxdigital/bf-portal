@@ -20,12 +20,13 @@ function get_current_user_id() { return 1; }
 function wp_get_current_user() { return (object) array('display_name' => 'Karl'); }
 function set_transient($k, $v, $t = 0) { $GLOBALS['T'][$k] = $v; return true; }
 function get_transient($k) { return $GLOBALS['T'][$k] ?? false; }
-function get_the_title($id) { return 'Student ' . $id; }
+function get_the_title($id) { return $GLOBALS['NAMES'][$id] ?? 'Student ' . $id; }
 function update_option($k, $v, $a = null) { $GLOBALS['OPT'][$k] = $v; return true; }
-function get_posts($a) { return array_keys($GLOBALS['LINKS']); }
+function get_posts($a) { return array_merge(array_keys($GLOBALS['LINKS']), array_keys($GLOBALS['NAMES'] ?? array())); }
 function update_post_meta($id, $k, $v) { $GLOBALS['META'][$id][$k] = $v; return true; }
 function get_post_meta($id, $k = '', $single = false) { $v = $GLOBALS['META'][$id][$k] ?? ($single ? '' : array()); return $v; }
 function get_user_by($f, $v) { return false; }
+if (!function_exists('remove_accents')) { function remove_accents($s) { return $s; } }
 function get_option($k, $d = false) { return $GLOBALS['OPT'][$k] ?? $d; }
 function delete_post_meta($id, $k) { unset($GLOBALS['META'][$id][$k]); return true; }
 function delete_transient($k) { unset($GLOBALS['T'][$k]); return true; }
@@ -97,7 +98,7 @@ $one = BFTD_GHL::sync(11);
 check(1 === count($one['rows']) && 11 === $one['rows'][0]['student'], 'one student can be synced on its own');
 check(!isset($GLOBALS['OPT'][BFTD_GHL::SYNC_LOG]), 'without replacing the log of the last full sync');
 
-/* ---- bringing in the rest, only when asked ---- */
+/* ---- bringing in the rest ---- */
 $GLOBALS['RECORDS']['R5'] = array('student_name' => '   ', 'status' => 'pending');
 $GLOBALS['RECORDS']['R7'] = array('student_name' => 'Old Kid', 'status' => 'past_student');
 $GLOBALS['RECORDS']['R8'] = array('student_name' => 'No Status');
@@ -113,6 +114,20 @@ $GLOBALS['UPSERTS'] = array();
 BFTD_GHL::import_missing();
 check(array() === $GLOBALS['UPSERTS'], 'asking twice makes nothing twice');
 
+/* ---- by themselves, every hour (Karl, 1.217.4: "all current or pending
+   students are to be brought in automatically", "the only thing we should
+   have to do is link them") ---- */
+$GLOBALS['RECORDS']['R10'] = array('student_name' => 'Cy Moss', 'status' => 'current_student');
+$GLOBALS['RECORDS']['R11'] = array('student_name' => 'Dee Fox', 'status' => 'pending');
+$GLOBALS['NAMES'] = array(50 => 'Dee  FOX');   // here already, not linked
+BFTD_GHL::students(true);
+$GLOBALS['UPSERTS'] = array();
+BFTD_GHL::hourly();
+$ups = array_map(function ($u) { return $u['crm_id']; }, $GLOBALS['UPSERTS']);
+check(in_array('R10', $ups, true), 'the hourly sync brings a new current or pending student in, with nobody asking');
+check(!in_array('R11', $ups, true), 'but not one named like a student here who is not linked yet: that one is linked by hand, so nobody is here twice');
+unset($GLOBALS['NAMES']);
+
 /* ---- the hourly run ---- */
 $GLOBALS['SCHED'] = array(BFTD_GHL::OLD_CRON => 123);
 BFTD_GHL::schedule();
@@ -122,7 +137,7 @@ check(!isset($GLOBALS['SCHED'][BFTD_GHL::OLD_CRON]), 'the nightly run it replace
 
 /* ---- where it is asked for ---- */
 $set = file_get_contents(BFTD_PATH . 'includes/class-bftd-settings.php');
-check(false !== strpos($set, "if ( empty( \$_POST['bftd_ghl_import_ok'] ) ) {"), 'bringing students in has to be ticked to confirm');
+check(false === strpos($set, 'bftd_ghl_import_ok') && false !== strpos($set, 'BFTD_GHL::import_missing( true );'), 'Bring them in now needs no tick: it is what the hour does anyway (1.217.4)');
 $a = strpos($set, 'private static function save_links()');
 check(false !== $a && strpos($set, "self::may_edit_text()", $a) < strpos($set, "bftd_ghl_import", $a), 'and is behind the senior manager check');
 $g = file_get_contents(BFTD_PATH . 'includes/class-bftd-ghl.php');

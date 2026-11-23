@@ -698,16 +698,13 @@ class BFTD_Settings {
 				: 'GoHighLevel did not answer: ' . $log['error'], $log['ok'] ? 'updated' : 'error' );
 			return true;
 		}
-		// Every GoHighLevel student with no student here, as linked drafts.
-		// Ticked to confirm, because it can make dozens of records at once.
+		// Every current or pending GoHighLevel student with no student here,
+		// as linked drafts. Done each hour by itself since 1.217.4; this is
+		// the same, now.
 		if ( ! empty( $_POST['bftd_ghl_import'] ) ) {
-			if ( empty( $_POST['bftd_ghl_import_ok'] ) ) {
-				add_settings_error( 'bftd_settings', 'import', 'Nothing was brought in: tick the box to confirm first.', 'error' );
-				return true;
-			}
-			list( $made, $skipped ) = BFTD_GHL::import_missing();
+			list( $made, $skipped ) = BFTD_GHL::import_missing( true );
 			add_settings_error( 'bftd_settings', 'import', $made . ' draft ' . ( 1 === $made ? 'student' : 'students' ) . ' made from GoHighLevel'
-				. ( $skipped ? ', ' . $skipped . ' skipped (no name)' : '' ) . '.', 'updated' );
+				. ( $skipped ? ', ' . $skipped . ' left to link by hand (a student here has the same name, or no name)' : '' ) . '.', 'updated' );
 			return true;
 		}
 		$ghl = BFTD_GHL::students();
@@ -844,14 +841,22 @@ class BFTD_Settings {
 		<?php echo self::sync_log_html( get_option( BFTD_GHL::SYNC_LOG ) ); ?>
 
 		<h3 style="margin-top:28px">GoHighLevel students not here yet</h3>
-		<p><?php echo esc_html( $unmatched ); ?> GoHighLevel students have no student here, and <?php echo esc_html( $to_bring ); ?>
-			of them are current or pending. Link any that are already here above first; the current and pending ones left can be
-			brought in as draft students, linked, so somebody here still decides when each becomes a family with a portal. Past
-			students, and any with no status, stay in GoHighLevel only.</p>
-		<?php if ( $may && $to_bring ) : ?>
-			<p><label><input type="checkbox" name="bftd_ghl_import_ok" value="1">
-				Yes, make <?php echo esc_html( $to_bring ); ?> draft <?php echo 1 === $to_bring ? 'student' : 'students'; ?> from GoHighLevel</label>
-				<button class="button" name="bftd_ghl_import" value="1">Bring them in</button></p>
+		<p>Current and pending students in GoHighLevel are brought in by themselves every hour, as draft students linked to
+			GoHighLevel, so somebody here still decides when each becomes a family with a portal. Past students, and any with no
+			status, stay in GoHighLevel only. One with the same name as a student here who is not linked yet is left for you to link
+			above, so nobody is brought in twice.</p>
+		<?php
+		$held = array();
+		if ( $to_bring ) {
+			$here = BFTD_GHL::unlinked_names();
+			foreach ( BFTD_GHL::to_bring_in() as $rid => $nm ) if ( isset( $here[ BFTD_GHL::name_key( $nm ) ] ) ) $held[] = $nm;
+		}
+		?>
+		<p><?php echo esc_html( $unmatched ); ?> GoHighLevel students have no student here; <?php echo esc_html( $to_bring ); ?>
+			of them are current or pending<?php echo $held ? ', and ' . esc_html( count( $held ) ) . ' of those wait to be linked by hand because a student here has the same name: ' . esc_html( implode( ', ', $held ) ) : ''; ?>.</p>
+		<?php if ( $may && $to_bring > count( $held ) ) : ?>
+			<p><button class="button" name="bftd_ghl_import" value="1">Bring them in now</button>
+				<span class="description">Rather than waiting for the hour.</span></p>
 		<?php endif; ?>
 		<?php
 	}
