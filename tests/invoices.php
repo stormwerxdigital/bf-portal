@@ -149,6 +149,16 @@ check(false !== strpos($html, 'Dee Test') && false !== strpos($html, 'Set a rate
 check(false !== strpos($html, '#19') && false !== strpos($html, 'Paid, 16 sessions added'), 'the paid invoice is listed with its number');
 check(false !== strpos($html, 'Office Test (office@example.com)') && preg_match('/value="CAD"\s+selected/', $html), 'the settings show the currency and who it is sent from');
 
+echo "\nChecking the portal may use invoices (1.219.1):\n";
+$CALLS = array();
+$REPLY['GET /invoices/'] = array(200, array('invoices' => array()), '');
+list($ok, $say) = BFTD_Invoices::check_access();
+check($ok && 1 === count($CALLS) && 'GET' === $CALLS[0][0] && array('altId' => 'loc1', 'altType' => 'location', 'limit' => '1', 'offset' => '0') === $CALLS[0][2], 'one read of one invoice, and it says so: ' . $say);
+$REPLY['GET /invoices/'] = array(401, array('message' => 'The token is not authorized for this scope.'), 'The token is not authorized for this scope.');
+list($ok, $say) = BFTD_Invoices::check_access();
+check(!$ok && false !== strpos($say, 'invoices.readonly'), 'a token without the permission is told which to add');
+check(false !== strpos($html, 'Check GoHighLevel invoices') && false !== strpos($src = file_get_contents(BFTD_PATH . 'includes/class-bftd-invoices.php'), "check_admin_referer( 'bftd_invoice_check' )"), 'the button is on the page, with a nonce');
+
 echo "\nOn the screens:\n";
 $src = file_get_contents(BFTD_PATH . 'includes/class-bftd-invoices.php');
 check(false !== strpos($src, "check_admin_referer( 'bftd_invoice' )") && false !== strpos($src, "check_admin_referer( 'bftd_invoice_settings' )") && 2 <= substr_count($src, 'if ( ! self::can() ) wp_die('), 'changes need a nonce and a senior manager or administrator');

@@ -38,6 +38,7 @@ class BFTD_Invoices {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ), 24 );
 		add_action( 'admin_post_bftd_invoice', array( __CLASS__, 'handle' ) );
 		add_action( 'admin_post_bftd_invoice_settings', array( __CLASS__, 'save_settings' ) );
+		add_action( 'admin_post_bftd_invoice_check', array( __CLASS__, 'check_request' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'banner' ) );
 		// Each hour with the GoHighLevel sync, and on an admin screen at most
 		// once an hour, so drafts appear even when the sync is not running.
@@ -405,6 +406,28 @@ class BFTD_Invoices {
 		exit;
 	}
 
+	/**
+	 * Can the portal reach GoHighLevel's invoices? One read, asking for a
+	 * single invoice; nothing is made or sent (Karl, 1.219.1).
+	 *
+	 * @return array( ok, what to say )
+	 */
+	public static function check_access() {
+		if ( ! class_exists( 'BFTD_GHL' ) || ! BFTD_GHL::configured() ) return array( false, 'GoHighLevel is not connected.' );
+		list( $code, $data, $err ) = BFTD_GHL::request( 'GET', '/invoices/', array( 'altId' => BFTD_GHL::location(), 'altType' => 'location', 'limit' => '1', 'offset' => '0' ), null, '2021-07-28' );
+		if ( '' === $err ) return array( true, 'The portal can reach GoHighLevel invoices. Nothing was made or sent.' );
+		if ( 401 === (int) $code || 403 === (int) $code ) return array( false, 'GoHighLevel will not let the portal read invoices yet. Check the portal\'s token has invoices.readonly and invoices.write.' );
+		return array( false, 'GoHighLevel said: ' . $err );
+	}
+
+	public static function check_request() {
+		check_admin_referer( 'bftd_invoice_check' );
+		if ( ! self::can() ) wp_die( 'Only senior managers and administrators can check invoices.', 403 );
+		list( $ok, $say ) = self::check_access();
+		wp_safe_redirect( add_query_arg( $ok ? 'bftd_msg' : 'bftd_err', rawurlencode( $say ), admin_url( 'admin.php?page=' . self::SLUG ) . '#settings' ) );
+		exit;
+	}
+
 	/** GoHighLevel staff seen on any student, id => name: who invoices can be sent from. */
 	public static function senders() {
 		$out = array();
@@ -450,6 +473,12 @@ class BFTD_Invoices {
 					</select>
 					<span class="description">GoHighLevel sends each invoice as one of its users, who gets the replies.<?php echo $senders ? '' : ' None found yet: the GoHighLevel sync lists the staff on linked students.'; ?></span></p>
 				<p><button class="button button-primary">Save settings</button></p>
+			</form>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="bftd-inv-settings">
+				<input type="hidden" name="action" value="bftd_invoice_check">
+				<?php wp_nonce_field( 'bftd_invoice_check' ); ?>
+				<p><button class="button">Check GoHighLevel invoices</button>
+					<span class="description">Asks GoHighLevel for one invoice, to show the portal is allowed to. Nothing is made or sent.</span></p>
 			</form>
 		</div>
 		<?php
