@@ -50,7 +50,7 @@ check(1 === preg_match('/html\.mce-fullscreen #adminmenumain,\s*html\.mce-fullsc
 /* ---- no Booked ahead ---- */
 $mb = file_get_contents(BFTD_PATH . 'includes/class-bftd-metaboxes.php');
 check(false === strpos($mb, "array( 'booked',    'Booked ahead'"), 'the sessions bank has no Booked ahead tile');
-check(false !== strpos($mb, "array( 'purchased', 'Purchased',") && false !== strpos($mb, "array( 'remaining', 'Remaining',"), 'and keeps Purchased, Used and Remaining');
+check(false !== strpos($mb, "array( 'purchased', \$word,") && false !== strpos($mb, "? 'Approved' : 'Purchased'") && false !== strpos($mb, "array( 'remaining', 'Remaining',"), 'and keeps Purchased (Approved for a monthly school, 1.218), Used and Remaining');
 
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

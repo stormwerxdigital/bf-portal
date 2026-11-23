@@ -488,6 +488,8 @@ class BFTD_MetaBoxes {
 				'both'      => 'Both',
 			) ),
 			'lessons_bank' => array( 'type' => 'number', 'label' => 'Sessions purchased' ),
+			// Who pays (Karl, 1.218): a school pays only for the students set to it.
+			'paid_by'      => array( 'type' => 'select', 'label' => 'Paid by', 'default' => 'family', 'options' => array( 'family' => 'Family', 'school' => 'Their school' ) ),
 			// What the family pays for each session (Karl, 1.217.5).
 			'rate'         => array( 'type' => 'number', 'label' => 'Rate per session, $', 'step' => '0.01', 'min' => '0' ),
 			// How often they come, for forecasting Attending to (Karl, 1.214).
@@ -502,7 +504,14 @@ class BFTD_MetaBoxes {
 		// history says it better (Laurel). Grade and "Sessions are" are drawn
 		// there too, so this keeps the rest of student_fields().
 		echo '<div class="bftd-box bftd-grid">';
-		foreach ( self::student_fields() as $key => $field ) {
+		$fields = self::student_fields();
+		// Sessions approved for a student a school bills monthly (1.218), and
+		// what Paid by means for this one.
+		if ( class_exists( 'BFTD_School_Billing' ) ) {
+			$fields['lessons_bank']['label'] = BFTD_School_Billing::bank_label( $post->ID );
+			$fields['paid_by']['help']       = BFTD_School_Billing::said( $post->ID );
+		}
+		foreach ( $fields as $key => $field ) {
 			if ( in_array( $key, self::in_contact(), true ) ) continue;
 			BFTD_Fields::render_field( $post->ID, 'student', $key, $field );
 		}
@@ -580,10 +589,12 @@ class BFTD_MetaBoxes {
 				// "Booked ahead" was a tile here. Removed in 1.172: with the
 				// schedule stopping where the paid sessions run out, it always
 				// showed the same figure as Remaining.
+				// Approved, for a student a school bills monthly (1.218).
+				$word  = class_exists( 'BFTD_School_Billing' ) && 'monthly' === BFTD_School_Billing::mode_for( $post->ID ) ? 'Approved' : 'Purchased';
 				$tiles = array(
-					array( 'purchased', 'Purchased',    'Set under Student details.' ),
+					array( 'purchased', $word,          'Set under Student details.' ),
 					array( 'used',      'Used',         'Counted from the sessions actually recorded.' ),
-					array( 'remaining', 'Remaining',    'Purchased minus used.' ),
+					array( 'remaining', 'Remaining',    $word . ' minus used.' ),
 				);
 				foreach ( $tiles as $t ) : ?>
 					<div class="bftd-bank-tile" data-bank="<?php echo esc_attr( $t[0] ); ?>">

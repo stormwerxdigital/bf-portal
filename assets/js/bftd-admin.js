@@ -4044,3 +4044,18 @@ function bftdThumb( id, thumb, full ) {
 	box.addEventListener( 'input', run );
 	if ( box.value.trim() ) run();
 }() );
+
+/* A school's billing (Karl, 1.218): the billing day for monthly, the rate
+   for either way a school pays. */
+( function () {
+	'use strict';
+	document.querySelectorAll( '.bftd-sch-mode' ).forEach( function ( sel ) {
+		var cell = sel.closest( '.bftd-sch-bill' );
+		function follow() {
+			cell.querySelector( '.bftd-sch-day' ).hidden = 'monthly' !== sel.value;
+			cell.querySelector( '.bftd-sch-rate' ).hidden = '' === sel.value;
+		}
+		sel.addEventListener( 'change', follow );
+		follow();
+	} );
+}() );

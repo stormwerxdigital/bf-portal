@@ -57,6 +57,7 @@ class BFTD_GHL {
   }
 }
 require BFTD_PATH . 'includes/class-bftd-schools.php';
+require BFTD_PATH . 'includes/class-bftd-school-billing.php';
 
 $fail = 0;
 function check($ok, $msg) { global $fail; if ($ok) echo "  ok  $msg\n"; else { echo "FAIL  $msg\n"; $fail++; } }

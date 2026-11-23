@@ -474,7 +474,7 @@ class BFTD_Schools {
 			return array( $r, 'unlink' === $m[1] ? 'No longer linked to GoHighLevel.' : 'Deleted.' );
 		}
 		$errors = array();
-		$n = array( 'renamed' => 0, 'linked' => 0, 'merged' => 0 );
+		$n = array( 'renamed' => 0, 'linked' => 0, 'merged' => 0, 'billing changed' => 0 );
 		foreach ( (array) ( $post['name'] ?? array() ) as $id => $name ) {
 			$s = self::get( (int) $id );
 			if ( ! $s || trim( (string) $name ) === $s['name'] ) continue;
@@ -486,6 +486,21 @@ class BFTD_Schools {
 			if ( ! $s || '' === (string) $gid || '' !== (string) $s['ghl_id'] ) continue;
 			$r = self::link( (int) $id, sanitize_text_field( (string) $gid ) );
 			if ( is_wp_error( $r ) ) $errors[] = $r->get_error_message(); else $n['linked']++;
+		}
+		// Billing (Karl, 1.218): monthly after sessions on a day, or in advance.
+		if ( isset( $post['billing'] ) && class_exists( 'BFTD_School_Billing' ) ) {
+			$list  = self::all();
+			$moved = 0;
+			foreach ( (array) $post['billing'] as $id => $mode ) {
+				if ( ! isset( $list[ (int) $id ] ) ) continue;
+				$b   = BFTD_School_Billing::clean( $mode, $post['bill_day'][ $id ] ?? 'last', $post['rate'][ $id ] ?? '' );
+				$was = BFTD_School_Billing::clean( $list[ $id ]['billing'] ?? '', $list[ $id ]['bill_day'] ?? 'last', $list[ $id ]['rate'] ?? '' );
+				if ( $b === $was && isset( $list[ $id ]['billing'] ) ) continue;
+				$list[ (int) $id ] = array_merge( $list[ (int) $id ], $b );
+				if ( $b !== $was ) $moved++;
+			}
+			self::put( $list );
+			$n['billing changed'] = $moved;
 		}
 		foreach ( (array) ( $post['into'] ?? array() ) as $id => $into ) {
 			if ( ! $into || ! self::get( (int) $id ) || ! self::get( (int) $into ) ) continue;
@@ -583,11 +598,11 @@ class BFTD_Schools {
 				<input type="hidden" name="action" value="bftd_school_save">
 				<?php wp_nonce_field( 'bftd_school_save' ); ?>
 				<p class="bftd-sch-savebar"><button type="submit" class="button button-primary" name="do" value="save">Save changes</button>
-					<span class="description">Change names, pick Companies to link and schools to merge, then save once.</span></p>
+					<span class="description">Change names and billing, pick Companies to link and schools to merge, then save once.</span></p>
 				<table class="widefat striped bftd-sch-table">
-					<thead><tr><th scope="col">School</th><th scope="col">Students</th><th scope="col">GoHighLevel</th><th scope="col">Merge or delete</th></tr></thead>
+					<thead><tr><th scope="col">School</th><th scope="col">Students</th><th scope="col">Billing</th><th scope="col">GoHighLevel</th><th scope="col">Merge or delete</th></tr></thead>
 					<tbody>
-					<?php if ( ! $list ) : ?><tr><td colspan="4">No schools yet.</td></tr><?php endif; ?>
+					<?php if ( ! $list ) : ?><tr><td colspan="5">No schools yet.</td></tr><?php endif; ?>
 					<?php foreach ( $list as $id => $s ) :
 						$n = (int) ( $counts[ $id ] ?? 0 );
 						$c = '' !== (string) $s['ghl_id'] ? self::company( $s['ghl_id'] ) : null; ?>
@@ -595,6 +610,19 @@ class BFTD_Schools {
 							<td><label class="screen-reader-text" for="bftd-sch-<?php echo (int) $id; ?>">Name</label>
 								<input type="text" id="bftd-sch-<?php echo (int) $id; ?>" name="name[<?php echo (int) $id; ?>]" value="<?php echo esc_attr( $s['name'] ); ?>"></td>
 							<td><?php if ( $n ) : ?><a href="<?php echo esc_url( admin_url( 'admin.php?page=' . BFTD_Students::SLUG . '&school=' . (int) $id ) ); ?>"><?php echo (int) $n; ?></a><?php else : ?>0<?php endif; ?></td>
+							<td class="bftd-sch-bill"><?php $b = BFTD_School_Billing::of_school( $s ); $i = (int) $id; ?>
+								<label class="screen-reader-text" for="bftd-sch-b<?php echo $i; ?>">Billing</label>
+								<select id="bftd-sch-b<?php echo $i; ?>" name="billing[<?php echo $i; ?>]" class="bftd-sch-mode">
+									<?php foreach ( BFTD_School_Billing::modes() as $k => $label ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $k, $b['mode'] ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?>
+								</select>
+								<span class="bftd-sch-day" <?php echo 'monthly' === $b['mode'] ? '' : 'hidden'; ?>><label for="bftd-sch-d<?php echo $i; ?>">Billing day</label>
+									<select id="bftd-sch-d<?php echo $i; ?>" name="bill_day[<?php echo $i; ?>]">
+										<?php for ( $d = 1; $d <= 28; $d++ ) : ?><option value="<?php echo $d; ?>" <?php selected( (string) $d, $b['day'] ); ?>><?php echo $d; ?></option><?php endfor; ?>
+										<option value="last" <?php selected( 'last', $b['day'] ); ?>>Last day</option>
+									</select></span>
+								<span class="bftd-sch-rate" <?php echo '' === $b['mode'] ? 'hidden' : ''; ?>><label for="bftd-sch-r<?php echo $i; ?>">Rate per session, $</label>
+									<input type="number" step="0.01" min="0" class="small-text" id="bftd-sch-r<?php echo $i; ?>" name="rate[<?php echo $i; ?>]" value="<?php echo esc_attr( $b['rate'] ); ?>"></span>
+							</td>
 							<td class="bftd-sch-ghlcell"><?php if ( '' !== (string) $s['ghl_id'] ) : ?>
 									<span><?php echo esc_html( $c ? 'Linked: ' . $c['name'] : 'Linked' ); ?></span>
 									<button type="submit" class="button-link" name="do" value="unlink:<?php echo (int) $id; ?>">Unlink</button>
@@ -619,6 +647,8 @@ class BFTD_Schools {
 				</table>
 				<?php if ( $list ) : ?><p class="bftd-sch-savebar"><button type="submit" class="button button-primary" name="do" value="save">Save changes</button></p><?php endif; ?>
 			</form>
+
+			<?php if ( class_exists( 'BFTD_School_Billing' ) ) BFTD_School_Billing::render_section(); ?>
 		</div>
 		<?php
 	}
