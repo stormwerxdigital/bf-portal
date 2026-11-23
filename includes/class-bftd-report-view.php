@@ -209,7 +209,8 @@ class BFTD_Report_View {
 		 */
 		self::chart_tabs( $report, $name, $sections, array(
 			'overview' => array( 'sec-progress-overview', 'Reading level' ),
-			'wpm'      => array( 'sec-fluency', 'Words correct per minute' ),
+			// Both lines since 1.216: every word read and words read correctly.
+			'wpm'      => array( 'sec-fluency', 'Words per minute' ),
 		) );
 
 		self::chart_card( $report, 'sec-activity-map', $sections, 'Skills we\'re building', 'cover' );

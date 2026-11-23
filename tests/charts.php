@@ -416,6 +416,7 @@ check(false !== strpos($w2, '<th>Words per minute</th>') && false !== strpos($w2
 check(false !== strpos($w2, 'Words per minute, every word read: 20 at the initial, 71 at the middle.'), 'and so does what a screen reader is told');
 $dv = file_get_contents(BFTD_PATH . 'includes/class-bftd-derived.php');
 check(false !== strpos($dv, '\'total\'  => ( \'kinder\' !== BFTD_Fields::form_of( $one[\'id\'], \'dxsec-4\' ) && (int) ( $dx[\'words\'] ?? 0 ) > 0 ) ? (int) $dx[\'words\'] : 0,'), 'each timed passage gives its total words; a Kindergarten word list gives none');
+check(false !== strpos(file_get_contents(BFTD_PATH . 'includes/class-bftd-report-view.php'), "'wpm'      => array( 'sec-fluency', 'Words per minute' ),"), 'the tab on the report is named for both lines, Words per minute');
 unset($GLOBALS['WPM']['points'][0]['total'], $GLOBALS['WPM']['points'][1]['total']);
 
 /* The alt text describes THIS chart. The two share one drawing, and a shared

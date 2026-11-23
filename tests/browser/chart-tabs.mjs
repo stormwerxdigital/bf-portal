@@ -70,7 +70,7 @@ await p.click('.tabbtn:nth-of-type(2)');
 await p.waitForTimeout(150);
 s = await state();
 check(s.shown.length === 1 && s.shown[0] === 'panel-wpm', 'a click swaps which chart is showing, got ' + JSON.stringify(s.shown));
-check(s.on[0] === 'Words correct per minute', 'and which tab reads as selected');
+check(s.on[0] === 'Words per minute', 'and which tab reads as selected (named for both lines since 1.216)');
 
 const drawn = await p.evaluate(() => {
   const el = document.querySelector('#panel-wpm svg.chart');

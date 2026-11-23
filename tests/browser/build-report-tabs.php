@@ -85,7 +85,7 @@ $m = new ReflectionMethod('BFTD_Report_View','chart_tabs'); $m->setAccessible(tr
 ob_start();
 $m->invoke(null, 1, 'Jot Singh', BFTD_Schema::sections_for_screen('progress'), array(
   'overview' => array('sec-progress-overview', 'Reading level'),
-  'wpm'      => array('sec-fluency', 'Words correct per minute'),
+  'wpm'      => array('sec-fluency', 'Words per minute'),
 ));
 $body = ob_get_clean();
 
