@@ -3918,3 +3918,75 @@ function bftdThumb( id, thumb, full ) {
 	$pick.on( 'change', follow );
 	follow();
 }( jQuery ) );
+
+/* --------------------------------------------------------------------------
+   Students list search as you type (Karl, 1.217.3: "search should match
+   with auto suggestions when I type, cant even tell if its working"). Rows
+   whose student, client, caregivers or tutors match what is typed stay;
+   the rest hide, with their tutor's section when it empties, and the
+   counts say so. The names on the page are offered as suggestions. An
+   email, or anything not on the page, still searches with Enter or Filter.
+   -------------------------------------------------------------------------- */
+( function () {
+	'use strict';
+	var wrap = document.querySelector( '.bftd-stu-list' );
+	var box  = wrap && wrap.querySelector( '#bftd-stu-q' );
+	if ( ! box ) return;
+	var rows = Array.prototype.slice.call( wrap.querySelectorAll( '.bftd-stu-sec tbody tr' ) );
+	var cols = [ '.bftd-stu-name > a', 'td[data-l="Client"]', 'td[data-l="Caregivers"]', 'td[data-l="Tutors"]' ];
+	function textOf( tr ) {
+		return cols.map( function ( c ) { var e = tr.querySelector( c ); return e ? e.textContent : ''; } ).join( ' ' ).replace( /\bclient\b/g, ' ' ).replace( /\s+/g, ' ' ).toLowerCase();
+	}
+	var hay = rows.map( textOf );
+
+	// Suggestions: every name on the page, once each.
+	var names = {};
+	rows.forEach( function ( tr ) {
+		var a = tr.querySelector( '.bftd-stu-name > a' );
+		if ( a ) names[ a.textContent.trim() ] = 1;
+		[ 'td[data-l="Client"]', 'td[data-l="Caregivers"]', 'td[data-l="Tutors"]' ].forEach( function ( c ) {
+			var e = tr.querySelector( c );
+			if ( ! e ) return;
+			e.textContent.replace( /\bclient\b/g, ',' ).split( /,|\n/ ).forEach( function ( n ) {
+				n = n.replace( /\s+/g, ' ' ).trim();
+				if ( n.length > 1 && ! /^(Nobody yet|Unassigned|Nobody)$/i.test( n ) ) names[ n ] = 1;
+			} );
+		} );
+	} );
+	var dl = document.createElement( 'datalist' );
+	dl.id = 'bftd-stu-names';
+	Object.keys( names ).sort().forEach( function ( n ) { var o = document.createElement( 'option' ); o.value = n; dl.appendChild( o ); } );
+	box.parentNode.appendChild( dl );
+	box.setAttribute( 'list', dl.id );
+	box.setAttribute( 'autocomplete', 'off' );
+
+	var count = wrap.querySelector( '.bftd-stu-count' );
+	var none  = document.createElement( 'p' );
+	none.className = 'bftd-stu-nomatch';
+	none.setAttribute( 'role', 'status' );
+	none.hidden = true;
+	var firstSec = wrap.querySelector( '.bftd-stu-sec' );
+	if ( firstSec ) firstSec.parentNode.insertBefore( none, firstSec );
+
+	function plural( n ) { return n + ' ' + ( 1 === n ? 'student' : 'students' ); }
+	function run() {
+		var q = box.value.trim().toLowerCase().split( /\s+/ ).filter( Boolean );
+		var shown = 0;
+		rows.forEach( function ( tr, i ) {
+			var ok = q.every( function ( w ) { return -1 !== hay[ i ].indexOf( w ); } );
+			tr.hidden = ! ok;
+			if ( ok ) shown++;
+		} );
+		Array.prototype.forEach.call( wrap.querySelectorAll( '.bftd-stu-sec' ), function ( sec ) {
+			var n = sec.querySelectorAll( 'tbody tr:not([hidden])' ).length;
+			sec.hidden = 0 === n;
+			var tag = sec.querySelector( '.bftd-stu-n' );
+			if ( tag ) tag.textContent = plural( n );
+		} );
+		if ( count ) count.textContent = q.length ? shown + ' of ' + plural( rows.length ) : plural( rows.length );
+		none.hidden = 0 !== shown;
+		none.textContent = shown ? '' : 'No student on this page matches "' + box.value.trim() + '". Press Enter to search emails and everyone else.';
+	}
+	box.addEventListener( 'input', run );
+	if ( box.value.trim() ) run();
+}() );

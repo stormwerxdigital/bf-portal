@@ -135,6 +135,19 @@ check(ends.head.includes('End date') && ends.head.indexOf('End date') === ends.h
 check(ends.cells.some(c => /11 Feb 2027 forecast/.test(c)) && ends.cells.some(c => c === '1 Mar 2027') && ends.cells.some(c => c === 'Not set'), 'showing the date, marked when it is the forecast, or Not set');
 check(ends.max === '1920px', 'and the page fills the screen up to 1920px, got ' + ends.max);
 
+/* Search as you type, with suggestions (Karl, 1.217.3). */
+const all = await p.evaluate(() => document.querySelectorAll('.bftd-stu-sec tbody tr').length);
+const sugg = await p.evaluate(() => { const i = document.querySelector('#bftd-stu-q'); const dl = i.list; return dl ? [...dl.options].map(o => o.value) : []; });
+check(sugg.includes('Jonah Okafor') && sugg.includes('Laurel Sanders'), 'the search box suggests the names on the page, students and the people around them, got ' + sugg.length);
+await p.fill('#bftd-stu-q', 'jonah ok'); await p.waitForTimeout(80);
+let sr = await p.evaluate(() => ({ shown: [...document.querySelectorAll('.bftd-stu-sec tbody tr')].filter(r => !r.hidden).map(r => r.querySelector('.bftd-stu-name > a').textContent.trim()), secs: [...document.querySelectorAll('.bftd-stu-sec')].filter(s => !s.hidden).length, count: document.querySelector('.bftd-stu-count').textContent }));
+check(sr.shown.join() === 'Jonah Okafor' && sr.secs === 1 && sr.count === '1 of ' + all + ' students', 'typing narrows the list at once, any case, each word, with the count, got ' + JSON.stringify(sr));
+await p.fill('#bftd-stu-q', 'zzzz'); await p.waitForTimeout(80);
+sr = await p.evaluate(() => ({ none: !document.querySelector('.bftd-stu-nomatch').hidden, text: document.querySelector('.bftd-stu-nomatch').textContent }));
+check(sr.none && /No student on this page matches/.test(sr.text), 'and says so when nothing matches');
+await p.fill('#bftd-stu-q', ''); await p.waitForTimeout(80);
+check(all === await p.evaluate(() => [...document.querySelectorAll('.bftd-stu-sec tbody tr')].filter(r => !r.hidden).length), 'clearing it brings everyone back');
+
 await p.setViewportSize({ width: 700, height: 900 });
 await p.waitForTimeout(150);
 const narrow = await p.evaluate(() => ({

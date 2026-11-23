@@ -1782,3 +1782,4 @@ html.bftd-calv-modal{overflow:hidden}
 .bftd-start-new .bftd-label{margin-bottom:2px}
 .bftd-start-new input,.bftd-start-new select{width:100%;max-width:100%;box-sizing:border-box}
 .bftd-start-new .description{grid-column:1/-1;font-size:12px;margin:0}
+.bftd-stu-nomatch{margin:14px 0;padding:12px 14px;background:var(--bftd-card);border:1px solid var(--bftd-line);border-radius:7px;color:var(--bftd-muted)}

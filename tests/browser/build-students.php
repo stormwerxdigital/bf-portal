@@ -112,5 +112,8 @@ file_put_contents(__DIR__.'/students.html',
   '<!doctype html><meta charset="utf-8">'
   . '<meta name="viewport" content="width=device-width,initial-scale=1">'
   . '<style>body{font:14px/1.5 -apple-system,system-ui,sans-serif;background:#F0F0F1;margin:0;padding:20px}'
-  . '.wrap{max-width:1300px;margin:0 auto}' . $css . '</style>' . $html);
+  . '.wrap{max-width:1300px;margin:0 auto}' . $css . '</style>' . $html
+  // The admin script too, for the search as you type (1.217.3).
+  . '<script>' . file_get_contents(__DIR__ . '/jquery.js') . '</script><script>window.BFTD = { ajax_url: "/ajax", nonce: "n" }; jQuery.fn.sortable = function () { return this; };</script>'
+  . '<script>' . file_get_contents(BFTD_PATH . 'assets/js/bftd-admin.js') . '</script>');
 echo __DIR__.'/students.html' . "\n";
