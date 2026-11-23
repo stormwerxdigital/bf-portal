@@ -36,6 +36,8 @@ class BFTD_Fields {
      A stub that answered anyway is how a chart that reads nothing on every
      real report passed its tests. */
   private static $derived = array('dxsec-4' => array('score'));
+  // Which of the two reading assessments a diagnostic used (1.216).
+  public static function form_of($id, $sec) { return $GLOBALS['DXV'][$id][$sec]['form'] ?? 'passage'; }
 
   public static function get($id, $sec, $key, $f = array()) {
     if ('student' === $sec) return $GLOBALS['STUDENT'][$key] ?? '';
@@ -391,6 +393,7 @@ check(14 === $f['points'][0]['rank'] && '14 wpm' === $f['points'][0]['level'],
   'the first reading, worked out from the words and the errors rather than read off a box nobody fills in');
 check(64 === $f['points'][1]['rank'], 'and the second, got ' . $f['points'][1]['rank']);
 check('Initial' === $f['points'][0]['when'], 'named by which assessment it was');
+check(20 === $f['points'][0]['total'] && 71 === $f['points'][1]['total'], 'and every word read, beside it, for the words per minute line (1.216)');
 
 /* A diagnostic with no timing on it is not a nought. Plotting it as one would
    draw a child's reading falling off a cliff on a day nobody timed them. */
@@ -400,7 +403,9 @@ check(1 === count(BFTD_Derived::fluency_journey(1)['points']), 'an untimed asses
 /* A child who read the Kindergarten word list instead of a passage has no
    words and no errors, and a figure all the same. */
 $GLOBALS['DXV'][92]['dxsec-4'] = array('kinder_score' => '31', 'norm' => 'grade-5');
+$GLOBALS['DXV'][92]['dxsec-4']['form'] = 'kinder';
 check(31 === BFTD_Derived::fluency_journey(1)['points'][1]['rank'], 'the word list counts as the reading where it was used');
+check(0 === BFTD_Derived::fluency_journey(1)['points'][1]['total'], 'with no words per minute line, since nothing was read in a minute');
 $GLOBALS['DXV'][92]['dxsec-4'] = array('words' => '71', 'errors' => '7', 'norm' => 'grade-5');
 
 /* Kindergarten and the grades past eight have no published benchmark, so

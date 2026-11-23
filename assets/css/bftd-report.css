@@ -115,6 +115,7 @@
   --row-hover:#F4EFF7;
 
   --chart-series:#70567F;
+  --chart-total:#2F7383;
   --chart-band:#EFE9F2;
   --chart-goal:#8B8F3E;
   --chart-grid:#EAE3ED;
@@ -159,6 +160,7 @@
     --row-hover:#272033;
 
     --chart-series:#B394C6;
+    --chart-total:#7FBFCC;
     --chart-band:#2E2739;
     --chart-goal:#B9BE72;
     --chart-grid:#2F2839;
@@ -182,7 +184,7 @@
   --ink:#F4F0F7; --body:#C7BFD1; --muted:#948BA1;
   --line:#372F44; --line-soft:#2B2436;
   --row-zebra:#1E1828; --row-hover:#272033;
-  --chart-series:#B394C6; --chart-band:#2E2739; --chart-goal:#B9BE72;
+  --chart-series:#B394C6; --chart-total:#7FBFCC; --chart-band:#2E2739; --chart-goal:#B9BE72;
   --chart-grid:#2F2839; --chart-ink:#948BA1;
   --proto-bg:#0F0C14; --proto-panel:#1A1522; --proto-line:#2C2438;
   --proto-text:#C7BFD1; --proto-dim:#7E7590;
@@ -1821,3 +1823,4 @@
 .bf-report .pick-table .pick-h:first-child{margin-top:0}
 .bf-report .pick-table .pick-list{margin:0 0 8px;padding-left:20px}
 .bf-report .pick-table .pick-list li{margin:2px 0}
+.bf-report .key.total{background:var(--chart-total)}

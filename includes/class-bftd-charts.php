@@ -95,6 +95,8 @@ class BFTD_Charts {
 				'floor'   => '0 wpm',
 				'bottom'  => 0,
 				'aim'     => 'the end of year benchmark for their own school grade',
+				// And every word read, beside it (Karl, 1.216).
+				'total'   => 'Words per minute, every word read',
 			)
 		);
 	}
@@ -112,7 +114,10 @@ class BFTD_Charts {
 		// the child if they have already passed it. It does not run to Grade 8
 		// for a Grade 3: three quarters of the chart would be empty space
 		// above a target they have already been told is theirs.
-		$top    = max( $target['rank'], $last['rank'], $first['rank'] );
+		// Words per minute, every word read, as a second line where the
+		// readings have it (1.216). Its scale is the same, so it shares the axes.
+		$totals = ! empty( $about['total'] ) ? array_filter( array_map( function ( $p ) { return (int) ( $p['total'] ?? 0 ); }, $points ) ) : array();
+		$top    = max( $target['rank'], $last['rank'], $first['rank'], $totals ? max( $totals ) : 0 );
 		$bottom = (int) $about['bottom'];
 		if ( $top <= $bottom ) $top = $bottom + 1;
 
@@ -194,6 +199,24 @@ class BFTD_Charts {
 							foreach ( $points as $i => $p ) $pts[] = $x( $i ) . ',' . $y( $p['rank'] );
 							echo esc_attr( implode( ' ', $pts ) );
 						?>"></polyline>
+				<?php endif; ?>
+
+				<?php if ( $totals ) : ?>
+					<g class="pts-total">
+						<?php
+						$tp = array();
+						foreach ( $points as $i => $p ) if ( ! empty( $p['total'] ) ) $tp[] = $x( $i ) . ',' . $y( $p['total'] );
+						if ( count( $tp ) > 1 ) : ?>
+							<polyline fill="none" stroke="var(--chart-total)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+								points="<?php echo esc_attr( implode( ' ', $tp ) ); ?>"></polyline>
+						<?php endif; ?>
+						<?php foreach ( $points as $i => $p ) : if ( empty( $p['total'] ) ) continue; ?>
+							<circle cx="<?php echo $x( $i ); ?>" cy="<?php echo $y( $p['total'] ); ?>" r="4.5"
+								fill="var(--card)" stroke="var(--chart-total)" stroke-width="2.5"
+								data-lab="<?php echo esc_attr( $p['when'] . ( $p['ts'] ? ', ' . BFTD_Time::format( 'j M Y', $p['ts'] ) : '' ) . ', every word read' ); ?>"
+								data-val="<?php echo esc_attr( (int) $p['total'] . ' wpm' ); ?>"></circle>
+						<?php endforeach; ?>
+					</g>
 				<?php endif; ?>
 
 				<g class="pts">
@@ -314,7 +337,8 @@ class BFTD_Charts {
 		</div>
 
 		<div class="legend">
-			<i><span class="key"></span>Where <?php echo esc_html( $reached ? 'they got to' : 'they are now' ); ?></i>
+			<i><span class="key"></span><?php echo esc_html( $totals ? ucfirst( $about['subject'] ) : 'Where ' . ( $reached ? 'they got to' : 'they are now' ) ); ?></i>
+			<?php if ( $totals ) : ?><i><span class="key total"></span><?php echo esc_html( $about['total'] ); ?></i><?php endif; ?>
 			<i><span class="key goal"></span><?php echo esc_html( ucfirst( $about['aim'] ) ); ?></i>
 		</div>
 
@@ -331,8 +355,12 @@ class BFTD_Charts {
 			$about['subject'], $first['level'], strtolower( $first['when'] ),
 			( count( $points ) > 1 ) ? ', ' . $last['level'] . ' at the ' . strtolower( $last['when'] ) : ''
 		);
-		return $alt . ' The target is ' . $target['level'] . ', which is '
-			. ( $reached ? 'reached.' : $about['aim'] . '.' );
+		$alt .= ' The target is ' . $target['level'] . ', which is ' . ( $reached ? 'reached.' : $about['aim'] . '.' );
+		// And the second line, in words, where there is one (1.216).
+		$tot = array();
+		foreach ( $points as $p ) if ( ! empty( $p['total'] ) ) $tot[] = (int) $p['total'] . ' at the ' . strtolower( $p['when'] );
+		if ( $tot && ! empty( $about['total'] ) ) $alt .= ' ' . $about['total'] . ': ' . implode( ', ', $tot ) . '.';
+		return $alt;
 	}
 
 	private static function journey_table( $points, $target, $about ) {
@@ -342,13 +370,15 @@ class BFTD_Charts {
 			<summary>See these readings as a table</summary>
 			<div class="tablewrap">
 				<table>
-					<thead><tr><th>Assessment</th><th>Date</th><th><?php echo esc_html( $about['column'] ); ?></th></tr></thead>
+					<?php $tw = ! empty( $about['total'] ) && array_filter( array_column( $points, 'total' ) ); ?>
+					<thead><tr><th>Assessment</th><th>Date</th><th><?php echo esc_html( $about['column'] ); ?></th><?php if ( $tw ) : ?><th>Words per minute</th><?php endif; ?></tr></thead>
 					<tbody>
 						<?php foreach ( $points as $p ) : ?>
 							<tr>
 								<td><?php echo esc_html( $p['when'] ); ?></td>
 								<td><?php echo esc_html( $p['ts'] ? BFTD_Time::format( 'j M Y', $p['ts'] ) : '' ); ?></td>
 								<td><?php echo esc_html( $p['level'] ); ?></td>
+								<?php if ( $tw ) : ?><td><?php echo ! empty( $p['total'] ) ? esc_html( (int) $p['total'] . ' wpm' ) : ''; ?></td><?php endif; ?>
 							</tr>
 						<?php endforeach; ?>
 						<?php
@@ -361,6 +391,7 @@ class BFTD_Charts {
 							<td>Target</td>
 							<td></td>
 							<td><?php echo esc_html( $target['level'] ); ?></td>
+							<?php if ( $tw ) : ?><td></td><?php endif; ?>
 						</tr>
 					</tbody>
 				</table>

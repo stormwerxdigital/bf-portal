@@ -400,6 +400,23 @@ check(1 === preg_match('/<tr class="row-goal">/', $w),
   'and its last row is marked as the destination, not as one more reading');
 check(strpos($w, 'Reading level') === false, 'and never for the other one');
 check(strpos($w, '>0 wpm<') !== false, 'the scale is named from nought, because a rate has a real zero');
+check(false === strpos($w, 'pts-total') && false === strpos($w, 'key total'), 'readings with no total words draw one line, as before');
+
+/* Words per minute beside correct words per minute (Karl, 1.216: "Add graph
+   to show wpm and cwpm progress"). Same unit, so the same axes. */
+$GLOBALS['WPM']['points'][0]['total'] = 20;
+$GLOBALS['WPM']['points'][1]['total'] = 71;
+$w2 = BFTD_Charts::wpm(1);
+check(1 === preg_match('#<g class="pts-total">\s*<polyline[^>]*stroke="var\(--chart-total\)"#', $w2) && 2 === substr_count($w2, 'stroke="var(--chart-total)" stroke-width="2.5"') - 1,
+  'every word read is a second line, in its own colour, a point per reading');
+check(false !== strpos($w2, 'data-val="20 wpm"') && false !== strpos($w2, 'data-val="71 wpm"'), 'each point says its words per minute');
+check(false !== strpos($w2, '<span class="key total"></span>Words per minute, every word read') && false !== strpos($w2, '<span class="key"></span>Words read correctly per minute'),
+  'the legend names both lines');
+check(false !== strpos($w2, '<th>Words per minute</th>') && false !== strpos($w2, '<td>71 wpm</td>'), 'and the table has a column for it');
+check(false !== strpos($w2, 'Words per minute, every word read: 20 at the initial, 71 at the middle.'), 'and so does what a screen reader is told');
+$dv = file_get_contents(BFTD_PATH . 'includes/class-bftd-derived.php');
+check(false !== strpos($dv, '\'total\'  => ( \'kinder\' !== BFTD_Fields::form_of( $one[\'id\'], \'dxsec-4\' ) && (int) ( $dx[\'words\'] ?? 0 ) > 0 ) ? (int) $dx[\'words\'] : 0,'), 'each timed passage gives its total words; a Kindergarten word list gives none');
+unset($GLOBALS['WPM']['points'][0]['total'], $GLOBALS['WPM']['points'][1]['total']);
 
 /* The alt text describes THIS chart. The two share one drawing, and a shared
    drawing that keeps one chart's words is a screen reader being told about a

@@ -2199,7 +2199,7 @@ class BFTD_Schema {
 		 */
 		$s['sec-fluency'] = array(
 			'screen'  => self::SCREEN_PROGRESS,
-			'label'   => 'Words correct per minute',
+			'label'   => 'Words per minute and words correct per minute',
 			'eyebrow' => 'Reading speed',
 			'thread'  => true,
 			'chart'   => 'wpm',

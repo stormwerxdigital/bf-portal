@@ -232,6 +232,10 @@ class BFTD_Derived {
 				'ts'     => $one['ts'],
 				'rank'   => $wcpm,
 				'level'  => $wcpm . ' wpm',
+				// Every word read in the minute, errors included (Karl, 1.216:
+				// "Add graph to show wpm and cwpm progress"). Only a timed
+				// passage has it; the Kindergarten word list does not.
+				'total'  => ( 'kinder' !== BFTD_Fields::form_of( $one['id'], 'dxsec-4' ) && (int) ( $dx['words'] ?? 0 ) > 0 ) ? (int) $dx['words'] : 0,
 			);
 		}
 		if ( ! $points ) return array();
