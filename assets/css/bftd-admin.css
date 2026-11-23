@@ -1792,3 +1792,15 @@ html.bftd-calv-modal{overflow:hidden}
 .bftd-stmt caption{text-align:left;font-weight:600;padding:8px 0}
 .bftd-stmt tfoot th,.bftd-stmt tfoot td{font-weight:600}
 .bftd-stmt-actions{display:flex;gap:8px;margin:12px 0}
+
+/* Renewal invoices (1.219). */
+.bftd-inv-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:12px 18px;margin:0 0 14px;max-width:900px}
+.bftd-inv-card h3{margin:4px 0}
+.bftd-inv-meta{margin:0 0 8px;color:var(--bftd-muted)}
+.bftd-inv-fields{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:flex-end}
+.bftd-inv-fields p{margin:0}
+.bftd-inv-fields label,.bftd-inv-card label{display:block;font-weight:600;margin-bottom:4px}
+.bftd-inv-card textarea{width:100%;max-width:600px}
+.bftd-inv-total strong{display:block;font-size:16px;padding:4px 0}
+.bftd-inv-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.bftd-inv-settings label{display:inline-block;min-width:90px;font-weight:600}
