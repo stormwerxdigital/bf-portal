@@ -119,9 +119,31 @@ $set('attend_to', ''); $set('lessons_bank', 0);
 BFTD_Forecast::apply(9);
 check('' === BFTD_Fields::get(9, 'student', 'attend_to'), 'with nothing purchased it stays empty');
 
+echo "\nThe moment a start is chosen (1.217.5):\n";
+$set('attend_from', '2027-01-04'); $set('lessons_bank', 10); $set('attend_to', '');
+check('2027-03-04' === BFTD_Forecast::forecast(9, '2027-02-01'), 'a start not saved yet is counted from, got ' . BFTD_Forecast::forecast(9, '2027-02-01'));
+check('2027-03-11' === BFTD_Forecast::forecast(9, '2027-02-01', 12), 'and Sessions purchased as it is on screen');
+check('2027-02-04' === BFTD_Forecast::forecast(9), 'the saved ones otherwise');
+BFTD_Forecast::apply(9);
+$set('attend_from', '2027-02-01');
+$set('attend_to', '2027-03-04');   // what the screen filled in, then saved
+BFTD_Forecast::apply(9);
+check('2027-03-04' === get_post_meta(9, BFTD_Forecast::AUTO_KEY, true), 'a forecast the screen filled in is still the forecast once saved');
+$set('lessons_bank', 12);
+BFTD_Forecast::apply(9);
+check('2027-03-11' === BFTD_Fields::get(9, 'student', 'attend_to'), 'so it keeps following, got ' . BFTD_Fields::get(9, 'student', 'attend_to'));
+$set('attend_to', ''); $set('lessons_bank', 0); delete_post_meta(9, BFTD_Forecast::AUTO_KEY);
+$fc0 = file_get_contents(BFTD_PATH . 'includes/class-bftd-forecast.php');
+check(false !== strpos($fc0, "add_action( 'wp_ajax_bftd_forecast_preview'") && false !== strpos($fc0, "check_ajax_referer( 'bftd_nonce', 'nonce' )") && false !== strpos($fc0, "current_user_can( 'edit_post', \$sid )"), 'the screen asks the server, checked for staff who may edit the student');
+$sa0 = file_get_contents(BFTD_PATH . 'includes/class-bftd-start-appt.php');
+check(false !== strpos($sa0, 'data-date="<?php echo esc_attr( $a[\'date\'] ); ?>"') && false !== strpos($sa0, 'data-auto='), 'each appointment says its day, and the field whether Attending to is the forecast');
+
 echo "\nThe student record:\n";
 $mb = file_get_contents(BFTD_PATH . 'includes/class-bftd-metaboxes.php');
 check(false !== strpos($mb, "'per_week'     => array( 'type' => 'select', 'label' => 'Sessions per week', 'default' => '2'"), 'Student details has Sessions per week, two to start');
+check(false !== strpos($mb, "'rate'         => array( 'type' => 'number', 'label' => 'Rate per session, \$', 'step' => '0.01', 'min' => '0' )"), 'and a rate per session, in dollars and cents (1.217.5)');
+$fl = file_get_contents(BFTD_PATH . 'includes/class-bftd-fields.php');
+check(false !== strpos($fl, "isset( \$field['step'] ) ? ' step=\"'"), 'a number box takes the step a field asks for, so 45.50 is allowed');
 $fc = file_get_contents(BFTD_PATH . 'includes/class-bftd-forecast.php');
 check(false !== strpos($fc, "add_action( 'admin_init', array( __CLASS__, 'redo_all' ) );") && false !== strpos($fc, "if ( '3' === (string) get_option( self::PASS, '' ) ) return;"), 'every student is worked out again once after the update');
 

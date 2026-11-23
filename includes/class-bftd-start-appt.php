@@ -126,13 +126,19 @@ class BFTD_Start_Appt {
 		$err    = get_transient( self::ERR . get_current_user_id() );
 		if ( $err ) delete_transient( self::ERR . get_current_user_id() );
 		?>
-		<div class="bftd-field bftd-start">
+		<?php
+		// Whether Attending to is the forecast's (or empty), so the screen may
+		// change it the moment a start is chosen; a typed date is left (1.217.5).
+		$to   = (string) BFTD_Fields::get( $sid, 'student', 'attend_to' );
+		$auto = '' === $to || ( class_exists( 'BFTD_Forecast' ) && $to === (string) get_post_meta( $sid, BFTD_Forecast::AUTO_KEY, true ) );
+		?>
+		<div class="bftd-field bftd-start" data-student="<?php echo (int) $sid; ?>" data-auto="<?php echo $auto ? '1' : '0'; ?>">
 			<label class="bftd-label" for="bftd-start-pick"><?php echo esc_html( $field['label'] ?? 'Attending from' ); ?></label>
 			<?php // The menu straight under the label, level with the fields beside it; what it is set to goes under it (1.217.2). ?>
 			<select id="bftd-start-pick" name="bftd_start_appt">
 				<option value=""><?php echo '' !== $key ? 'Keep this one' : 'Choose their first appointment'; ?></option>
 				<?php foreach ( $list as $a ) : if ( $a['key'] === $key ) continue; ?>
-					<option value="<?php echo esc_attr( $a['key'] ); ?>"><?php echo esc_html( $a['label'] ); ?></option>
+					<option value="<?php echo esc_attr( $a['key'] ); ?>" data-date="<?php echo esc_attr( $a['date'] ); ?>"><?php echo esc_html( $a['label'] ); ?></option>
 				<?php endforeach; ?>
 				<option value="new">New appointment…</option>
 			</select>

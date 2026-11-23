@@ -3917,6 +3917,60 @@ function bftdThumb( id, thumb, full ) {
 	function follow() { $( '.bftd-start-new' ).prop( 'hidden', 'new' !== $pick.val() ); }
 	$pick.on( 'change', follow );
 	follow();
+
+	/* Attending to follows the moment a start is chosen (Karl, 1.217.5: "the
+	   moment I choose a start date, it should auto adjust the to date"). The
+	   server works it out the same way it does on save, from the chosen day
+	   and Sessions purchased as it is on screen. A date somebody typed into
+	   Attending to is theirs: it stays, and the forecast is said under it. */
+	var $wrap = $pick.closest( '.bftd-start' );
+	var $to   = $( '#bftd_student_attend_to' );
+	var $bank = $( '#bftd_student_lessons_bank' );
+	var asked = 0;
+	var auto  = '1' === String( $wrap.data( 'auto' ) );
+	var last  = $to.val() || '';
+	if ( ! $to.length ) return;
+	var $note = $( '<p class="description bftd-start-to" aria-live="polite"></p>' ).insertAfter( $to );
+	$note.hide();
+
+	// Typing a date of their own makes it theirs; emptying it hands it back.
+	$to.on( 'change input', function () {
+		var v = $to.val() || '';
+		if ( v === last ) return;
+		auto = '' === v;
+		if ( auto ) $note.hide();
+	} );
+
+	function chosen() {
+		var v = $pick.val();
+		if ( 'new' === v ) return $( '#bftd-start-date' ).val() || '';
+		if ( ! v ) return '';
+		return $pick.find( 'option:selected' ).data( 'date' ) || String( v ).slice( 0, 10 );
+	}
+
+	function ask() {
+		var from = chosen();
+		if ( ! from ) return;
+		var mine = ++asked;
+		$.post( BFTD.ajax_url, {
+			action: 'bftd_forecast_preview', nonce: BFTD.nonce,
+			student_id: $wrap.data( 'student' ), from: from, bought: $bank.length ? $bank.val() : ''
+		} ).done( function ( r ) {
+			if ( mine !== asked || ! r || ! r.success ) return;
+			var d = r.data.date || '';
+			if ( auto ) {
+				last = d;
+				$to.val( d ).trigger( 'change' );
+				$note.text( d ? 'Forecast from the start you chose.' : 'Add Sessions purchased to forecast this.' ).show();
+			} else {
+				$note.text( d ? 'Forecast from the start you chose: ' + r.data.label + '. The date here was typed in, so it stays.' : '' ).toggle( !! d );
+			}
+		} );
+	}
+
+	$pick.on( 'change', ask );
+	$( '#bftd-start-date' ).on( 'change', function () { if ( 'new' === $pick.val() ) ask(); } );
+	$bank.on( 'change', function () { if ( chosen() ) ask(); } );
 }( jQuery ) );
 
 /* --------------------------------------------------------------------------

@@ -488,6 +488,8 @@ class BFTD_MetaBoxes {
 				'both'      => 'Both',
 			) ),
 			'lessons_bank' => array( 'type' => 'number', 'label' => 'Sessions purchased' ),
+			// What the family pays for each session (Karl, 1.217.5).
+			'rate'         => array( 'type' => 'number', 'label' => 'Rate per session, $', 'step' => '0.01', 'min' => '0' ),
 			// How often they come, for forecasting Attending to (Karl, 1.214).
 			'per_week'     => array( 'type' => 'select', 'label' => 'Sessions per week', 'default' => '2', 'options' => array( '1' => '1 a week', '2' => '2 a week', '3' => '3 a week', '4' => '4 a week', '5' => '5 a week' ) ),
 			'join_url'     => array( 'type' => 'text',   'label' => 'Joining link' ),

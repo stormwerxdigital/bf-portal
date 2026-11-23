@@ -31,6 +31,8 @@ class BFTD_Forecast {
 		add_action( 'bftd_schedule_changed', array( __CLASS__, 'apply' ) );
 		// Once after 1.216.2: every student's forecast worked out again the new way.
 		add_action( 'admin_init', array( __CLASS__, 'redo_all' ) );
+		// What Attending to will be, the moment a start is chosen (Karl, 1.217.5).
+		add_action( 'wp_ajax_bftd_forecast_preview', array( __CLASS__, 'ajax_preview' ) );
 	}
 
 	const PASS = 'bftd_forecast_pass';
@@ -65,10 +67,12 @@ class BFTD_Forecast {
 	 * Christmas holidays and spring break) have no session, so they push the
 	 * last one later rather than crowding onto the next open day.
 	 */
-	public static function forecast( $student_id ) {
+	public static function forecast( $student_id, $from_now = null, $bought_now = null ) {
 		$student_id = (int) $student_id;
-		$n          = (int) BFTD_Fields::get( $student_id, 'student', 'lessons_bank' );
-		$from       = (string) BFTD_Fields::get( $student_id, 'student', 'attend_from' );
+		// A start or a number not saved yet, for the screen to show what it
+		// will be (1.217.5); the saved ones otherwise.
+		$n          = null !== $bought_now ? (int) $bought_now : (int) BFTD_Fields::get( $student_id, 'student', 'lessons_bank' );
+		$from       = null !== $from_now ? (string) $from_now : (string) BFTD_Fields::get( $student_id, 'student', 'attend_from' );
 		if ( $n <= 0 || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $from ) ) return '';
 		$per = self::per_week( $student_id );
 
@@ -152,6 +156,20 @@ class BFTD_Forecast {
 		return $d ? (string) end( $d ) : '';
 	}
 
+	/**
+	 * The forecast for a start and a number of sessions on the screen, not
+	 * saved yet: Y-m-d and the same as a date, or empty. Nothing is saved.
+	 */
+	public static function ajax_preview() {
+		check_ajax_referer( 'bftd_nonce', 'nonce' );
+		$sid = absint( $_POST['student_id'] ?? 0 );
+		if ( ! $sid || ! BFTD_Roles::is_staff() || ! current_user_can( 'edit_post', $sid ) ) wp_send_json_error( array(), 403 );
+		$from   = sanitize_text_field( wp_unslash( $_POST['from'] ?? '' ) );
+		$bought = isset( $_POST['bought'] ) && '' !== $_POST['bought'] ? absint( $_POST['bought'] ) : null;
+		$d = self::forecast( $sid, $from, $bought );
+		wp_send_json_success( array( 'date' => $d, 'label' => '' !== $d ? BFTD_Time::format( 'j M Y', BFTD_Time::stamp( $d, '12:00' ) ) : '' ) );
+	}
+
 	/** Write the forecast into an empty Attending to, or one this filled in before. */
 	public static function apply( $student_id ) {
 		$student_id = (int) $student_id;
@@ -165,9 +183,14 @@ class BFTD_Forecast {
 		}
 		$now    = (string) BFTD_Fields::get( $student_id, 'student', 'attend_to' );
 		$filled = (string) get_post_meta( $student_id, self::AUTO_KEY, true );
-		if ( '' !== $now && $now !== $filled ) return;   // typed by somebody: theirs
-		$want = self::forecast( $student_id );
-		if ( $want === $now ) return;
+		$want   = self::forecast( $student_id );
+		// A date that is the forecast is the forecast's, even one the screen
+		// filled in before it was saved (1.217.5), so it keeps following.
+		if ( '' !== $now && $now !== $filled && $now !== $want ) return;   // typed by somebody: theirs
+		if ( $want === $now ) {
+			if ( '' !== $want && $want !== $filled ) update_post_meta( $student_id, self::AUTO_KEY, $want );
+			return;
+		}
 		BFTD_Fields::set( $student_id, 'student', 'attend_to', $want );
 		if ( '' === $want ) delete_post_meta( $student_id, self::AUTO_KEY );
 		else update_post_meta( $student_id, self::AUTO_KEY, $want );

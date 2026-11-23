@@ -27,6 +27,9 @@ $css = file_get_contents(BFTD_PATH . 'assets/css/bftd-admin.css');
 file_put_contents(__DIR__ . '/start-field.html', '<!doctype html><html><head><meta charset="utf-8"><style>body{font:14px/1.5 system-ui,sans-serif;margin:0;padding:20px}' . $css
   . '.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px 24px;width:1120px}</style>'
   . '<script>' . file_get_contents(__DIR__ . '/jquery.js') . '</script><script>window.BFTD = { ajax_url: "/ajax", nonce: "n" }; jQuery.fn.sortable = function () { return this; };</script>'
-  . '</head><body class="wp-admin wp-core-ui"><div class="grid4">' . $cell('School') . $cell('Status') . '<div id="cell">' . $field . '</div>' . $cell('Attending to') . '</div>'
+  . '</head><body class="wp-admin wp-core-ui"><div class="grid4">' . $cell('School') . $cell('Status') . '<div id="cell">' . $field . '</div>' . '<div class="bftd-field"><label class="bftd-label" for="bftd_student_attend_to">Attending to</label><input type="date" id="bftd_student_attend_to" name="bftd[student][attend_to]" value=""></div>' . '</div>'
+  . '<input type="number" id="bftd_student_lessons_bank" value="10">'
+  // A stand-in for the server: the forecast is ten weeks after the start, and says what it was asked.
+  . '<script>window.ASKED = []; jQuery.post = function (u, d) { window.ASKED.push(d); var dt = new Date(d.from + "T12:00:00Z"); dt.setUTCDate(dt.getUTCDate() + 70); var y = dt.toISOString().slice(0, 10); return jQuery.Deferred().resolve({ success: true, data: { date: y, label: y } }).promise(); };</script>'
   . '<script>' . file_get_contents(BFTD_PATH . 'assets/js/bftd-admin.js') . '</script></body></html>');
 echo __DIR__ . '/start-field.html' . "\n";

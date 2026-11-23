@@ -714,7 +714,10 @@ class BFTD_Fields {
 					break;
 
 				case 'number':
-					echo '<input type="number" class="small-text" id="' . esc_attr( $id ) . '" name="' . $name . '" value="' . esc_attr( (string) $value ) . '">';
+					// A step and floor when the field asks, so a rate takes cents (1.217.5).
+					echo '<input type="number" class="small-text" id="' . esc_attr( $id ) . '" name="' . $name . '" value="' . esc_attr( (string) $value ) . '"'
+						. ( isset( $field['step'] ) ? ' step="' . esc_attr( $field['step'] ) . '"' : '' )
+						. ( isset( $field['min'] ) ? ' min="' . esc_attr( $field['min'] ) . '"' : '' ) . '>';
 					break;
 
 				case 'media':

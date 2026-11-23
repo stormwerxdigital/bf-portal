@@ -45,6 +45,20 @@ check(s.boxR <= s.cellR + 0.5 && s.innerR <= s.cellR + 0.5, 'and they fit the co
 await p.selectOption('#bftd-start-pick', { index: 1 }); await p.waitForTimeout(80);
 check(!(await m()).shown, 'and hide again when an appointment is chosen');
 
+/* Attending to follows at once (Karl, 1.217.5: "the moment I choose a start
+   date, it should auto adjust the to date"). */
+const to = () => p.inputValue('#bftd_student_attend_to');
+check('2027-02-01' === await to(), 'choosing their first appointment fills in Attending to straight away, got ' + await to());
+const asked = await p.evaluate(() => window.ASKED[window.ASKED.length - 1]);
+check(!!asked && asked.from === '2026-11-23' && asked.bought === '10' && asked.action === 'bftd_forecast_preview' && String(asked.student_id) === '9', 'from that appointment\'s day and Sessions purchased as on screen, got ' + JSON.stringify(asked));
+await p.selectOption('#bftd-start-pick', 'new'); await p.fill('#bftd-start-date', '2026-12-07'); await p.dispatchEvent('#bftd-start-date', 'change'); await p.waitForTimeout(50);
+check('2027-02-15' === await to(), 'a new appointment\'s date does the same, got ' + await to());
+await p.fill('#bftd_student_attend_to', '2027-06-30'); await p.dispatchEvent('#bftd_student_attend_to', 'change');
+await p.selectOption('#bftd-start-pick', { index: 2 }); await p.waitForTimeout(50);
+check('2027-06-30' === await to(), 'a date somebody typed stays');
+const note = await p.textContent('.bftd-start-to');
+check(/2027-02-04/.test(note) && /stays/.test(note), 'and the forecast is said under it instead, got ' + note);
+
 await browser.close();
 console.log(fail ? `\n${fail} failure(s)` : '\nAll checks passed.');
 process.exit(fail ? 1 : 0);
