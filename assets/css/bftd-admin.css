@@ -1772,7 +1772,13 @@ html.bftd-calv-modal{overflow:hidden}
 .bftd-picks-table tr.is-pick-one .bftd-picks-guide{font-style:italic}
 .bftd-stu-end{white-space:nowrap}
 .bftd-stu-forecast{display:block;font-size:12px;color:var(--bftd-muted)}
-.bftd-start select{max-width:100%;min-width:280px}
+/* A student's start appointment (1.217.1): fits its column, and New
+   appointment's fields stay hidden until chosen. */
+.bftd-start select{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 .bftd-start-now{margin:0 0 6px}
-.bftd-start-new{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0 12px;margin-top:8px}
-.bftd-start-new .description{grid-column:1/-1}
+.bftd-start-new[hidden]{display:none}
+.bftd-start-new{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-top:10px;padding:10px;border:1px solid var(--bftd-line);border-radius:8px;background:var(--bftd-sunk)}
+.bftd-start-new p{margin:0;min-width:0}
+.bftd-start-new .bftd-label{margin-bottom:2px}
+.bftd-start-new input,.bftd-start-new select{width:100%;max-width:100%;box-sizing:border-box}
+.bftd-start-new .description{grid-column:1/-1;font-size:12px;margin:0}

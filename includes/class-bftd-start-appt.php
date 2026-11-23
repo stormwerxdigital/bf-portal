@@ -148,11 +148,11 @@ class BFTD_Start_Appt {
 				<p><label class="bftd-label" for="bftd-start-min">Minutes</label><input type="number" id="bftd-start-min" name="bftd_start_new[minutes]" value="50" min="15" step="5"></p>
 				<?php if ( count( $tutors ) > 1 ) : ?>
 					<p><label class="bftd-label" for="bftd-start-tutor">Tutor</label><select id="bftd-start-tutor" name="bftd_start_new[tutor]">
-						<option value="0">Their assigned tutor</option>
+						<option value="0">Assigned tutor</option>
 						<?php foreach ( $tutors as $uid => $name ) : ?><option value="<?php echo (int) $uid; ?>"><?php echo esc_html( $name ); ?></option><?php endforeach; ?>
 					</select></p>
 				<?php endif; ?>
-				<p class="description">Added to their schedule under the Calendar's rules: for a later day it waits in the Calendar's banner to be confirmed; for today or earlier it is kept here, with no notice and nothing sent to GoHighLevel.</p>
+				<p class="description">A later day waits in the Calendar's banner to be confirmed. Today or earlier is kept here: no notice, nothing sent to GoHighLevel.</p>
 			</div>
 			<p class="description">Their start, from the Calendar. Attending to is forecast from it.</p>
 		</div>
