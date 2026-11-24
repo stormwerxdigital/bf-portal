@@ -358,6 +358,45 @@ check(count($both_f) < count($byStatus), 'and two filters narrow each other, got
 $byClient = BFTD_Students::student_ids($f(array('client' => 100)));
 check(count($byClient) > 0, 'a client filter finds the children they pay for, got ' . count($byClient));
 
+/* ---- the notice at the top (1.219.2) ----
+   Drafts and students with no tutor sit at the bottom of a long screen. The
+   notice says how many, jumps to them, and is not there when there are none. */
+$mk = function ($id, $record, $tutors) { return array('id' => $id, 'name' => 'S' . $id, 'record' => $record, 'tutors' => $tutors); };
+
+$clean = array(1 => $mk(1, 'publish', array(7 => 'Avery')), 2 => $mk(2, 'publish', array(8 => 'Jo')));
+check('' === BFTD_Students::attention_notice($clean, BFTD_Students::by_tutor($clean)), 'no notice when every student is published and assigned');
+
+/* Karl's screenshot: Ben and Maya, both drafts, both unassigned. */
+$whelly = $clean + array(3 => $mk(3, 'draft', array()), 4 => $mk(4, 'draft', array()));
+$wg   = BFTD_Students::by_tutor($whelly);
+$note = BFTD_Students::attention_notice($whelly, $wg);
+check(false !== strpos($note, '2 students are drafts · 2 have no tutor'), 'says both counts: ' . strip_tags($note));
+check(false !== strpos($note, 'href="#bftd-stu-attention"'), 'and links to the section');
+check(0 === BFTD_Students::attention_target($wg), 'which is Nobody assigned');
+
+$one = $clean + array(3 => $mk(3, 'draft', array(7 => 'Avery')));
+$on  = BFTD_Students::attention_notice($one, BFTD_Students::by_tutor($one));
+check(false !== strpos($on, '1 student is a draft') && false === strpos($on, 'tutor'), 'one draft with a tutor, singular and nothing about tutors: ' . strip_tags($on));
+check(7 === BFTD_Students::attention_target(BFTD_Students::by_tutor($one)), 'with nobody unassigned it jumps to the section holding the draft');
+
+$mixed = $clean + array(3 => $mk(3, 'draft', array(7 => 'Avery')), 4 => $mk(4, 'publish', array()));
+check(0 === BFTD_Students::attention_target(BFTD_Students::by_tutor($mixed)), 'Nobody assigned wins over a tutor section holding a draft');
+
+$lone = $clean + array(3 => $mk(3, 'publish', array()));
+check(false !== strpos(BFTD_Students::attention_notice($lone, BFTD_Students::by_tutor($lone)), '1 student has no tutor'), 'one unassigned, published student');
+
+/* A child with two tutors is in two sections and still one draft. */
+$two = $clean + array(3 => $mk(3, 'draft', array(7 => 'Avery', 8 => 'Jo')));
+check(false !== strpos(BFTD_Students::attention_notice($two, BFTD_Students::by_tutor($two)), '1 student is a draft'), 'counted once, not once a section');
+
+/* Pending review is not a draft. */
+$pend = $clean + array(3 => $mk(3, 'pending', array(7 => 'Avery')));
+check('' === BFTD_Students::attention_notice($pend, BFTD_Students::by_tutor($pend)), 'pending review is not counted as a draft');
+
+$src = file_get_contents(dirname(__DIR__) . '/includes/class-bftd-students.php');
+check(false !== strpos($src, 'self::attention_notice( $rows, $groups )'), 'render() draws the notice');
+check(1 === preg_match('/section\( \$uid, \$group, \$f, .*ATTENTION_ID/', $src), 'and gives the target section the anchor');
+
 /* Nobody matching is an empty screen, not the whole practice. */
 $none = BFTD_Students::student_ids($f(array('tutor' => 999)));
 check(array() === $none, 'a filter matching nobody shows nobody, got ' . count($none));

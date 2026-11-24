@@ -906,6 +906,20 @@ input[type=search]:focus,input[type=date]:focus,input[type=time]:focus,select:fo
    one it uses for a person. */
 .bftd-stu-sec.is-none .bftd-stu-h{background:var(--bftd-clay)}
 
+/* Drafts and students with no tutor, said at the top and one click to them
+   (1.219.2). The same clay as the Nobody assigned bar it jumps to, so the
+   two read as one thing. White on this clay is 4.6:1. */
+.bftd-stu-attn{margin:14px 0 0}
+.bftd-stu-attn > a,.bftd-stu-attn > span{display:inline-flex;align-items:center;gap:8px;
+  padding:7px 14px;border-radius:7px;background:var(--bftd-clay);color:#fff;
+  font:600 13px/1.3 var(--bftd-b);text-decoration:none}
+.bftd-stu-attn .dashicons{font-size:17px;width:17px;height:17px}
+.bftd-stu-attn-go{margin-left:6px;text-decoration:underline;font-weight:600;opacity:.95}
+.bftd-stu-attn a:hover,.bftd-stu-attn a:focus{color:#fff;background:#9E4E26}
+.bftd-stu-attn a:focus{outline:2px solid var(--bftd-clay);outline-offset:2px;box-shadow:none}
+/* Clear of the admin bar when jumped to, rather than tucked under it. */
+#bftd-stu-attention{scroll-margin-top:46px}
+
 .bftd-stu-t{width:100%;border-collapse:collapse;background:var(--bftd-card);
   border:1px solid var(--bftd-line);border-top:0;border-radius:0 0 7px 7px}
 /* Sentence case. All caps is not a convention this business uses anywhere,

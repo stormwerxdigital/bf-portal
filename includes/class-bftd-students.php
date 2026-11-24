@@ -30,6 +30,9 @@ class BFTD_Students {
 	/** How many of a tutor's students the overview shows before it stops. */
 	const PREVIEW = 25;
 
+	/** The section the "needs attention" notice at the top jumps to (1.219.2). */
+	const ATTENTION_ID = 'bftd-stu-attention';
+
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ), 21 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'hide_list_row' ), 0 );
@@ -279,6 +282,8 @@ class BFTD_Students {
 					?> <a href="<?php echo esc_url( admin_url( 'edit.php?post_status=trash&post_type=' . BFTD_CPT::STUDENT ) ); ?>">Open the trash</a></p></div>
 			<?php endif; ?>
 
+			<?php echo self::attention_notice( $rows, $groups ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in attention_notice ?>
+
 			<?php self::filter_bar( $f, count( $rows ), self::SLUG ); ?>
 
 			<?php if ( ! $rows ) : ?>
@@ -289,7 +294,10 @@ class BFTD_Students {
 						: 'Add one and it will appear here, under whoever is assigned to them.'; ?></p>
 				</div>
 			<?php else : ?>
-				<?php foreach ( $groups as $uid => $group ) self::section( $uid, $group, $f ); ?>
+				<?php
+				$target = self::attention_target( $groups );
+				foreach ( $groups as $uid => $group ) self::section( $uid, $group, $f, ( null !== $target && (int) $target === (int) $uid ) ? self::ATTENTION_ID : '' );
+				?>
 			<?php endif; ?>
 
 			<p class="bftd-stu-foot description">
@@ -383,13 +391,13 @@ class BFTD_Students {
 	 * next. The rest is one click: the same screen filtered to that tutor,
 	 * which is a page a person can link to and come back to.
 	 */
-	private static function section( $uid, $group, $f ) {
+	private static function section( $uid, $group, $f, $anchor = '' ) {
 		$rows  = isset( $group['rows'] ) ? $group['rows'] : array();
 		$total = count( $rows );
 		$full  = ( $f['tutor'] && (int) $f['tutor'] === (int) $uid ) || $total <= self::PREVIEW;
 		$shown = $full ? $rows : array_slice( $rows, 0, self::PREVIEW );
 		?>
-		<section class="bftd-stu-sec<?php echo $uid ? '' : ' is-none'; ?>">
+		<section class="bftd-stu-sec<?php echo $uid ? '' : ' is-none'; ?>"<?php echo '' !== $anchor ? ' id="' . esc_attr( $anchor ) . '"' : ''; ?>>
 			<header class="bftd-stu-h">
 				<h2><?php echo esc_html( $group['name'] ); ?></h2>
 				<span class="bftd-stu-n"><?php echo esc_html( $total . ' ' . ( 1 === $total ? 'student' : 'students' ) ); ?></span>
@@ -633,6 +641,60 @@ class BFTD_Students {
 			return;
 		}
 		echo '<span class="bftd-pill is-' . esc_attr( $status ) . '">' . esc_html( $words[ $status ] ) . '</span>';
+	}
+
+	/**
+	 * A small notice above the list when some students are drafts or have no
+	 * tutor (Karl, 1.219.2). Both sit at the bottom of a long screen, under
+	 * Nobody assigned, where nobody scrolls; this says they are there and is
+	 * one click to them. Nothing at all when there are none.
+	 *
+	 * Counted from the rows, not the sections: a child with two tutors is in
+	 * two sections and is still one student.
+	 */
+	public static function attention_notice( $rows, $groups ) {
+		$drafts = 0;
+		$none   = 0;
+		foreach ( $rows as $row ) {
+			if ( 'draft' === (string) ( $row['record'] ?? '' ) ) $drafts++;
+			if ( empty( $row['tutors'] ) ) $none++;
+		}
+		if ( ! $drafts && ! $none ) return '';
+
+		$parts = array();
+		if ( $drafts ) {
+			$parts[] = 1 === $drafts ? '1 student is a draft' : $drafts . ' students are drafts';
+		}
+		if ( $none ) {
+			// "students" once is enough when the draft count already said it.
+			$parts[] = $drafts
+				? ( 1 === $none ? '1 has no tutor' : $none . ' have no tutor' )
+				: ( 1 === $none ? '1 student has no tutor' : $none . ' students have no tutor' );
+		}
+
+		$target = self::attention_target( $groups );
+		$text   = implode( ' · ', $parts );
+		$inner  = '<span class="dashicons dashicons-warning" aria-hidden="true"></span><span>' . esc_html( $text ) . '</span>';
+		if ( null === $target ) {
+			return '<p class="bftd-stu-attn"><span>' . $inner . '</span></p>';
+		}
+		return '<p class="bftd-stu-attn"><a href="#' . esc_attr( self::ATTENTION_ID ) . '">' . $inner
+			. '<span class="bftd-stu-attn-go">Show them</span></a></p>';
+	}
+
+	/**
+	 * Which section the notice jumps to: Nobody assigned when there is one,
+	 * since every unassigned student and most drafts are there; otherwise
+	 * the first section holding a draft. Null when there is nothing to show.
+	 */
+	public static function attention_target( $groups ) {
+		if ( isset( $groups[0] ) ) return 0;
+		foreach ( $groups as $uid => $group ) {
+			foreach ( ( $group['rows'] ?? array() ) as $row ) {
+				if ( 'draft' === (string) ( $row['record'] ?? '' ) ) return $uid;
+			}
+		}
+		return null;
 	}
 
 	/** Rows arranged into the sections the screen is made of. */
