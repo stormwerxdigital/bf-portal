@@ -68,7 +68,9 @@ check('Christmas holidays' === $H::closed_because('2026-12-22') && 'Spring break
 /* ---- bookings refused on closed days ---- */
 $GLOBALS['STUDENT_IDS'] = array(10, 11);
 $GLOBALS['STAFF'] = array(10 => array(7), 11 => array(7));
-$r = $S::add_booking(10, array('repeat' => 'once', 'from' => '2026-11-22', 'time' => '10:00'));
+// The next Sunday: a fixed one goes into the past and is refused for that instead (1.219.3).
+$sun = gmdate('Y-m-d', strtotime('next sunday', strtotime(gmdate('Y-m-d') . ' 12:00:00 UTC') + 86400));
+$r = $S::add_booking(10, array('repeat' => 'once', 'from' => $sun, 'time' => '10:00'));
 check(is_wp_error($r) && false !== strpos($r->get_error_message(), 'that is a Sunday') && array() === $S::rules(10), 'a one-time booking on a Sunday is refused, and says why');
 $r = $S::add_booking(10, array('repeat' => 'once', 'from' => '2027-11-11', 'time' => '10:00'));
 check(is_wp_error($r) && false !== strpos($r->get_error_message(), 'that is Remembrance Day'), 'and on a statutory holiday');
