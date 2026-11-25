@@ -129,7 +129,7 @@ class BFTD_View_As {
 		$name   = $client ? $client->display_name : 'this client';
 		?>
 		<div class="bftd-viewas-bar" role="status" style="position:sticky;top:0;z-index:99999;background:#3B2F47;color:#fff;font:600 14px/1.4 system-ui,sans-serif;padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between">
-			<span>Viewing as <?php echo esc_html( $name ); ?> (client). Read only: nothing you do here is posted, ticked or saved as them.</span>
+			<span>Viewing as <?php echo esc_html( $name ); ?> (client).</span>
 			<a href="<?php echo esc_url( admin_url( 'users.php' ) ); ?>" style="color:#fff;text-decoration:underline">Back to Users</a>
 		</div>
 		<?php

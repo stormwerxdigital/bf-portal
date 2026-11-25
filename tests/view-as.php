@@ -74,5 +74,7 @@ check(false !== strpos($src, "add_filter( 'show_admin_bar', '__return_false'"), 
 check(1 === preg_match('/BFTD\.read_only=1.*admin-ajax\.php.*read-only view/s', $src), 'and the page script stops anything it would send, and says why');
 check(false !== strpos(file_get_contents(BFTD_PATH . 'includes/class-bftd-dashboard.php'), 'BFTD_View_As::link_args()'), 'portal links keep the view as you move about');
 
+check(false !== strpos($src, '<span>Viewing as <?php echo esc_html( $name ); ?> (client).</span>'), 'the banner just says who is being viewed (Karl, 1.219.4)');
+
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);
