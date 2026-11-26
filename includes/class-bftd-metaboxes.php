@@ -495,7 +495,7 @@ class BFTD_MetaBoxes {
 			// How often they come, for forecasting Attending to (Karl, 1.214).
 			'per_week'     => array( 'type' => 'select', 'label' => 'Sessions per week', 'default' => '2', 'options' => array( '1' => '1 a week', '2' => '2 a week', '3' => '3 a week', '4' => '4 a week', '5' => '5 a week' ) ),
 			'join_url'     => array( 'type' => 'text',   'label' => 'Joining link' ),
-			'recording_days' => array( 'type' => 'number', 'label' => 'Recordings stay available for, in days', 'default' => '14' ),
+			'recording_days' => array( 'type' => 'number', 'label' => 'Recordings stay available for, in days', 'default' => '30' ),
 		);
 	}
 

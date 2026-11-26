@@ -208,6 +208,8 @@
   margin:26px 0 0;padding:16px 18px;background:var(--bf-purple-wash);border:1px solid var(--bf-purple-pale);border-radius:6px}
 .bf-help p{margin:0;font-size:15px;color:var(--body)}
 .bf-foot{margin:16px 0 0;font-size:13.5px;color:var(--muted)}
+.bf-privacy-link{margin:24px 0 8px;text-align:center;font-size:13px}
+.bf-privacy-link a{color:#5F5769}
 .bf-logo{max-height:46px;max-width:190px;width:auto;height:auto;display:block;object-fit:contain}
 
 /* ==========================================================================

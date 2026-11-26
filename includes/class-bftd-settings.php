@@ -67,7 +67,7 @@ class BFTD_Settings {
 		return wp_parse_args( is_array( $saved ) ? $saved : array(), array(
 			'page_id'        => (int) get_option( BFTD_Dashboard::OPTION_PAGE, 0 ),
 			'welcome'        => 'Everything about your child\'s reading, in one place.',
-			'recording_days' => 14,
+			'recording_days' => 30,
 			'show_messages'  => 1,
 			'show_resources' => 1,
 			'show_setup'     => 1,
@@ -466,7 +466,7 @@ class BFTD_Settings {
 		$after = array(
 			'page_id'        => isset( $in['page_id'] ) ? absint( $in['page_id'] ) : 0,
 			'welcome'        => isset( $in['welcome'] ) ? sanitize_textarea_field( $in['welcome'] ) : '',
-			'recording_days' => max( 0, (int) ( isset( $in['recording_days'] ) ? $in['recording_days'] : 14 ) ),
+			'recording_days' => max( 0, (int) ( isset( $in['recording_days'] ) ? $in['recording_days'] : 30 ) ),
 			'show_messages'  => empty( $in['show_messages'] ) ? 0 : 1,
 			'show_resources' => empty( $in['show_resources'] ) ? 0 : 1,
 			'show_setup'     => empty( $in['show_setup'] ) ? 0 : 1,

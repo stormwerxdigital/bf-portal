@@ -144,7 +144,6 @@ class BFTD_Brand {
 			body.login .button-primary:hover{background:#5A6B2C!important;border-color:#5A6B2C!important;color:#fff!important}
 			body.login #nav a,body.login #backtoblog a{color:#5F5769}
 			body.login #nav a:hover,body.login #backtoblog a:hover{color:<?php echo esc_html( $purple ); ?>}
-			body.login .privacy-policy-page-link{display:none}
 			.bftd-login-note{margin:0 0 20px;padding:16px 20px;background:#fff;border-left:4px solid <?php echo esc_html( $purple ); ?>;
 				border-radius:4px;font-size:14px;line-height:1.55;color:#39323F}
 		</style>
