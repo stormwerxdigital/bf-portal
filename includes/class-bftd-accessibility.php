@@ -124,7 +124,7 @@ class BFTD_Accessibility {
 	 * made different from each other on purpose.
 	 */
 	public static function font_url() {
-		return 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap';
+		return BFTD_URL . 'assets/fonts/atkinson.css?ver=' . BFTD_VERSION; // From the plugin, not Google (1.220.1).
 	}
 
 	public static function css_url() {

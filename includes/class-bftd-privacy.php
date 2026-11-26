@@ -45,11 +45,36 @@ class BFTD_Privacy {
 	 * repeat it on every screen.
 	 */
 	public static function maybe_setup() {
-		if ( get_option( self::OPTION_SETUP ) ) return;
 		if ( ! current_user_can( 'manage_options' ) ) return;
+		if ( get_option( self::OPTION_SETUP ) ) {
+			self::drop_google_fonts();
+			return;
+		}
 		update_option( self::OPTION_SETUP, BFTD_VERSION, false );
+		update_option( self::OPTION_FONTS, 1, false );
 		self::recordings_to_thirty();
 		self::create_draft();
+	}
+
+	const OPTION_FONTS = 'bftd_privacy_fonts_dropped';
+
+	/**
+	 * 1.220.0's draft named Google Fonts; from 1.220.1 the fonts come from
+	 * the plugin, so the line is no longer true. Taken out of that draft once,
+	 * and only while it is still our unpublished draft: a published policy,
+	 * or one somebody else wrote, is theirs to change.
+	 */
+	public static function drop_google_fonts() {
+		if ( get_option( self::OPTION_FONTS ) ) return false;
+		update_option( self::OPTION_FONTS, 1, false );
+		$id = self::page_id();
+		if ( ! $id || 'draft' !== get_post_status( $id ) ) return false;
+		if ( 'bftd_privacy' !== get_post_meta( $id, '_bftd_written_by', true ) ) return false;
+		$post = get_post( $id );
+		$out  = preg_replace( '#<!-- wp:list-item -->\s*<li><strong>Google Fonts:</strong>.*?</li>\s*<!-- /wp:list-item -->#s', '', (string) $post->post_content, 1, $n );
+		if ( ! $n ) return false;
+		wp_update_post( array( 'ID' => $id, 'post_content' => $out ) );
+		return true;
 	}
 
 	/**
@@ -185,7 +210,6 @@ class BFTD_Privacy {
 				'<strong>GoHighLevel:</strong> our client records, messages, emails and invoices.',
 				'<strong>Dropbox:</strong> session recordings.',
 				'<strong>GridPane and its hosting provider:</strong> the servers the portal and its database run on.',
-				'<strong>Google Fonts:</strong> the lettering the portal uses. Loading it shares your device\'s internet address with Google.',
 				'<strong>AI writing tools:</strong> our staff sometimes use them to help draft reports, session notes and messages. We share only what the task needs, and a staff member checks everything before it reaches you.',
 			) ),
 			array( 'p', 'When a school pays for a student\'s tutoring, we share that student\'s attendance and session counts with the school for billing.' ),

@@ -15,6 +15,7 @@ function get_edit_post_link($id) { return '/wp-admin/post.php?post=' . $id; }
 function get_post_meta($id, $k = '', $s = false) { return $GLOBALS['META'][$id][$k] ?? ''; }
 function update_post_meta($id, $k, $v) { $GLOBALS['META'][$id][$k] = $v; return true; }
 function is_wp_error($x) { return false; }
+function wp_update_post($a) { $GLOBALS['POSTS'][$a['ID']]['post_content'] = $a['post_content']; return $a['ID']; }
 function date_i18n($f) { return 'November 25, 2026'; }
 function wp_insert_post($a) {
   $id = $GLOBALS['NEXT']++;
@@ -67,6 +68,28 @@ check('' === $notice(), 'the reminder goes away');
 $brand = file_get_contents(dirname(__DIR__) . '/includes/class-bftd-brand.php');
 check(false === strpos($brand, 'privacy-policy-page-link{display:none}'), 'the sign-in screen no longer hides WordPress\'s privacy policy link');
 
+echo "\nThe 1.220.0 draft loses its Google Fonts line (1.220.1):\n";
+$gf = "<!-- wp:list-item -->\n<li><strong>Google Fonts:</strong> the lettering. Shares your address with Google.</li>\n<!-- /wp:list-item -->";
+$keep = "<!-- wp:list-item -->\n<li><strong>Dropbox:</strong> session recordings.</li>\n<!-- /wp:list-item -->";
+$old = '<ul>' . $keep . $gf . '</ul>';
+$OPT = array('bftd_privacy_setup' => '1.220.0', 'wp_page_for_privacy_policy' => 60);
+$POSTS = array(60 => array('post_status' => 'draft', 'post_name' => 'privacy-policy', 'post_content' => $old)); $META = array(60 => array('_bftd_written_by' => 'bftd_privacy'));
+$CAN = false; BFTD_Privacy::maybe_setup();
+check($old === $POSTS[60]['post_content'], 'not for somebody who cannot manage the site');
+$CAN = true; BFTD_Privacy::maybe_setup();
+check('<ul>' . $keep . '</ul>' === $POSTS[60]['post_content'], 'an administrator\'s next screen takes the line out and keeps the rest');
+$POSTS[60]['post_content'] = $old; BFTD_Privacy::maybe_setup();
+check($old === $POSTS[60]['post_content'], 'only once, so a line somebody puts back stays');
+foreach (array('published' => array('post_status' => 'publish'), 'written by somebody else' => array('meta' => '')) as $what => $case) {
+  $OPT = array('bftd_privacy_setup' => '1.220.0', 'wp_page_for_privacy_policy' => 60);
+  $POSTS[60] = array('post_status' => $case['post_status'] ?? 'draft', 'post_name' => 'privacy-policy', 'post_content' => $old);
+  $META[60]['_bftd_written_by'] = $case['meta'] ?? 'bftd_privacy';
+  BFTD_Privacy::maybe_setup();
+  check($old === $POSTS[60]['post_content'], "a policy that is $what is left as it is");
+}
+$OPT = array(); $POSTS = array(); $META = array(); BFTD_Privacy::maybe_setup();
+check(!empty($OPT['bftd_privacy_fonts_dropped']) && false === strpos(end($POSTS)['post_content'], 'Google'), 'a new site\'s draft never names Google Fonts');
+
 echo "\nA site that already has a published policy:\n";
 $OPT = array('wp_page_for_privacy_policy' => 50); $POSTS = array(50 => array('post_status' => 'publish', 'post_name' => 'privacy'));
 BFTD_Privacy::create_draft();
@@ -74,7 +97,7 @@ check(50 === $OPT['wp_page_for_privacy_policy'] && 2 === count($POSTS), 'the pub
 
 echo "\nThe wording:\n";
 $c = BFTD_Privacy::content();
-foreach (array('PIPEDA', '30 days after the session', 'Dropbox', 'GoHighLevel', 'AI writing tools', 'Google Fonts', 'outside Canada', 'priv.gc.ca', 'within 30 days', 'do not sell') as $must) {
+foreach (array('PIPEDA', '30 days after the session', 'Dropbox', 'GoHighLevel', 'AI writing tools', 'outside Canada', 'priv.gc.ca', 'within 30 days', 'do not sell') as $must) {
   check(false !== strpos($c, $must), "it covers: $must");
 }
 check(false === strpos($c, "\u{2014}") && false === strpos($c, '&mdash;'), 'no em dashes');

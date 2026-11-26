@@ -150,7 +150,7 @@ foreach (array('Didact\+Gothic' => 'the alphabet face the writing section is set
                'Raleway'       => 'the display face',
                'Source\+Sans'  => 'the body face',
                'IBM\+Plex\+Mono' => 'the figures face') as $fam => $what) {
-  check(1 === preg_match('/' . $fam . '/', $view), "the shared list asks for $what");
+  check(1 === preg_match('/' . str_replace('\+', ' ', $fam) . '/', file_get_contents(BFTD_PATH . 'assets/fonts/fonts.css')), "the shared list carries $what");
 }
 
 /* ------------------------------------------------------------------ */

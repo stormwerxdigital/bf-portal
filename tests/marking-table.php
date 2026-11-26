@@ -223,7 +223,7 @@ check(1 === preg_match('/\.crit-foot \.abc\{[^}]*font-family:var\(--font-abc\)/'
    on the list itself, and on each surface using it, rather than on the literal
    text happening to appear in one file. */
 if (!class_exists('BFTD_Report_View')) require BFTD_PATH . 'includes/class-bftd-report-view.php';
-check(false !== strpos(BFTD_Report_View::fonts_url(), 'Didact+Gothic'),
+check(false !== strpos(file_get_contents(BFTD_PATH . 'assets/fonts/fonts.css'), "font-family: 'Didact Gothic'"),
   'and the font is in the list the report is drawn with');
 foreach (array('class-bftd-preview.php'   => 'the preview',
                'class-bftd-dashboard.php' => 'the family portal') as $f => $where) {

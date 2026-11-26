@@ -317,8 +317,6 @@ class BFTD_Preview {
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="robots" content="noindex, nofollow">
 	<title><?php echo esc_html( $title . ' · preview' ); ?></title>
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link rel="stylesheet" href="<?php echo esc_url( BFTD_Report_View::fonts_url() ); ?>">
 	<link rel="stylesheet" href="<?php echo esc_url( BFTD_URL . 'assets/css/bftd-report.css?v=' . BFTD_VERSION ); ?>">
 	<?php echo BFTD_Accessibility::head_tags(); // Nothing unless this person has accessibility mode on. ?>

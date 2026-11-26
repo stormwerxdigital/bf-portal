@@ -65,12 +65,10 @@ class BFTD_Report_View {
 	 * parent saw.
 	 */
 	public static function fonts_url() {
-		return 'https://fonts.googleapis.com/css2'
-			. '?family=Raleway:wght@400;600;700;800'
-			. '&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400'
-			. '&family=IBM+Plex+Mono:wght@400;500'
-			. '&family=Didact+Gothic'
-			. '&display=swap';
+		// Raleway, Source Sans 3, IBM Plex Mono and Didact Gothic, served from
+		// the plugin rather than Google, so no visitor's address goes to Google
+		// (Karl, 1.220.1). The files and their stylesheet are in assets/fonts.
+		return BFTD_URL . 'assets/fonts/fonts.css?ver=' . BFTD_VERSION;
 	}
 
 	private static $extra = array();
