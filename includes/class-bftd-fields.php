@@ -187,9 +187,10 @@ class BFTD_Fields {
 			$def  = isset( $section['fields'][ $key ] ) ? $section['fields'][ $key ] : array();
 			$rows = self::get( $post_id, $section_id, $key, $def );
 			if ( ! is_array( $rows ) ) continue;
-			foreach ( $rows as $row ) {
+			foreach ( $rows as $rid => $row ) {
 				$v = ( is_array( $row ) && isset( $row['value'] ) ) ? (string) $row['value'] : '';
 				if ( '' === $v ) continue;
+				$v = self::mark_value( $def, $rid, $v );
 				$any = true;
 				if ( ! $want || in_array( $v, $want, true ) ) $n++;
 			}
@@ -1025,6 +1026,17 @@ class BFTD_Fields {
 	 * A checklist's answers as marks: yes a green tick, no a red cross, N/A
 	 * in words, and not assessed a dash, in that order. Values unchanged.
 	 */
+	/** Is No the good answer on this row of a checklist? */
+	public static function inverted( $field, $rid ) {
+		return ! empty( $field['invert'] ) && in_array( (string) $rid, (array) $field['invert'], true );
+	}
+
+	/** The value a mark stores, or the mark a value shows: Yes and No change places on an inverted row. */
+	public static function mark_value( $field, $rid, $value ) {
+		if ( ! self::inverted( $field, $rid ) ) return $value;
+		return 'yes' === $value ? 'no' : ( 'no' === $value ? 'yes' : $value );
+	}
+
 	public static function mark_choices( $options ) {
 		$look = array(
 			'yes' => array( 'cls' => 'yes',  'show' => '&#10003;', 'title' => 'Yes' ),
@@ -1116,7 +1128,9 @@ class BFTD_Fields {
 						<label class="bftd-cl-item" for="<?php echo esc_attr( $id ); ?>"><?php echo wp_kses_post( $label ); ?></label>
 						<?php if ( ! empty( $field['marks'] ) ) : // Tick, cross, N/A or nothing (Karl, 1.155). ?>
 						<span class="bftd-crit-mark bftd-cl-mark" role="radiogroup" aria-label="<?php echo esc_attr( 'Result for: ' . wp_strip_all_tags( $label ) ); ?>">
-							<?php foreach ( self::mark_choices( $field['options'] ) as $ov => $m ) : ?>
+							<?php foreach ( self::mark_choices( $field['options'] ) as $ov => $m ) :
+								$ov = self::mark_value( $field, $rid, $ov );
+								if ( 'yes' === $m['cls'] || 'no' === $m['cls'] ) $m['title'] = isset( $field['options'][ $ov ] ) ? $field['options'][ $ov ] : $m['title']; ?>
 								<label class="bftd-crit-opt bftd-crit-opt-<?php echo esc_attr( $m['cls'] ); ?>" title="<?php echo esc_attr( $m['title'] ); ?>">
 									<input type="radio" name="<?php echo $name; ?>[<?php echo esc_attr( $rid ); ?>][value]" value="<?php echo esc_attr( $ov ); ?>"<?php checked( $val, (string) $ov ); ?>>
 									<span aria-hidden="true"><?php echo $m['show']; ?></span><span class="screen-reader-text"><?php echo esc_html( $m['title'] ); ?></span>

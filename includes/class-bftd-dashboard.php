@@ -824,6 +824,7 @@ class BFTD_Dashboard {
 				$made[] = array(
 					'item'  => $label,
 					'value' => $row['value'],
+					'mark'  => BFTD_Fields::mark_value( $field, $rid, (string) $row['value'] ),
 					'note'  => isset( $row['note'] ) ? $row['note'] : '',
 				);
 			}
@@ -977,9 +978,11 @@ class BFTD_Dashboard {
 			$label = isset( $opts[ $val ] ) ? $opts[ $val ] : $val;
 			echo '<div class="conv-row">';
 			if ( ! empty( $field['marks'] ) && in_array( $val, array( 'yes', 'no' ), true ) ) {
-				// The green tick and red cross the tutor chose (Karl, 1.155).
-				$path = 'yes' === $val ? 'M3.5 8.4l3 3 6-6.6' : 'M4.5 4.5l7 7M11.5 4.5l-7 7';
-				echo '<span class="conv-v conv-mark ' . esc_attr( $val ) . '"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="' . $path . '"/></svg><span class="screen-reader-text">' . esc_html( $label ) . '</span></span>';
+				// The green tick and red cross the tutor chose (Karl, 1.155). On a
+				// row where No is the good answer the tick is the No (1.221.1).
+				$mark = isset( $row['mark'] ) ? (string) $row['mark'] : $val;
+				$path = 'yes' === $mark ? 'M3.5 8.4l3 3 6-6.6' : 'M4.5 4.5l7 7M11.5 4.5l-7 7';
+				echo '<span class="conv-v conv-mark ' . esc_attr( $mark ) . '"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="' . $path . '"/></svg><span class="screen-reader-text">' . esc_html( $label ) . '</span></span>';
 			} else {
 				echo '<span class="conv-v ' . esc_attr( $val ) . '">' . esc_html( $label ) . '</span>';
 			}

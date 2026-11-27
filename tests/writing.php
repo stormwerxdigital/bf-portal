@@ -154,5 +154,37 @@ check(false !== strpos($fsrc, '<?php if ( ! empty( $field[\'marks\'] ) ) : // Ti
 $dsrc = file_get_contents(BFTD_PATH . 'includes/class-bftd-dashboard.php');
 check(false !== strpos($dsrc, 'if ( ! empty( $field[\'marks\'] ) && in_array( $val, array( \'yes\', \'no\' ), true ) ) {'), 'and the report shows a tick or a cross, N/A staying in words');
 
+/* ---- misspelled words: no is the good answer (Karl, 1.221.1) ---- */
+$cv = $f['conventions'];
+check(array('misspelled') === $cv['invert'], 'the misspelled words row is the one where No is good');
+check(BFTD_Fields::inverted($cv, 'misspelled') && !BFTD_Fields::inverted($cv, 'spaces') && !BFTD_Fields::inverted($f['grammar'], 'misspelled'), 'and only that row');
+check('no' === BFTD_Fields::mark_value($cv, 'misspelled', 'yes') && 'yes' === BFTD_Fields::mark_value($cv, 'misspelled', 'no') && 'na' === BFTD_Fields::mark_value($cv, 'misspelled', 'na'), 'its tick stores No and its cross Yes; N/A is N/A');
+check('yes' === BFTD_Fields::mark_value($cv, 'spaces', 'yes'), 'other rows are as they were');
+check(array('2', '2') === $put(
+  array('spaces' => array('value' => 'yes'), 'misspelled' => array('value' => 'no', 'note' => 'No misspelled words.')),
+  array()
+), 'no misspelled words is a point in the score');
+check(array('1', '2') === $put(
+  array('spaces' => array('value' => 'yes'), 'misspelled' => array('value' => 'yes')),
+  array()
+), 'some misspelled words is not');
+
+// The tutor's buttons: on that row the tick (first, green) is the one that stores No.
+$GLOBALS['META'][9] = array(BFTD_Schema::meta_key('dxsec-6', 'conventions') => array('misspelled' => array('value' => 'no', 'note' => 'No misspelled words.')));
+foreach (array('checked', 'wp_kses_post', 'wp_strip_all_tags') as $fn) if (!function_exists($fn)) {
+  if ('checked' === $fn) { function checked($a, $b, $e = true) { $r = (string) $a === (string) $b ? ' checked' : ''; if ($e) echo $r; return $r; } }
+}
+ob_start(); BFTD_Fields::render_field(9, 'dxsec-6', 'conventions', $cv); $ed = ob_get_clean();
+$row = substr($ed, strpos($ed, 'misspelled words'));
+preg_match_all('/bftd-crit-opt-(\w+)".*?value="(\w*)"( checked)?/s', substr($row, 0, 3000), $m, PREG_SET_ORDER);
+check(isset($m[0], $m[1]) && 'yes' === $m[0][1] && 'no' === $m[0][2] && ' checked' === ($m[0][3] ?? '') && 'no' === $m[1][1] && 'yes' === $m[1][2],
+  'in the editor the tick is on the left, stores No and is the one chosen for "No misspelled words."');
+
+check(false !== strpos($dsrc, "'mark'  => BFTD_Fields::mark_value( \$field, \$rid, (string) \$row['value'] ),")
+  && false !== strpos($dsrc, "\$path = 'yes' === \$mark ?") && false !== strpos($dsrc, "conv-mark ' . esc_attr( \$mark )"),
+  'and the family\'s report draws the green tick for it');
+
+echo "\n";
+
 echo $fail ? "\nFAIL\n" : "\nPASS\n";
 exit($fail ? 1 : 0);

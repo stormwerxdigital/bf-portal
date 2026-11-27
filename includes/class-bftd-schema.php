@@ -1375,6 +1375,11 @@ class BFTD_Schema {
 				'type'     => 'checklist',
 				// Answered with the green tick and red cross, N/A in words (Karl, 1.155).
 				'marks'    => true,
+				// Rows where No is the good answer (Karl, 1.221.1). "Contains some
+				// misspelled words" answered No is a piece with none, so its tick
+				// stores No, the cross Yes, and No is what the score counts.
+				// What was saved before keeps its meaning; only the mark moves.
+				'invert'   => array( 'misspelled' ),
 				'label'    => 'Writing conventions',
 				'headings' => array( 'value' => 'Result', 'item' => 'Writing convention' ),
 				'help'     => 'A row left at "Not assessed" is left out of the family\'s report, and out of both figures on the card.',
