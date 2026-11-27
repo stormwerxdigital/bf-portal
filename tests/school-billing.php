@@ -21,9 +21,11 @@ if (!function_exists('remove_accents')) { function remove_accents($s) { return $
 if (!function_exists('sanitize_text_field')) { function sanitize_text_field($s) { return trim(strip_tags((string) $s)); } }
 if (!function_exists('get_current_user_id')) { function get_current_user_id() { return 1; } }
 if (!function_exists('add_action')) { function add_action(...$a) {} }
+if (!function_exists('wp_nonce_field')) { function wp_nonce_field($a) { echo '<input type="hidden" name="_wpnonce" value="n">'; } }
+if (!function_exists('wp_unslash')) { function wp_unslash($s) { return $s; } }
 function get_posts($a) {
   global $STUDENTS, $META;
-  if (isset($a['meta_key'])) return array_values(array_filter($STUDENTS, function ($s) use ($a, $META) { return (int) ($META[$s][$a['meta_key']] ?? 0) === (int) $a['meta_value']; }));
+  if (isset($a['meta_key'])) return array_values(array_filter($STUDENTS, function ($s) use ($a, $META) { $v = $META[$s][$a['meta_key']] ?? ''; return is_numeric($a['meta_value']) ? (int) $v === (int) $a['meta_value'] : (string) $v === (string) $a['meta_value']; }));
   return $STUDENTS;
 }
 class BFTD_CPT {
@@ -139,6 +141,31 @@ check(false !== strpos($mb, "'paid_by'      => array( 'type' => 'select', 'label
 check(false !== strpos($mb, 'BFTD_School_Billing::bank_label( $post->ID )') && false !== strpos($mb, "'Approved' : 'Purchased'"), 'Sessions purchased and its tile say Approved for a monthly school');
 $sb = file_get_contents(BFTD_PATH . 'includes/class-bftd-school-billing.php');
 check(1 === substr_count($sb, "check_admin_referer( 'bftd_school_statement' )") && false !== strpos($sb, 'BFTD_Schools::can_edit()'), 'print and CSV are for senior managers and administrators, with a nonce');
+
+echo "\nGovernment funding (1.221.0):\n";
+check(false === isset(BFTD_School_Billing::monthly_schools()[BFTD_School_Billing::GOV]), 'no government statement while nobody is paid for by it');
+$STUDENTS[] = 7; $TITLE[7] = 'Gil Test';
+$set(7, 'paid_by', 'government');
+check('government' === BFTD_School_Billing::paid_by(7) && 'monthly' === BFTD_School_Billing::mode_for(7) && 'Sessions approved' === BFTD_School_Billing::bank_label(7), 'a student paid by government funding is billed monthly, with Sessions approved');
+check(false !== strpos(BFTD_School_Billing::said(7), 'Government funding is billed monthly after sessions, on the last day of the month'), 'and Paid by says so');
+check(array(7) === BFTD_School_Billing::paid_students(BFTD_School_Billing::GOV), 'only the students paid by government funding are on its statement');
+check('Government funding' === (BFTD_School_Billing::monthly_schools()[BFTD_School_Billing::GOV] ?? ''), 'and its statement is listed with the schools\'');
+update_option(BFTD_School_Billing::OPTION_GOV, array('bill_day' => '10', 'rate' => '50.00'));
+$sess(7, '2027-02-01', 'held'); $sess(7, '2027-02-09', 'noshow'); $sess(7, '2027-02-11', 'held');
+$g = BFTD_School_Billing::statement(BFTD_School_Billing::GOV, '2027-01-11', '2027-02-10');
+check(1 === count($g['rows']) && 2 === $g['sessions'] && 100.0 === $g['total'], 'its statement bills the period at its own rate, got ' . json_encode($g));
+$set(7, 'rate', '45');
+check(90.0 === BFTD_School_Billing::statement(BFTD_School_Billing::GOV, '2027-01-11', '2027-02-10')['total'], 'the student\'s own rate first, as for a school');
+check(false !== strpos(BFTD_School_Billing::said(7), 'on the 10th'), 'on its own billing day');
+check('Government funding' === BFTD_School_Billing::csv_rows(BFTD_School_Billing::GOV, array('2027-01-11', '2027-02-10', false), $g)[1][0], 'the CSV names it');
+check(null === BFTD_School_Billing::record(999) && 'Government funding' === BFTD_School_Billing::record(BFTD_School_Billing::GOV)['name'], 'a payer that is neither is nobody');
+$_GET = array('statement' => BFTD_School_Billing::GOV, 'period' => '');
+ob_start(); BFTD_School_Billing::render_section(); $html = ob_get_clean();
+check(false !== strpos($html, 'name="action" value="bftd_gov_billing"') && 1 === preg_match('/value="10"\s+selected/', $html) && false !== strpos($html, 'value="50.00"'), 'the Schools page sets its billing day and rate');
+check(false !== strpos($html, '<caption>Government funding,') && false !== strpos($html, 'Gil Test'), 'and shows its statement');
+$sb = file_get_contents(BFTD_PATH . 'includes/class-bftd-school-billing.php');
+check(false !== strpos($sb, "check_admin_referer( 'bftd_gov_billing' )") && 2 <= substr_count($sb, 'BFTD_Schools::can_edit()'), 'saving it takes a nonce and a senior manager or administrator');
+check(false !== strpos($mb, "'government' => 'Government funding'"), 'Paid by offers Government funding');
 
 echo $fail ? "\n$fail failure(s)\n" : "\nAll checks passed.\n";
 exit($fail ? 1 : 0);

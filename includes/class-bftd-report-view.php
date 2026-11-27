@@ -697,6 +697,7 @@ class BFTD_Report_View {
 		foreach ( $sections as $id => $section ) {
 			if ( empty( $section['card'] ) ) continue;
 			$v = BFTD_Fields::get_section( $report, $id );
+			$section = BFTD_Schema::card_section( $id, $section, $v );
 
 			// What this section measured, worked out by the schema rather
 			// than here. The chart of these same six scores over time reads

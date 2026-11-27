@@ -1803,6 +1803,8 @@ html.bftd-calv-modal{overflow:hidden}
 .bftd-sch-bill > span{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:13px}
 .bftd-sch-bill > span[hidden]{display:none}
 .bftd-stmt-pick{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:12px 0}
+.bftd-gov-bill{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:12px 0 20px;padding:12px 16px;background:#fff;border:1px solid #dcdcde;border-radius:4px}
+.bftd-gov-bill p{flex-basis:100%;margin:0}
 .bftd-stmt caption{text-align:left;font-weight:600;padding:8px 0}
 .bftd-stmt tfoot th,.bftd-stmt tfoot td{font-weight:600}
 .bftd-stmt-actions{display:flex;gap:8px;margin:12px 0}

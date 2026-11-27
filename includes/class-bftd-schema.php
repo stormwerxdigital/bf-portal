@@ -297,7 +297,8 @@ class BFTD_Schema {
 	 * is fixed, so neither is one tutor's to reword.
 	 */
 	public static function wordreading_intro() {
-		return '<p>The San Diego Quick Assessment is used to determine a student&#8217;s approximate reading grade level, which then sets the grade level of the passage used in the oral reading fluency step.</p>';
+		return '<p>The San Diego Quick Assessment is used to determine a student&#8217;s approximate reading grade level, which then sets the grade level of the passage used in the oral reading fluency step.</p>'
+			. '<p>One grade level below a student&#8217;s enrolled grade is considered <em>below grade level</em> and two or more grade levels below is considered <em>well below grade level</em>.</p>';
 	}
 
 	public static function wordreading_method() {
@@ -416,6 +417,34 @@ class BFTD_Schema {
 				: $n['label'] . ', ' . $n['wcpm'] . ' words per minute';
 		}
 		return $out;
+	}
+
+	/** The grades a passage can be, as the norm list names them, without the figures. */
+	public static function grade_read_options() {
+		$out = array( '' => 'Not chosen' );
+		foreach ( self::fluency_norms() as $key => $n ) $out[ $key ] = $n['label'];
+		return $out;
+	}
+
+	/**
+	 * A section as its card should describe it, for the assessment that was
+	 * done: its line under the title and its unit. Unchanged for a section
+	 * that is the same whichever assessment it was.
+	 */
+	public static function card_section( $section_id, $section, $values ) {
+		if ( empty( $section['form_card'] ) ) return $section;
+		$form = self::active_form( $section_id, $values );
+		if ( '' === $form || empty( $section['form_card'][ $form ] ) ) return $section;
+		$c = $section['form_card'][ $form ];
+		if ( isset( $c['summary'] ) ) $section['summary'] = $c['summary'];
+		if ( isset( $c['unit'] ) )    $section['unit']    = $c['unit'];
+		if ( ! empty( $c['summary_field'] ) ) {
+			$k   = $c['summary_field'];
+			$val = isset( $values[ $k ] ) ? (string) $values[ $k ] : '';
+			$opt = isset( $section['fields'][ $k ]['options'][ $val ] ) && '' !== $val ? $section['fields'][ $k ]['options'][ $val ] : '';
+			if ( '' !== $opt ) $section['summary'] = sprintf( $c['summary_format'], $opt );
+		}
+		return $section;
 	}
 
 	/** The figure a chosen band is measured against, or zero where there is none. */
@@ -797,7 +826,7 @@ class BFTD_Schema {
 	}
 
 	public static function writing_intro() {
-		return '<p>The student was encouraged to write a sentence or a short paragraph, depending on their comfort and ability. We chose the topic together, something that interested them and felt manageable. If a student\'s anxiety rises or the task becomes overwhelming we pause for a brain break or move on. The goal is to build confidence, not pressure.</p>'
+		return '<p>The student was encouraged to write a sentence or a short paragraph, depending on their comfort and ability. If the student was reluctant or hesitant, the assessor and student chose a topic together &#8212; something that interested them and felt manageable. If anxiety rose or the task became overwhelming, the assessor paused for a brain break or moved on. Our goal is always to build confidence, not pressure.</p>'
 			. '<p><strong>This is the only time a student is asked to write without being helped to correct their writing.</strong></p>';
 	}
 
@@ -1371,7 +1400,6 @@ class BFTD_Schema {
 				'options'  => $writing_answers,
 				'rows'     => array(
 					'complete'   => 'Complete sentences, a noun and an action',
-					'run_on'     => 'Run-on sentences',
 					'combined'   => 'Simple sentences combined',
 					'variety'    => 'A variety of sentence structures and lengths',
 					// "Overall flow" was a row of its own; it is now the start
@@ -1869,6 +1897,13 @@ class BFTD_Schema {
 		$s['dxsec-4']['form_benchmark'] = array(
 			'kinder' => array( 'field' => 'min_grade', 'lookup' => 'word_minimum' ),
 		);
+		// What the card says for each assessment (Karl, 1.221.0): the word
+		// list is not oral reading fluency, and nothing is taken off it, so its
+		// figure is words per minute rather than correct words per minute.
+		$s['dxsec-4']['form_card'] = array(
+			'kinder'  => array( 'summary' => 'Kindergarten word list, easyCBM', 'unit' => 'words per minute' ),
+			'passage' => array( 'summary_field' => 'grade_read', 'summary_format' => '%s passage, easyCBM' ),
+		);
 		$s['dxsec-4']['fields']          = array(
 			'form' => array(
 				'type'    => 'select',
@@ -1882,6 +1917,16 @@ class BFTD_Schema {
 				'help'    => 'Only one is done. The report shows the one chosen here. Kindergarten word fluency is for a student whose independent reading level is Kindergarten or lower.',
 			),
 
+			// The grade of the passage the student read (Karl, 1.221.0): the same
+			// grades as the norm below, without the figures, which are the norm's.
+			'grade_read' => array(
+				'type'    => 'select',
+				'label'   => 'Grade level read',
+				'card'    => true,
+				'form'    => 'passage',
+				'options' => self::grade_read_options(),
+				'help'    => 'The grade of the passage the student read. Shown under the card title.',
+			),
 			'words'  => array( 'type' => 'number', 'label' => 'Total words read', 'card' => true, 'form' => 'passage',
 			                   'help' => 'What the one minute timing produced, before errors are taken off.' ),
 			'errors' => array( 'type' => 'number', 'label' => 'Errors', 'card' => true, 'form' => 'passage' ),
@@ -2127,15 +2172,8 @@ class BFTD_Schema {
 			),
 		);
 
-		$s['sec-conclusion'] = array(
-			'screen'  => self::SCREEN_REPORT,
-			'label'   => 'Conclusion',
-			'eyebrow' => 'Closing',
-			'thread'  => true,
-			'fields'  => array(
-				'body' => array( 'type' => 'rich', 'label' => 'Conclusion' ),
-			),
-		);
+		// The Conclusion section was removed (Karl, 1.221.0). What was written
+		// in one before stays stored but is no longer shown.
 
 		/* ---------------------------------------------------------------
 		 * Progress report

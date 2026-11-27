@@ -25,6 +25,10 @@
  * after one billing day to the next: each student the school pays for, the
  * sessions given, the rate and the total. Printed or exported; nothing is
  * sent anywhere.
+ *
+ * Government funding (Karl, 1.221.0) is a third Paid by. It is billed like a
+ * monthly school: Sessions approved, a billing day and a rate of its own
+ * (set on the Schools page), and a statement listed with the schools'.
  */
 defined( 'ABSPATH' ) || exit;
 
@@ -33,9 +37,14 @@ class BFTD_School_Billing {
 	/** A session given, as the drawdown counts it (BFTD_Schedule::used_counts). */
 	const BILLED = array( 'held', 'late', 'noshow', 'missed' );
 
+	/** Government funding, where a school's id would be. */
+	const GOV = -1;
+	const OPTION_GOV = 'bftd_gov_billing';
+
 	public static function init() {
 		add_action( 'admin_post_bftd_school_statement_csv', array( __CLASS__, 'download' ) );
 		add_action( 'admin_post_bftd_school_statement_print', array( __CLASS__, 'printable' ) );
+		add_action( 'admin_post_bftd_gov_billing', array( __CLASS__, 'save_gov' ) );
 	}
 
 	public static function modes() {
@@ -67,9 +76,24 @@ class BFTD_School_Billing {
 		return array( 'billing' => $mode, 'bill_day' => $day, 'rate' => $rate );
 	}
 
-	/** Paid by on the student: 'school' or 'family'. */
+	/** Paid by on the student: 'school', 'government' or 'family'. */
 	public static function paid_by( $student_id ) {
-		return 'school' === (string) BFTD_Fields::get( (int) $student_id, 'student', 'paid_by' ) ? 'school' : 'family';
+		$p = (string) BFTD_Fields::get( (int) $student_id, 'student', 'paid_by' );
+		return in_array( $p, array( 'school', 'government' ), true ) ? $p : 'family';
+	}
+
+	/** Government funding's billing: always monthly, with its own day and rate. */
+	public static function gov() {
+		$o = get_option( self::OPTION_GOV, array() );
+		$o = is_array( $o ) ? $o : array();
+		$c = self::clean( 'monthly', $o['bill_day'] ?? 'last', $o['rate'] ?? '' );
+		return array_merge( array( 'id' => self::GOV, 'name' => 'Government funding' ), $c );
+	}
+
+	/** A payer's record: a school on the list, or government funding. */
+	public static function record( $id ) {
+		if ( self::GOV === (int) $id ) return self::gov();
+		return class_exists( 'BFTD_Schools' ) ? BFTD_Schools::get( (int) $id ) : null;
 	}
 
 	/**
@@ -77,6 +101,10 @@ class BFTD_School_Billing {
 	 * family pays (Paid by Family, no school linked, or a school not billed).
 	 */
 	public static function payer( $student_id ) {
+		if ( 'government' === self::paid_by( $student_id ) ) {
+			$g = self::gov();
+			return array_merge( $g, self::of_school( $g ) );
+		}
 		if ( 'school' !== self::paid_by( $student_id ) || ! class_exists( 'BFTD_Schools' ) ) return null;
 		$s = BFTD_Schools::get( BFTD_Schools::of_student( (int) $student_id ) );
 		if ( ! $s ) return null;
@@ -97,6 +125,9 @@ class BFTD_School_Billing {
 
 	/** One line under Paid by saying what it means for this student. */
 	public static function said( $student_id ) {
+		if ( 'government' === self::paid_by( $student_id ) ) {
+			return 'Government funding is billed monthly after sessions, on ' . self::day_words( self::gov()['bill_day'] ) . '.';
+		}
 		$wants = 'school' === self::paid_by( $student_id );
 		$sid   = class_exists( 'BFTD_Schools' ) ? BFTD_Schools::of_student( (int) $student_id ) : 0;
 		$s     = $sid ? BFTD_Schools::get( $sid ) : null;
@@ -161,6 +192,13 @@ class BFTD_School_Billing {
 
 	/** Students linked to a school whose Paid by is Their school. */
 	public static function paid_students( $school_id ) {
+		if ( self::GOV === (int) $school_id ) {
+			return array_map( 'intval', get_posts( array(
+				'post_type' => BFTD_CPT::STUDENT, 'post_status' => array( 'publish', 'draft', 'pending', 'private' ),
+				'posts_per_page' => -1, 'fields' => 'ids', 'no_found_rows' => true,
+				'meta_key' => BFTD_Schema::meta_key( 'student', 'paid_by' ), 'meta_value' => 'government',
+			) ) );
+		}
 		$out = array();
 		foreach ( BFTD_Schools::students_at( (int) $school_id ) as $sid ) {
 			if ( 'school' === self::paid_by( $sid ) ) $out[] = (int) $sid;
@@ -174,7 +212,7 @@ class BFTD_School_Billing {
 	 * @return array( rows => list of array( id, name, attended, noshow, missed, sessions, rate, total, no_rate ), sessions, total, missing_rate )
 	 */
 	public static function statement( $school_id, $from, $to ) {
-		$s     = BFTD_Schools::get( (int) $school_id );
+		$s     = self::record( $school_id );
 		$b     = self::of_school( $s );
 		$ids   = self::paid_students( $school_id );
 		$rows  = array();
@@ -216,12 +254,13 @@ class BFTD_School_Billing {
 		foreach ( BFTD_Schools::all() as $id => $s ) {
 			if ( 'monthly' === self::of_school( $s )['mode'] ) $out[ (int) $id ] = $s['name'];
 		}
+		if ( self::paid_students( self::GOV ) ) $out[ self::GOV ] = 'Government funding';
 		return $out;
 	}
 
 	/** The period asked for (its billing date), or the newest closed one. */
 	private static function chosen( $school_id, $end ) {
-		$b = self::of_school( BFTD_Schools::get( $school_id ) );
+		$b = self::of_school( self::record( $school_id ) );
 		$list = self::periods( $b['day'], BFTD_Time::today(), 13 );
 		foreach ( $list as $p ) if ( $p[1] === $end ) return $p;
 		foreach ( $list as $p ) if ( ! $p[2] ) return $p;
@@ -233,12 +272,13 @@ class BFTD_School_Billing {
 		$schools = self::monthly_schools();
 		?>
 		<h2 id="statements">Monthly statements</h2>
+		<?php self::render_gov(); ?>
 		<?php if ( ! $schools ) : ?>
 			<p class="description">No school is billed monthly yet. Set a school's Billing to Monthly, after sessions, in the table above, and its statements show here.</p>
 			<?php return; endif;
-		$pick = absint( $_GET['statement'] ?? 0 );
+		$pick = (int) ( $_GET['statement'] ?? 0 );
 		if ( ! isset( $schools[ $pick ] ) ) $pick = (int) array_key_first( $schools );
-		$b    = self::of_school( BFTD_Schools::get( $pick ) );
+		$b    = self::of_school( self::record( $pick ) );
 		$p    = self::chosen( $pick, sanitize_text_field( wp_unslash( $_GET['period'] ?? '' ) ) );
 		$st   = self::statement( $pick, $p[0], $p[1] );
 		?>
@@ -265,6 +305,39 @@ class BFTD_School_Billing {
 		<?php
 	}
 
+	/** Government funding's billing day and rate. */
+	public static function render_gov() {
+		$g = self::gov();
+		?>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="bftd-gov-bill">
+			<input type="hidden" name="action" value="bftd_gov_billing">
+			<?php wp_nonce_field( 'bftd_gov_billing' ); ?>
+			<p><strong>Government funding</strong> is billed monthly after sessions, for each student whose Paid by is Government funding.</p>
+			<label for="bftd-gov-day">Billing day</label>
+			<select id="bftd-gov-day" name="bill_day">
+				<?php for ( $d = 1; $d <= 28; $d++ ) : ?><option value="<?php echo (int) $d; ?>" <?php selected( (string) $d, $g['bill_day'] ); ?>><?php echo (int) $d; ?></option><?php endfor; ?>
+				<option value="last" <?php selected( 'last', $g['bill_day'] ); ?>>Last day of the month</option>
+			</select>
+			<label for="bftd-gov-rate">Rate per session, $</label>
+			<input id="bftd-gov-rate" name="rate" type="number" step="0.01" min="0" class="small-text" value="<?php echo esc_attr( $g['rate'] ); ?>">
+			<button class="button">Save</button>
+		</form>
+		<?php
+	}
+
+	public static function save_gov() {
+		check_admin_referer( 'bftd_gov_billing' );
+		if ( ! BFTD_Schools::can_edit() ) wp_die( 'Only senior managers and administrators can change billing.', 403 );
+		$before = self::gov();
+		$c = self::clean( 'monthly', wp_unslash( $_POST['bill_day'] ?? 'last' ), wp_unslash( $_POST['rate'] ?? '' ) );
+		update_option( self::OPTION_GOV, array( 'bill_day' => $c['bill_day'], 'rate' => $c['rate'] ), false );
+		if ( class_exists( 'BFTD_Audit' ) && ( $before['bill_day'] !== $c['bill_day'] || $before['rate'] !== $c['rate'] ) ) {
+			BFTD_Audit::log( 'settings_updated', array( 'summary' => 'Government funding billing: ' . self::day_words( $c['bill_day'] ) . ( '' !== $c['rate'] ? ', $' . $c['rate'] . ' a session' : ', no rate' ) . '.' ) );
+		}
+		wp_safe_redirect( admin_url( 'admin.php?page=' . BFTD_Schools::SLUG . '&statement=' . self::GOV . '#statements' ) );
+		exit;
+	}
+
 	public static function period_words( $p ) {
 		return BFTD_Time::day( $p[0], 'j M Y' ) . ' to ' . BFTD_Time::day( $p[1], 'j M Y' ) . ( $p[2] ? ' (still open)' : '' );
 	}
@@ -275,13 +348,13 @@ class BFTD_School_Billing {
 
 	/** The statement table, shared by the page and the printable copy. */
 	public static function table( $school_id, $p, $st ) {
-		$s = BFTD_Schools::get( $school_id );
+		$s = self::record( $school_id );
 		?>
 		<table class="widefat striped bftd-stmt">
 			<caption><?php echo esc_html( $s['name'] . ', ' . self::period_words( $p ) ); ?></caption>
 			<thead><tr><th scope="col">Student</th><th scope="col">Attended</th><th scope="col">No shows</th><th scope="col">Missed</th><th scope="col">Sessions billed</th><th scope="col">Rate</th><th scope="col">Total</th></tr></thead>
 			<tbody>
-			<?php if ( ! $st['rows'] ) : ?><tr><td colspan="7">No students are paid for by this school. Set a student's Paid by to Their school under Student details.</td></tr><?php endif; ?>
+			<?php if ( ! $st['rows'] ) : ?><tr><td colspan="7"><?php echo self::GOV === (int) $school_id ? 'No students are paid for by government funding.' : 'No students are paid for by this school. Set a student\'s Paid by to Their school under Student details.'; ?></td></tr><?php endif; ?>
 			<?php foreach ( $st['rows'] as $r ) : ?>
 				<tr><th scope="row"><?php echo esc_html( $r['name'] ); ?></th><td><?php echo (int) $r['attended']; ?></td><td><?php echo (int) $r['noshow']; ?></td><td><?php echo (int) $r['missed']; ?></td>
 					<td><?php echo (int) $r['sessions']; ?></td><td><?php echo $r['no_rate'] ? 'No rate set' : esc_html( self::money( $r['rate'] ) ); ?></td><td><?php echo esc_html( self::money( $r['total'] ) ); ?></td></tr>
@@ -297,15 +370,15 @@ class BFTD_School_Billing {
 	private static function guard() {
 		check_admin_referer( 'bftd_school_statement' );
 		if ( ! BFTD_Schools::can_edit() ) wp_die( 'Only senior managers and administrators can see school statements.', 403 );
-		$id = absint( $_GET['school'] ?? 0 );
-		if ( ! BFTD_Schools::get( $id ) ) wp_die( 'That school is not on the list.', 404 );
+		$id = (int) ( $_GET['school'] ?? 0 );
+		if ( ! self::record( $id ) ) wp_die( 'That school is not on the list.', 404 );
 		$p = self::chosen( $id, sanitize_text_field( wp_unslash( $_GET['period'] ?? '' ) ) );
 		return array( $id, $p, self::statement( $id, $p[0], $p[1] ) );
 	}
 
 	/** The rows of a CSV statement, header first. */
 	public static function csv_rows( $school_id, $p, $st ) {
-		$s   = BFTD_Schools::get( $school_id );
+		$s   = self::record( $school_id );
 		$out = array( array( 'School', 'From', 'To', 'Student', 'Attended', 'No shows', 'Missed', 'Sessions billed', 'Rate', 'Total' ) );
 		foreach ( $st['rows'] as $r ) {
 			$out[] = array( $s['name'], $p[0], $p[1], $r['name'], $r['attended'], $r['noshow'], $r['missed'], $r['sessions'],
@@ -317,7 +390,7 @@ class BFTD_School_Billing {
 
 	public static function download() {
 		list( $id, $p, $st ) = self::guard();
-		$s = BFTD_Schools::get( $id );
+		$s = self::record( $id );
 		nocache_headers();
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $s['name'] . ' statement ' . $p[0] . ' to ' . $p[1] ) . '.csv"' );
@@ -332,7 +405,7 @@ class BFTD_School_Billing {
 
 	public static function printable() {
 		list( $id, $p, $st ) = self::guard();
-		$s = BFTD_Schools::get( $id );
+		$s = self::record( $id );
 		nocache_headers();
 		?><!doctype html><html lang="en"><head><meta charset="utf-8"><title><?php echo esc_html( $s['name'] . ' statement' ); ?></title>
 		<style>body{font:14px/1.5 system-ui,sans-serif;color:#1d2327;margin:32px}h1{font-size:20px;margin:0 0 4px}p{margin:0 0 16px}

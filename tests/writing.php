@@ -25,7 +25,7 @@ $f = $s['fields'];
 $k = array_keys($f);
 
 /* ---- two fixed lists ---- */
-foreach (array('conventions' => 8, 'grammar' => 7) as $key => $n) {
+foreach (array('conventions' => 8, 'grammar' => 6) as $key => $n) {
   check('checklist' === $f[$key]['type'], "$key is a fixed list");
   check($n === count($f[$key]['rows']), "with $n rows nobody retypes");
   foreach (array('' => 'Not assessed', 'yes' => 'Yes', 'no' => 'No', 'na' => 'N/A') as $ov => $ol) {

@@ -446,6 +446,13 @@ class BFTD_MetaBoxes {
 		return $out;
 	}
 
+	/** School year on the student record (Karl, 1.221.0). */
+	public static function school_year_options() {
+		$out = array( '' => 'Not set', 'prek' => 'Pre-K', '0' => 'Kindergarten' );
+		for ( $i = 1; $i <= 12; $i++ ) $out[ (string) $i ] = 'Grade ' . $i;
+		return $out;
+	}
+
 	/** The reading levels the diagnostic actually reports against. */
 	public static function level_options() {
 		$out = array( '' => 'Not set', 'preprimer' => 'Preprimer', 'primer' => 'Primer' );
@@ -482,6 +489,8 @@ class BFTD_MetaBoxes {
 	private static function student_fields() {
 		return array(
 			'grade'        => array( 'type' => 'select', 'label' => 'Grade', 'options' => self::grade_options() ),
+			// Their year at school (Karl, 1.221.0): Pre-K, Kindergarten, Grade 1 to 12.
+			'school_year'  => array( 'type' => 'select', 'label' => 'School year', 'options' => self::school_year_options() ),
 			'mode'         => array( 'type' => 'select', 'label' => 'Sessions are', 'options' => array(
 				'online'    => 'Online',
 				'in_person' => 'In person',
@@ -489,7 +498,7 @@ class BFTD_MetaBoxes {
 			) ),
 			'lessons_bank' => array( 'type' => 'number', 'label' => 'Sessions purchased' ),
 			// Who pays (Karl, 1.218): a school pays only for the students set to it.
-			'paid_by'      => array( 'type' => 'select', 'label' => 'Paid by', 'default' => 'family', 'options' => array( 'family' => 'Family', 'school' => 'Their school' ) ),
+			'paid_by'      => array( 'type' => 'select', 'label' => 'Paid by', 'default' => 'family', 'options' => array( 'family' => 'Family', 'school' => 'Their school', 'government' => 'Government funding' ) ),
 			// What the family pays for each session (Karl, 1.217.5).
 			'rate'         => array( 'type' => 'number', 'label' => 'Rate per session, $', 'step' => '0.01', 'min' => '0' ),
 			// How often they come, for forecasting Attending to (Karl, 1.214).
@@ -520,7 +529,7 @@ class BFTD_MetaBoxes {
 
 	/** The student details drawn under History rather than here. */
 	private static function in_contact() {
-		return array( 'grade', 'mode' );
+		return array( 'grade', 'school_year', 'mode' );
 	}
 
 	/* ------------------------------------------------------------------ */

@@ -24,9 +24,11 @@ if (!function_exists('remove_accents')) { function remove_accents($s) { return s
 if (!function_exists('sanitize_text_field')) { function sanitize_text_field($s) { return trim(strip_tags((string) $s)); } }
 if (!function_exists('get_current_user_id')) { function get_current_user_id() { return 1; } }
 if (!function_exists('add_action')) { function add_action(...$a) {} }
+if (!function_exists('wp_nonce_field')) { function wp_nonce_field($a) { echo '<input type="hidden" name="_wpnonce" value="n">'; } }
+if (!function_exists('wp_unslash')) { function wp_unslash($s) { return $s; } }
 function get_posts($a) {
   global $STUDENTS, $META;
-  if (isset($a['meta_key'])) return array_values(array_filter($STUDENTS, function ($s) use ($a, $META) { return (int) ($META[$s][$a['meta_key']] ?? 0) === (int) $a['meta_value']; }));
+  if (isset($a['meta_key'])) return array_values(array_filter($STUDENTS, function ($s) use ($a, $META) { $v = $META[$s][$a['meta_key']] ?? ''; return is_numeric($a['meta_value']) ? (int) $v === (int) $a['meta_value'] : (string) $v === (string) $a['meta_value']; }));
   return $STUDENTS;
 }
 class BFTD_CPT { const STUDENT = 'bftd_student'; }

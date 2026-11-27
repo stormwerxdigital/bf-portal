@@ -381,7 +381,6 @@ HTML,
 				),
 				'grammar' => array(
 					'complete'  => array( 'value' => 'no' ),
-					'run_on'    => array( 'value' => 'na' ),
 					'combined'  => array( 'value' => 'na' ),
 					'variety'   => array( 'value' => 'no' ),
 					'order'     => array( 'value' => 'na' ),
@@ -431,14 +430,6 @@ HTML,
 					. '</ul>',
 			),
 
-			'sec-conclusion' => array(
-				'body' => '<p>Rowan is a delight to work with. His enthusiasm and willingness to tackle new challenges are qualities that will support his growth as a reader and writer.</p>'
-					. '<p>His standout strength is not a test score, it is self-awareness. Rowan could name exactly where reading trips him up: he has never been sure when letters work on their own and when they team up to spell a single sound. I explained that two, three or four letters can represent one sound, and reassured him that we will focus on teaching those patterns. He was excited that we had identified one of his main areas of difficulty.</p>'
-					. '<p>A student who can locate his own confusion is ready to learn. His growth areas are all highly teachable and quick to respond to instruction. Paired with his motivation and clean letter directionality, that is a strong foundation to build on.</p>'
-					. '<p><strong>To Rowan.</strong> Here is what we want you to know: the way you have been taught to read is not the way the brain learns to process language, and that is not your fault. We have seen students just like you make remarkable progress once they are taught an approach that finally makes sense. You have not failed at reading. You have simply not yet had the right tools.</p>'
-					. '<p>Please do not hesitate to reach out with any questions. We would count it a privilege to support Rowan on his reading and writing journey.</p>'
-					. '<p>Warmly,<br>Candice Paluck<br>Brilliant Futures Tutoring</p>',
-			),
 		);
 
 		// The six assessment sections are written out separately because they
@@ -801,7 +792,7 @@ HTML,
 					'other_punct' => 'no', 'spaces' => 'yes', 'each_sound' => 'yes', 'misspelled' => 'yes',
 				) ),
 				'grammar' => self::writing_marks( array(
-					'complete' => 'yes', 'run_on' => 'no', 'combined' => 'yes', 'variety' => 'yes',
+					'complete' => 'yes', 'combined' => 'yes', 'variety' => 'yes',
 					'order' => 'yes', 'vivid' => 'no', 'multisyll' => 'yes',
 				) ),
 			),
