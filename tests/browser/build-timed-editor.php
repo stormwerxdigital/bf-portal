@@ -145,7 +145,7 @@ BFTD_Fields::use_fixture(array('dxsec-4' => array(
 )));
 $s = BFTD_Schema::section('dxsec-4');
 ob_start();
-foreach (array('form','words','errors','norm','kinder_score','min_grade','passage_results','kinder_results') as $k) {
+foreach (array('form','grade_read','words','errors','norm','kinder_score','min_grade','passage_results','kinder_results') as $k) {
   echo '<div id="f-'.$k.'">';
   BFTD_Fields::render_field(1, 'dxsec-4', $k, $s['fields'][$k]);
   echo '</div>';

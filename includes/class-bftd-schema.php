@@ -253,13 +253,10 @@ class BFTD_Schema {
 	 * to this and nothing else.
 	 */
 	public static function alphabet_intro() {
-		return '<p>As part of the assessment, the student completed a one minute handwriting task where they were asked to print the lowercase alphabet in order from a to z as quickly and accurately as possible. Simple as it looks, this task reveals how easily the brain can access and produce letters, an ability closely connected to reading fluency, comprehension and overall literacy development.</p>'
-			. '<p>When letter formation is automatic, with muscle memory handling each stroke consistently and correctly, it stops competing for cognitive resources, freeing the brain for reading, spelling, writing and comprehension. When it is not, the effects go beyond slow handwriting. Slow, effortful letter production makes reading, spelling and writing harder too.</p>'
-			. '<p>In fact, there is a direct correlation between oral reading fluency and printing 40 lowercase letters of the alphabet (a to z plus a to n) in one minute.</p>'
-			. '<p>For a more detailed explanation: <a href="https://bftutoring.com/reading-assessments/" target="_blank" rel="noopener">BFTutoring Reading Assessment</a></p>'
-			. '<p>Goal of the one minute timing: 40 lowercase letters per minute, a to z plus a to n.</p>'
-			. '<p>Students are unassisted by their tutor but are free to recite the alphabet to themselves. While monitoring letter formation, the tutor also assesses posture and pencil grip, which can affect ease of handwriting over an extended period.</p>'
-			. '<p>This is the only activity that uses letter names. Letter names have a purpose, just not in teaching reading or spelling. Letters rarely say their names. For reading and spelling, the brain works with sounds, not letter names. Mapping sounds straight to their symbols, without the detour through letter names, is critical for struggling readers. It lightens the mental load.</p>';
+		// Karl, 1.222.0.
+		return '<p>In this one-minute check, your child writes the lowercase alphabet in order, as many times through as they can. Their tutor doesn&#8217;t help, but your child is free to say the alphabet aloud to keep their place.</p>'
+			. '<p>The goal: 40 correctly formed lowercase letters in one minute: the full alphabet once, then a through n.</p>'
+			. '<p>Simple as it looks, this task shows how easily your child&#8217;s brain can recall and produce letters. When letter formation isn&#8217;t automatic, the effects go beyond slow handwriting. Every letter takes effort, and that effort competes with the thinking your child needs for spelling and writing. And those skills don&#8217;t stand alone. Spelling supports reading. Reading supports spelling.</p>';
 	}
 
 	/**
@@ -278,15 +275,18 @@ class BFTD_Schema {
 	 * portal-wide from Settings, never one tutor's to reword on a Tuesday.
 	 */
 	public static function segmenting_intro() {
-		return '<p>During this step of the diagnostic, the student completed a phoneme segmentation task. This activity measures how well a student can hear and break spoken words into their individual sounds. The word cat, for example, separates into three sounds: /k/ /a/ /t/. Being able to hear and say those sounds separately is a critical skill that supports both reading and spelling.</p>'
-			. '<p>Phoneme segmentation matters because it lets students blend sounds to read unfamiliar words, and break words apart to spell them accurately. When this skill is weak, children may guess at words instead of decoding them, or make frequent spelling errors because they cannot identify all of the sounds in a word.</p>'
-			. '<p>This assessment tells us whether a student can hear and work with sounds independently of letters. Strengthening it often leads to more confident, accurate and fluent reading.</p>';
+		// Karl, 1.222.0.
+		return '<p>During this step of the diagnostic, your child completed a phoneme segmentation task, which means breaking a spoken word into its individual sounds, or phonemes. Reading and spelling are built on sounds, not letter names, and that&#8217;s why phoneme segmentation is one of the strongest predictors of early reading and spelling success.</p>'
+			. '<p>The word cat, for example, has three sounds: /k/ /a/ /t/. The goal is to hear and say each sound separately, without adding a sound, leaving one out, or blending two into one (e.g., /ka/ /t/).</p>'
+			. '<p>This skill supports both reading and spelling. Students use it to break words apart so they can spell them accurately, and it&#8217;s closely tied to blending sounds together to read unfamiliar words. When it&#8217;s weak, children often guess at words instead of decoding them, or leave sounds out when they spell.</p>'
+			. '<p>The task is done orally, with no letters involved, so it tells us whether a student can hear and work with sounds on their own.</p>';
 	}
 
 	public static function segmenting_method() {
-		return '<p>Students who struggle with this skill benefit greatly from targeted instruction. Being able to clearly hear and differentiate the individual sounds in spoken words is foundational to becoming a confident, accurate and fluent reader, and it is a skill we can absolutely help a child build.</p>'
-			. '<p>Instead of relying on memorisation, which can feel overwhelming given how complex and unpredictable English appears, this approach teaches students to break words into individual sounds and apply practical, flexible strategies for both reading and writing. Those tools give a clear, logical path forward and remove the guesswork from decoding and spelling. Because multiple skills are integrated into each activity, students often make faster, more confident progress.</p>'
-			. '<p>Short term memory holds only a few seconds of sound at a time, which is why hearing sounds in sequence has to become effortless rather than deliberate.</p>';
+		// Karl, 1.222.0.
+		return '<p>Difficulty with sound awareness is common in students who struggle with reading, so explicit segmentation practice matters. Being able to clearly hear and tell apart the sounds in spoken words is foundational to becoming a confident, accurate and fluent reader. It&#8217;s also a skill we can help a child build.</p>'
+			. '<p>Short-term memory holds only a few seconds of sound at a time. That&#8217;s why hearing sounds in order has to become automatic rather than effortful. A student who has to work at each sound loses track of the word before reaching the end.</p>'
+			. '<p>Instead of relying on memorization, which can feel overwhelming given how complex and unpredictable English seems, this approach teaches students to break words into sounds and apply practical, flexible strategies for both reading and writing. Those tools give a clear, logical path forward and take the guesswork out of decoding and spelling. Because each activity works on several skills at once, students often make faster, more confident progress.</p>';
 	}
 
 	/**
@@ -298,7 +298,7 @@ class BFTD_Schema {
 	 */
 	public static function wordreading_intro() {
 		return '<p>The San Diego Quick Assessment is used to determine a student&#8217;s approximate reading grade level, which then sets the grade level of the passage used in the oral reading fluency step.</p>'
-			. '<p>One grade level below a student&#8217;s enrolled grade is considered <em>below grade level</em> and two or more grade levels below is considered <em>well below grade level</em>.</p>';
+			. '<p>One grade level below a student&#8217;s enrolled grade is considered <em>below grade level</em> and two or more grade levels below are considered <em>well below grade level</em>.</p>';
 	}
 
 	public static function wordreading_method() {
@@ -826,8 +826,9 @@ class BFTD_Schema {
 	}
 
 	public static function writing_intro() {
-		return '<p>The student was encouraged to write a sentence or a short paragraph, depending on their comfort and ability. If the student was reluctant or hesitant, the assessor and student chose a topic together &#8212; something that interested them and felt manageable. If anxiety rose or the task became overwhelming, the assessor paused for a brain break or moved on. Our goal is always to build confidence, not pressure.</p>'
-			. '<p><strong>This is the only time a student is asked to write without being helped to correct their writing.</strong></p>';
+		// Karl, 1.222.0, the second of the two versions in his document.
+		return '<p>During this step of the diagnostic, the student was asked to write a sentence or a short paragraph, depending on their comfort level and ability. If they were hesitant, the assessor helped them choose a topic, something that interested them and felt manageable. If the task became stressful, the assessor paused for a brain break or moved on to the next step.</p>'
+			. '<p>Our goal is always to build confidence, not pressure.</p>';
 	}
 
 	public static function writing_method() {
@@ -835,9 +836,18 @@ class BFTD_Schema {
 	}
 
 	public static function alphabet_method() {
-		return '<p>The goal of handwriting instruction is not just legibility. It is <strong>motor memory</strong> that frees up brainpower for thinking, understanding and learning. With repeated, correct practice the brain builds a <strong>motor plan</strong> for how to write letters and words, until a student can focus on <strong>what they want to say or read</strong> rather than on how to form the words.</p>'
-			. '<p><strong>One to five minutes of each session</strong> is dedicated to strengthening handwriting. Once the student can form all lowercase letters accurately from memory, a metronome is introduced to help them develop a steady, automatic rhythm.</p>'
-			. '<p>After the midpoint of instruction, at Activity 70, or earlier if the student is ready, we repeat the <strong>one minute alphabet writing check</strong> to measure growth. If the student meets the criteria of <strong>40 letters per minute</strong>, written <strong>in order</strong>, <strong>all lowercase</strong> and <strong>formed top to bottom and left to right</strong>, no further alphabet writing practice is needed.</p>';
+		// Karl, 1.222.0.
+		return '<p>Handwriting isn&#8217;t just about neatness &#8212; it&#8217;s about motor memory. With repeated, correct practice, the brain builds a plan for forming each letter. Eventually writing runs on autopilot, and your child&#8217;s mental energy is freed up for reading, spelling, writing and comprehension.</p>'
+			. '<p><a href="https://bftutoring.com/18-benefits-of-handwriting/" target="_blank" rel="noopener">18 benefits of handwriting</a></p>'
+			. '<h3>What practice looks like</h3>'
+			. '<ul><li>Fewer than 40 letters: 1&#8211;5 minutes of handwriting practice in every session until the goal is met.</li>'
+			. '<li>40 letters, but some formed incorrectly: practice targets the specific letters that need work. Old habits take deliberate practice to replace.</li>'
+			. '<li>All lowercase letters formed accurately from memory: after a student can form all of the letters a-z correctly we add a metronome to build a steady, automatic rhythm.</li></ul>'
+			. '<p>Five minutes a day at home speeds this up considerably.</p>'
+			. '<h3>Measuring growth</h3>'
+			. '<p>At Activity 70, the midpoint of instruction, or sooner if your child is ready, we repeat the one-minute check. Once your child writes 40 letters a minute, in order, all lowercase, and correctly formed, alphabet practice is complete.</p>'
+			. '<h3>Why letter names show up here &#8212; and only here!</h3>'
+			. '<p>This is the only tutoring activity that uses letter names. Letter names have their uses &#8212; alphabetizing, for one &#8212; just not in learning to read and spell. A letter&#8217;s name doesn&#8217;t tell you its sound: b is &#8220;bee,&#8221; but it never says /bee/. Going straight from sound to letter, with no letter name in between, lightens the load for a struggling reader and matches the way the brain learns to read and spell.</p>';
 	}
 
 	/**
@@ -901,6 +911,9 @@ class BFTD_Schema {
 			$v = (string) $v;
 			if ( isset( $fdef['options'][ $v ] ) && '' !== $v ) $v = (string) $fdef['options'][ $v ];
 			$swap[ '{' . $fkey . '}' ] = $v;
+			// The same, after a comma, or nothing (the grade read beside a
+			// figure, "36 WCPM, Grade 3", 1.222.0).
+			$swap[ '{' . $fkey . '_comma}' ] = '' !== $v ? ', ' . $v : '';
 		}
 
 		// A chosen band, split into the two parts a figure tile needs. The
@@ -1352,7 +1365,7 @@ class BFTD_Schema {
 				'type'    => 'number',
 				'label'   => 'Marked yes',
 				'card'    => true,
-				'derived' => array( 'count' => array( 'fields' => array( 'conventions', 'grammar' ), 'value' => 'yes' ) ),
+				'derived' => array( 'count' => array( 'fields' => array( 'conventions' ), 'value' => 'yes' ) ),
 				'help'    => 'How many of the two lists below were marked yes. The bar is this against however many were answered.',
 			),
 			'score_of' => array(
@@ -1360,7 +1373,7 @@ class BFTD_Schema {
 				'label'   => 'Points looked at',
 				'card'    => true,
 				'hidden'  => true,
-				'derived' => array( 'count' => array( 'fields' => array( 'conventions', 'grammar' ) ) ),
+				'derived' => array( 'count' => array( 'fields' => array( 'conventions' ) ) ),
 			),
 
 			'body' => array(
@@ -1375,13 +1388,17 @@ class BFTD_Schema {
 				'type'     => 'checklist',
 				// Answered with the green tick and red cross, N/A in words (Karl, 1.155).
 				'marks'    => true,
-				// Rows where No is the good answer (Karl, 1.221.1). "Contains some
-				// misspelled words" answered No is a piece with none, so its tick
-				// stores No, the cross Yes, and No is what the score counts.
-				// What was saved before keeps its meaning; only the mark moves.
+				// Rows where No is the stored good answer (Karl, 1.221.1). The
+				// spelling row asked "contains some misspelled words", so a piece
+				// with none is stored No. It now reads "has no spelling errors",
+				// and the tick still stores No, so nothing saved changes meaning.
 				'invert'   => array( 'misspelled' ),
-				'label'    => 'Writing conventions',
-				'headings' => array( 'value' => 'Result', 'item' => 'Writing convention' ),
+				// Conventions and grammar are one list (Karl, 1.222.0). Answers
+				// saved in the grammar list are read into this one until the
+				// report is next saved (BFTD_Fields::get).
+				'merge_from' => 'grammar',
+				'label'    => 'Writing conventions and grammar',
+				'headings' => array( 'value' => 'Result', 'item' => 'Writing conventions and grammar' ),
 				'help'     => 'A row left at "Not assessed" is left out of the family\'s report, and out of both figures on the card.',
 				'options'  => $writing_answers,
 				'rows'     => array(
@@ -1389,30 +1406,18 @@ class BFTD_Schema {
 					'caps_start' => 'Writing piece has <strong>capital letters</strong> at the beginning of every sentence',
 					'caps_proper'=> '<strong>Capital letters</strong> used appropriately for <strong>proper nouns</strong>',
 					'end_punct'  => 'Writing piece has <strong>punctuation at the end</strong> of every sentence',
-					'other_punct'=> '<strong>Other punctuation</strong> is appropriate for sentences (circled in red)',
+					'other_punct'=> '<strong>Other punctuation</strong> is appropriate for sentences',
 					'spaces'     => 'There is a <strong>space between each word</strong>',
+					'complete'   => 'Complete sentences (no run-on sentences or fragments)',
+					'order'      => 'Overall flow: The writing sample is a paragraph of at least 4 sentences. The sentences follow a logical order with a clear beginning, middle and end.',
 					'each_sound' => 'All words contain a <strong>spelling for each sound</strong>',
-					'misspelled' => 'Writing piece contains some <strong>misspelled words</strong> (highlighted in yellow)',
+					'misspelled' => 'Writing piece has no <strong>spelling errors</strong>',
+					'multisyll'  => 'Writing piece contains <strong>multisyllable words</strong> (underlined in BLUE)',
 				),
-			),
-
-			'grammar' => array(
-				'type'     => 'checklist',
-				'marks'    => true,
-				'label'    => 'Grammar and word usage',
-				'title'    => 'Grammar and word usage are correct',
-				'headings' => array( 'value' => 'Result', 'item' => 'Grammar and word usage' ),
-				'options'  => $writing_answers,
-				'rows'     => array(
-					'complete'   => 'Complete sentences, a noun and an action',
-					'combined'   => 'Simple sentences combined',
-					'variety'    => 'A variety of sentence structures and lengths',
-					// "Overall flow" was a row of its own; it is now the start
-					// of this one, in Laurel's words. A stored answer for the
-					// old row is no longer drawn.
-					'order'      => 'Overall flow: Order of sentences makes sense, with a clear beginning, middle, and end',
-					'vivid'      => 'Powerful verbs, specific nouns and colourful adjectives or adverbs',
-					'multisyll'  => 'Writing piece contains <strong>multisyllable words</strong> (underlined in blue)',
+				// A note that is always there, with the tutor's own after it.
+				'fixed_notes' => array(
+					'other_punct' => 'Punctuation errors (marked in RED)',
+					'misspelled'  => 'Misspelled words (highlighted in YELLOW)',
 				),
 			),
 
@@ -1624,11 +1629,13 @@ class BFTD_Schema {
 			'marking' => array(
 				'type'   => 'criteria',
 				'label'  => 'What counted, and what did not',
-				'help'   => 'The rules are fixed. Mark each row with a green tick or a red cross, and add a comment wherever something needs saying. A row left with no mark and no comment shows the family a tick, meaning nothing to report.',
+				'help'   => 'The rules are fixed. Tick what counted as correct and cross what counted as incorrect, or leave a row at N/A, and add a comment wherever something needs saying. A row left at N/A with no comment shows the family a tick, meaning nothing to report.',
 				'groups' => array(
 					'correct' => array(
 						'label' => 'Counted as correct',
 						'tone'  => 'sage',
+						// A tick or N/A only (Karl, 1.222.0).
+						'marks' => array( 'yes' ),
 						'rows'  => array(
 							'lowercase' => 'Lowercase letters, even if out of order',
 							'bottom_up' => 'Letters formed from bottom to top, provided the finished letter is correct',
@@ -1639,6 +1646,8 @@ class BFTD_Schema {
 					'incorrect' => array(
 						'label' => 'Counted as incorrect',
 						'tone'  => 'clay',
+						// A cross or N/A only (Karl, 1.222.0).
+						'marks' => array( 'no' ),
 						'rows'  => array(
 							// A tick against a rule about mistakes is ambiguous:
 							// it could mean there were none, or that nobody
@@ -1751,11 +1760,26 @@ class BFTD_Schema {
 			// a tutor writes about it, because they describe what is above.
 			'images' => array( 'type' => 'gallery', 'label' => 'Work samples' ),
 
-			'body_after' => array(
-				'type'    => 'rich',
+			// Notes are ticked from a list rather than typed (Karl, 1.222.0).
+			'errors_seen' => array(
+				'type'    => 'multi',
 				'label'   => 'Notes',
 				'heading' => 'Notes',
-				'help'    => 'What you saw, in your own words. Shown under the results.',
+				'options' => array(
+					'adds'         => 'Adds a sound',
+					'omits'        => 'Omits a sound',
+					'blends'       => 'Blends two sounds into one',
+					'letter_sound' => 'Evidence of letter-sound confusion',
+				),
+				'help'    => 'Tick everything you saw. Shown under the results.',
+			),
+			// Typed before the list: kept, and shown only where a report has some.
+			'body_after' => array(
+				'type'    => 'rich',
+				'label'   => 'Notes typed before the list',
+				'heading' => 'Notes',
+				'legacy'  => true,
+				'help'    => 'Typed on this report before the list. Shown under the results.',
 			),
 
 			'method' => array(
@@ -1995,7 +2019,7 @@ class BFTD_Schema {
 				'title'    => '1-minute timed reading, unpracticed grade-level passage',
 				'derived_note' => 'Drawn from the figures above. Nothing here is typed.',
 				'head'     => array( 'Total words read', 'Errors', 'WCPM (words correct per minute)', 'End of year ORF norm for enrolled grade' ),
-				'rows'     => array( array( '{words}', '{errors}', '{score} WCPM', '{norm_line}' ) ),
+				'rows'     => array( array( '{words}', '{errors}', '{score} WCPM{grade_read_comma}', '{norm_line}' ) ),
 			),
 			'passage_note' => array(
 				'type'  => 'reference',
@@ -2114,22 +2138,21 @@ class BFTD_Schema {
 					'instructions'   => 'Check only the items observed. The goal is 6-8 strengths. Rows marked Pick one are levels of the same skill, so check only one from that group.',
 					'settings_label' => 'Strengths tick list',
 					'settings_note'  => 'One bullet per heading, and under it one bullet per item, written: what the family reads | guidance for the tutor. Items whose guidance starts "Pick one", one after another, are one group: ticking one unticks the others. A change here changes the list from now on; a report keeps what it already says.' ),
+				// Other: always offered since 1.222.0 (Karl), at the end of each list.
+				'strengths' => array( 'type' => 'rows', 'label' => 'Other strengths', 'add_label' => 'Add a line', 'from_list' => 'item',
+					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Line' ) ),
+					'help' => 'Anything the list does not have. Shown on the report after the ticked strengths.' ),
 				'growth_picks' => array( 'type' => 'picks', 'label' => 'Areas for growth', 'legacy_of' => 'growth',
 					'picks_of'       => array( 'sec-strengths-areas-for-growth', 'growth_picks' ),
 					'master'         => BFTD_Picks::growth_shipped(),
 					'instructions'   => 'Check only the items observed. A section heading appears in the report when any item under it is checked. Rows marked Pick one are levels of the same skill, so check only one from that group.',
 					'settings_label' => 'Areas for growth tick list',
 					'settings_note'  => 'One bullet per heading, and under it one bullet per item, written: what the family reads | guidance for the tutor. Items whose guidance starts "Pick one", one after another, are one group: ticking one unticks the others. A change here changes the list from now on; a report keeps what it already says.' ),
-				// Typed before the tick boxes: kept, shown only where a report
-				// has some (1.215). The pick lists of 1.207 are gone with them.
-				'strengths' => array( 'type' => 'rows', 'label' => 'Strengths typed before the tick list', 'add_label' => 'Add a strength', 'from_list' => 'item', 'legacy' => true,
-					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Strength' ) ),
-					'help' => 'Typed on this report before the tick list. Shown on the report after the ticked strengths.' ),
 				// "Areas for growth" again, at Laurel's request (1.172). The key
-				// stays 'growth', so nothing saved moves.
-				'growth'    => array( 'type' => 'rows', 'label' => 'Areas for growth typed before the tick list', 'add_label' => 'Add an area for growth', 'from_list' => 'item', 'legacy' => true,
-					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Area for growth' ) ),
-					'help' => 'Typed on this report before the tick list. Shown on the report after the ticked areas.' ),
+				// stays 'growth', so nothing saved moves. Other, as for strengths.
+				'growth'    => array( 'type' => 'rows', 'label' => 'Other areas for growth', 'add_label' => 'Add a line', 'from_list' => 'item',
+					'columns' => array( 'item' => array( 'type' => 'text', 'label' => 'Line' ) ),
+					'help' => 'Anything the list does not have. Shown on the report after the ticked areas.' ),
 			),
 		);
 

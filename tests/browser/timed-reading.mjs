@@ -69,9 +69,16 @@ execFileSync('php', [join(here, 'build-timed-editor.php')]);
   check(await cell('{k_min_line}') === '30 WPM', 'editor: the Kindergarten minimum stays 30');
   await page.selectOption('[name="bftd[dxsec-4][norm]"]', 'grade-2');
   check(await cell('{norm_line}') === '100 WCPM, Grade 2', 'editor: the passage norm follows its dropdown too');
-  check(await cell('{score} WCPM') === '40 WCPM', 'editor: the passage table keeps its own figure while the word list is chosen');
+  check(await cell('{score} WCPM{grade_read_comma}') === '40 WCPM', 'editor: the passage table keeps its own figure while the word list is chosen');
   await page.fill('[name="bftd[dxsec-4][errors]"]', '19');
-  check(await cell('{score} WCPM') === '30 WCPM', 'editor: and works it out again as the errors change');
+  check(await cell('{score} WCPM{grade_read_comma}') === '30 WCPM', 'editor: and works it out again as the errors change');
+  // The grade read, beside the figure, as soon as it is picked (Karl, 1.222.0).
+  if (await page.locator('[name="bftd[dxsec-4][grade_read]"]').count()) {
+    await page.selectOption('[name="bftd[dxsec-4][grade_read]"]', 'grade-3');
+    check(await cell('{score} WCPM{grade_read_comma}') === '30 WCPM, Grade 3', 'editor: picking the grade read shows it beside the WCPM at once');
+    await page.selectOption('[name="bftd[dxsec-4][grade_read]"]', '');
+    check(await cell('{score} WCPM{grade_read_comma}') === '30 WCPM', 'editor: and clearing it leaves the figure alone');
+  } else check(false, 'editor: the grade read dropdown is on the screen');
   await page.close();
 }
 

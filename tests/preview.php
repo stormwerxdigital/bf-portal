@@ -393,9 +393,9 @@ check($bare === array(), 'every assessment area shows its results'
    writing them out. The heading row that used to divide the writing list is a
    second list of its own, which is what it always was. */
 check(count($dx['fields']['dxsec-6']['conventions']) >= 8, 'the writing conventions are all answered');
-check(count($dx['fields']['dxsec-6']['grammar']) >= 6, 'and so is the grammar list (six since Run-on sentences was removed)');
+check(count($dx['fields']['dxsec-6']['conventions']) >= 11, 'grammar is part of that list (1.222.0)');
 check(count($dx['fields']['dxsec-5']['challenges']) >= 5, 'and the spelling challenges (five since "puts blends together" was removed)');
-foreach (array('dxsec-6' => array('conventions', 'grammar'), 'dxsec-5' => array('challenges')) as $sid => $keys) {
+foreach (array('dxsec-6' => array('conventions'), 'dxsec-5' => array('challenges')) as $sid => $keys) {
   foreach ($keys as $key) {
     foreach ($dx['fields'][$sid][$key] as $rid => $row) {
       check(isset($sections[$sid]['fields'][$key]['rows'][$rid]),
@@ -410,7 +410,7 @@ $sections = BFTD_Schema::sections();
    tests/spelling.php. Section 6 still has rows a tutor writes. */
 /* Both sections' lists are fixed and are checked in their own files. What is
    held here is that neither went back to rows a tutor types out. */
-foreach (array('dxsec-5' => 'challenges', 'dxsec-6' => 'conventions', 'dxsec-6' => 'grammar') as $sid => $key) {
+foreach (array(array('dxsec-5', 'challenges'), array('dxsec-6', 'conventions')) as list($sid, $key)) {
   check('checklist' === $sections[$sid]['fields'][$key]['type'],
     "$sid.$key is a fixed list, not rows somebody retypes");
 }

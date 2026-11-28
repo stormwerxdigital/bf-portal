@@ -1063,6 +1063,7 @@ class BFTD_Report_View {
 		if ( $planned ) echo self::plan_list( $values, $planned );
 		$paired = array_merge( $paired, $planned );
 
+		$said = '';
 		foreach ( $section['fields'] as $key => $field ) {
 			if ( in_array( $key, $paired, true ) ) continue;
 			$type = isset( $field['type'] ) ? $field['type'] : 'text';
@@ -1109,9 +1110,11 @@ class BFTD_Report_View {
 			// writing under them. A tutor typing into Notes should not be
 			// able to delete the word Notes, and the standing wording should
 			// not have to carry its own title through every rewrite.
-			if ( ! empty( $field['heading'] ) ) {
+			if ( ! empty( $field['heading'] ) && $field['heading'] !== $said ) {
 				echo '<h3>' . esc_html( $field['heading'] ) . '</h3>';
 			}
+			// Notes ticked, then notes typed before the list: one Notes heading (1.222.0).
+			$said = ! empty( $field['heading'] ) ? $field['heading'] : '';
 			BFTD_Dashboard::report_field( $key, $field, $value );
 		}
 		if ( ! empty( $section['chart'] ) ) echo BFTD_Dashboard::report_chart( $section['chart'], $report, $id );

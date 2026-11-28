@@ -24,8 +24,8 @@ $s = BFTD_Schema::sections()['dxsec-6'];
 $f = $s['fields'];
 $k = array_keys($f);
 
-/* ---- two fixed lists ---- */
-foreach (array('conventions' => 8, 'grammar' => 6) as $key => $n) {
+/* ---- one fixed list: Writing conventions and grammar (Karl, 1.222.0) ---- */
+foreach (array('conventions' => 11) as $key => $n) {
   check('checklist' === $f[$key]['type'], "$key is a fixed list");
   check($n === count($f[$key]['rows']), "with $n rows nobody retypes");
   foreach (array('' => 'Not assessed', 'yes' => 'Yes', 'no' => 'No', 'na' => 'N/A') as $ov => $ol) {
@@ -34,15 +34,22 @@ foreach (array('conventions' => 8, 'grammar' => 6) as $key => $n) {
   }
   check(4 === count($f[$key]['options']), "four answers and no more: $key");
 }
-check('Grammar and word usage are correct' === $f['grammar']['title'],
-  'the second list keeps the heading it had when it was a divider inside the first');
+check(!isset($f['grammar']) && 'Writing conventions and grammar' === $f['conventions']['label'],
+  'grammar is part of the one list, called Writing conventions and grammar');
+check(array('indent', 'caps_start', 'caps_proper', 'end_punct', 'other_punct', 'spaces', 'complete', 'order', 'each_sound', 'misspelled', 'multisyll') === array_keys($f['conventions']['rows']),
+  'in Karl\'s order');
+check('Complete sentences (no run-on sentences or fragments)' === $f['conventions']['rows']['complete']
+  && 0 === strpos($f['conventions']['rows']['order'], 'Overall flow: The writing sample is a paragraph of at least 4 sentences.')
+  && 'Writing piece has no <strong>spelling errors</strong>' === $f['conventions']['rows']['misspelled']
+  && '<strong>Other punctuation</strong> is appropriate for sentences' === $f['conventions']['rows']['other_punct'],
+  'with the new wording');
+check(array('other_punct' => 'Punctuation errors (marked in RED)', 'misspelled' => 'Misspelled words (highlighted in YELLOW)') === $f['conventions']['fixed_notes'],
+  'and two notes that are always there');
 
 /* The wording of a convention carries emphasis, and it has to survive into
    both the report and the screen a tutor answers it on. */
 /* How the tutor marks the sample, said beside the row it belongs to (Karl, 1.151). */
-foreach (array(array('conventions', 'misspelled', '(highlighted in yellow)'),
-               array('conventions', 'other_punct', '(circled in red)'),
-               array('grammar', 'multisyll', '(underlined in blue)')) as $m) {
+foreach (array(array('conventions', 'multisyll', '(underlined in BLUE)')) as $m) {
   check(' ' . $m[2] === substr($f[$m[0]]['rows'][$m[1]], -strlen($m[2]) - 1), "$m[1] ends with $m[2]");
 }
 check(false !== strpos($f['conventions']['rows']['caps_start'], '<strong>capital letters</strong>'),
@@ -55,8 +62,8 @@ check(1 === preg_match('/bftd-cl-item[^>]*>.{0,40}wp_kses_post\( \$label \)/', $
 check(!isset($s['benchmark']), 'the section states no goal of its own');
 check('score_of' === $s['benchmark_field'], 'it measures against how many were answered');
 check(isset($f['score']['derived']['count']), 'the figure is counted, not typed');
-check(array('conventions', 'grammar') === $f['score']['derived']['count']['fields'],
-  'across both lists');
+check(array('conventions') === $f['score']['derived']['count']['fields'],
+  'across the list');
 check('yes' === $f['score']['derived']['count']['value'], 'counting the ones marked yes');
 check(isset($f['score_of']['derived']['count']) && !isset($f['score_of']['derived']['count']['value']),
   'and the denominator counts every row anybody answered');
@@ -118,8 +125,8 @@ foreach (array('unit', 'status', 'meter_pct', 'baseline', 'card_note') as $gone)
 /* ---- the order of the section ---- */
 check(array_search('images', $k, true) < array_search('body_after', $k, true),
   'work samples come before the notes');
-check(array_search('grammar', $k, true) < array_search('images', $k, true),
-  'which come after both lists');
+check(array_search('conventions', $k, true) < array_search('images', $k, true),
+  'which come after the list');
 check('Notes' === $f['body_after']['heading'] && 'Notes' === $f['body_after']['label'],
   'the notes are called Notes on both sides');
 check('method' === end($k), 'and the standing answer closes the section');
@@ -141,11 +148,11 @@ foreach (BFTD_Schema::standing_text() as $id => $item) {
       "no standing wording names a particular child: $id");
   }
 }
-check(false !== strpos(BFTD_Schema::writing_intro(), 'The student was encouraged'),
+check(false !== strpos(BFTD_Schema::writing_intro(), 'the student was asked to write'),
   'so this one says the student');
 
 /* Writing answers are marks: green tick, red cross, N/A in words (Karl, 1.155). */
-check(!empty($f['conventions']['marks']) && !empty($f['grammar']['marks']), 'both writing checklists are answered with marks');
+check(!empty($f['conventions']['marks']), 'the writing checklist is answered with marks');
 $mc = BFTD_Fields::mark_choices($f['conventions']['options']);
 check(array('yes', 'no', 'na', '') === array_map('strval', array_keys($mc)), 'tick, cross, N/A, then not assessed');
 check('&#10003;' === $mc['yes']['show'] && '&#10007;' === $mc['no']['show'] && 'N/A' === $mc['na']['show'], 'drawn as a tick, a cross and the letters N/A');
@@ -157,7 +164,7 @@ check(false !== strpos($dsrc, 'if ( ! empty( $field[\'marks\'] ) && in_array( $v
 /* ---- misspelled words: no is the good answer (Karl, 1.221.1) ---- */
 $cv = $f['conventions'];
 check(array('misspelled') === $cv['invert'], 'the misspelled words row is the one where No is good');
-check(BFTD_Fields::inverted($cv, 'misspelled') && !BFTD_Fields::inverted($cv, 'spaces') && !BFTD_Fields::inverted($f['grammar'], 'misspelled'), 'and only that row');
+check(BFTD_Fields::inverted($cv, 'misspelled') && !BFTD_Fields::inverted($cv, 'spaces') && !BFTD_Fields::inverted(array('rows' => array()), 'misspelled'), 'and only that row');
 check('no' === BFTD_Fields::mark_value($cv, 'misspelled', 'yes') && 'yes' === BFTD_Fields::mark_value($cv, 'misspelled', 'no') && 'na' === BFTD_Fields::mark_value($cv, 'misspelled', 'na'), 'its tick stores No and its cross Yes; N/A is N/A');
 check('yes' === BFTD_Fields::mark_value($cv, 'spaces', 'yes'), 'other rows are as they were');
 check(array('2', '2') === $put(
@@ -175,10 +182,10 @@ foreach (array('checked', 'wp_kses_post', 'wp_strip_all_tags') as $fn) if (!func
   if ('checked' === $fn) { function checked($a, $b, $e = true) { $r = (string) $a === (string) $b ? ' checked' : ''; if ($e) echo $r; return $r; } }
 }
 ob_start(); BFTD_Fields::render_field(9, 'dxsec-6', 'conventions', $cv); $ed = ob_get_clean();
-$row = substr($ed, strpos($ed, 'misspelled words'));
+$row = substr($ed, strpos($ed, 'spelling errors'));
 preg_match_all('/bftd-crit-opt-(\w+)".*?value="(\w*)"( checked)?/s', substr($row, 0, 3000), $m, PREG_SET_ORDER);
 check(isset($m[0], $m[1]) && 'yes' === $m[0][1] && 'no' === $m[0][2] && ' checked' === ($m[0][3] ?? '') && 'no' === $m[1][1] && 'yes' === $m[1][2],
-  'in the editor the tick is on the left, stores No and is the one chosen for "No misspelled words."');
+  'in the editor the tick is on the left, stores No and is the one chosen for "No misspelled words." (the row now reads "has no spelling errors")');
 
 check(false !== strpos($dsrc, "'mark'  => BFTD_Fields::mark_value( \$field, \$rid, (string) \$row['value'] ),")
   && false !== strpos($dsrc, "\$path = 'yes' === \$mark ?") && false !== strpos($dsrc, "conv-mark ' . esc_attr( \$mark )"),

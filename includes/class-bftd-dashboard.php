@@ -784,6 +784,13 @@ class BFTD_Dashboard {
 	}
 
 	/** A single field, as the report renders it. Used by BFTD_Report_View. */
+	/** A checklist row's note: the one always there (1.222.0), then the tutor's. */
+	public static function checklist_note( $field, $rid, $note ) {
+		$fixed = isset( $field['fixed_notes'][ $rid ] ) ? (string) $field['fixed_notes'][ $rid ] : '';
+		if ( '' === $fixed ) return $note;
+		return esc_html( $fixed ) . ( '' !== trim( $note ) ? '<br>' . esc_html( trim( $note ) ) : '' );
+	}
+
 	public static function report_field( $key, $field, $value ) {
 		self::render_value( $key, $field, $value );
 	}
@@ -801,6 +808,13 @@ class BFTD_Dashboard {
 		// thing they introduce, and so does this.
 		if ( ! empty( $field['lede'] ) ) {
 			echo '<p class="lede">' . esc_html( (string) $value ) . '</p>';
+			return;
+		}
+
+		if ( 'multi' === $type ) {
+			$items = array();
+			foreach ( (array) $value as $k ) if ( isset( $field['options'][ $k ] ) ) $items[] = '<li>' . esc_html( $field['options'][ $k ] ) . '</li>';
+			if ( $items ) echo '<ul>' . implode( '', $items ) . '</ul>';
 			return;
 		}
 
@@ -825,7 +839,7 @@ class BFTD_Dashboard {
 					'item'  => $label,
 					'value' => $row['value'],
 					'mark'  => BFTD_Fields::mark_value( $field, $rid, (string) $row['value'] ),
-					'note'  => isset( $row['note'] ) ? $row['note'] : '',
+					'note'  => self::checklist_note( $field, $rid, isset( $row['note'] ) ? (string) $row['note'] : '' ),
 				);
 			}
 			if ( $made ) {

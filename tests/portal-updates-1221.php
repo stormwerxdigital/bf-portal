@@ -42,25 +42,22 @@ check(array_search('grade_read', $keys) === array_search('form', $keys) + 1 && a
 
 echo "\nIntroductions:\n";
 $rl = BFTD_Schema::wordreading_intro();
-check(false !== strpos($rl, 'One grade level below a student&#8217;s enrolled grade is considered <em>below grade level</em> and two or more grade levels below is considered <em>well below grade level</em>.'), 'Reading grade level adds below and well below grade level');
+check(false !== strpos($rl, 'One grade level below a student&#8217;s enrolled grade is considered <em>below grade level</em> and two or more grade levels below are considered <em>well below grade level</em>.'), 'Reading grade level adds below and well below grade level');
 check(0 === strpos($rl, '<p>The San Diego Quick Assessment is used'), 'after the sentence it had');
 $w = BFTD_Schema::writing_intro();
-check(false !== strpos($w, 'If the student was reluctant or hesitant, the assessor and student chose a topic together') && false !== strpos($w, 'Our goal is always to build confidence, not pressure.'), 'Writing has Karl\'s wording');
+check(false !== strpos($w, 'If they were hesitant, the assessor helped them choose a topic') && false !== strpos($w, 'Our goal is always to build confidence, not pressure.'), 'Writing has Karl\'s wording (1.222.0)');
 check(false === strpos($w, 'We chose the topic together'), 'and not the old');
 
 echo "\nTaken out:\n";
-$g = BFTD_Schema::section('dxsec-6')['fields']['grammar']['rows'];
-check(!isset($g['run_on']) && isset($g['complete'], $g['combined']), 'Run-on sentences is off the grammar list, the rest kept');
+$g = BFTD_Schema::section('dxsec-6')['fields']['conventions']['rows'];
+check(!isset($g['run_on']) && isset($g['complete']), 'Run-on sentences is not a row of its own');
 check(null === BFTD_Schema::section('sec-conclusion'), 'the Conclusion section is gone');
 check(false === strpos(file_get_contents(BFTD_PATH . 'includes/class-bftd-sample.php'), 'sec-conclusion'), 'from the sample report too');
 
 echo "\nSchool year on the student record:\n";
 $mb = file_get_contents(BFTD_PATH . 'includes/class-bftd-metaboxes.php');
-check(false !== strpos($mb, "'school_year'  => array( 'type' => 'select', 'label' => 'School year', 'options' => self::school_year_options() )"), 'a School year dropdown');
+check(false !== strpos($mb, "'school_year'  => array( 'type' => 'select', 'label' => 'School year', 'options' => self::school_year_options() )"), 'a School year dropdown (its choices are years since 1.222.0, see portal-updates-1222.php)');
 check(false !== strpos($mb, "return array( 'grade', 'school_year', 'mode' );"), 'drawn between Grade and Sessions are');
-preg_match('/function school_year_options\(\) \{(.*?)\n\t\}/s', $mb, $m);
-$opts = eval('$out = null;' . preg_replace('/^\s*/', '', $m[1]));
-check(array('', 'prek', '0', '1', '12') === array(array_keys($opts)[0], array_keys($opts)[1], (string) array_keys($opts)[2], (string) array_keys($opts)[3], (string) array_keys($opts)[14]) && 'Pre-K' === $opts['prek'] && 'Kindergarten' === $opts['0'] && 'Grade 12' === $opts['12'] && 15 === count($opts), 'Pre-K, Kindergarten and Grades 1 to 12');
 
 echo $fail ? "\n$fail failure(s)\n" : "\nAll checks passed.\n";
 exit($fail ? 1 : 0);

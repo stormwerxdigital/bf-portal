@@ -446,10 +446,14 @@ class BFTD_MetaBoxes {
 		return $out;
 	}
 
-	/** School year on the student record (Karl, 1.221.0). */
-	public static function school_year_options() {
-		$out = array( '' => 'Not set', 'prek' => 'Pre-K', '0' => 'Kindergarten' );
-		for ( $i = 1; $i <= 12; $i++ ) $out[ (string) $i ] = 'Grade ' . $i;
+	/**
+	 * School year on the student record: 2026-27 and so on (Karl, 1.222.0;
+	 * 1.221.0 offered grades by mistake). From 2024-25 to two years ahead.
+	 */
+	public static function school_year_options( $now = null ) {
+		$y   = (int) gmdate( 'Y', null === $now ? time() : (int) $now );
+		$out = array( '' => 'Not set' );
+		for ( $i = 2024; $i <= $y + 2; $i++ ) $out[ $i . '-' . substr( (string) ( $i + 1 ), -2 ) ] = $i . '-' . substr( (string) ( $i + 1 ), -2 );
 		return $out;
 	}
 
@@ -489,7 +493,7 @@ class BFTD_MetaBoxes {
 	private static function student_fields() {
 		return array(
 			'grade'        => array( 'type' => 'select', 'label' => 'Grade', 'options' => self::grade_options() ),
-			// Their year at school (Karl, 1.221.0): Pre-K, Kindergarten, Grade 1 to 12.
+			// The school year the record is for, 2026-27 and so on (Karl, 1.222.0).
 			'school_year'  => array( 'type' => 'select', 'label' => 'School year', 'options' => self::school_year_options() ),
 			'mode'         => array( 'type' => 'select', 'label' => 'Sessions are', 'options' => array(
 				'online'    => 'Online',

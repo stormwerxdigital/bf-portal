@@ -99,7 +99,7 @@ foreach (array('dxsec-2.body', 'dxsec-2.method') as $id) {
 /* The wording itself, because it was given rather than drafted. */
 check(false !== strpos(BFTD_Schema::segmenting_intro(), 'phoneme segmentation task'),
   'the introduction is the wording the practice supplied');
-check(false !== strpos(BFTD_Schema::segmenting_method(), 'Short term memory'),
+check(false !== strpos(BFTD_Schema::segmenting_method(), 'Short-term memory'),
   'and so is the method answer');
 foreach (array(BFTD_Schema::segmenting_intro(), BFTD_Schema::segmenting_method()) as $text) {
   check(false === strpos($text, '—'), 'no em dashes in wording a parent reads');

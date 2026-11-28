@@ -11,8 +11,9 @@ $fail = 0;
 function check($ok, $msg) { global $fail; if ($ok) echo "  ok  $msg\n"; else { echo "FAIL  $msg\n"; $fail++; } }
 
 $a = BFTD_Schema::alphabet_intro();
-check(1 === substr_count($a, 'This is the only activity that uses letter names.') && false !== strpos($a, 'It lightens the mental load.</p>'), 'Writing the alphabet explains letter names, once');
-check(strpos($a, 'posture and pencil grip') < strpos($a, 'only activity that uses letter names'), 'after the paragraph on posture and pencil grip');
+$am = BFTD_Schema::alphabet_method();
+check(1 === substr_count($am, 'This is the only tutoring activity that uses letter names.'), 'Writing the alphabet explains letter names, once, in How our method helps (1.222.0)');
+check(strpos($am, 'Measuring growth') < strpos($am, 'only tutoring activity that uses letter names'), 'after Measuring growth');
 
 $src = file_get_contents(BFTD_PATH . 'includes/class-bftd-schema.php');
 check(false !== strpos($src, "'direction' => 'Directionality issue: the shape is right but the strokes went the wrong way',"), 'Counted as correct has the directionality row');

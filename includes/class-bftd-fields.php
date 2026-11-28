@@ -116,6 +116,11 @@ class BFTD_Fields {
 		// until it is next saved as rows.
 		if ( ! empty( $field['from_list'] ) && is_string( $val ) ) $val = self::list_to_rows( $val, $field['from_list'] );
 
+		// Two lists that became one (Writing conventions and grammar, 1.222.0):
+		// rows this list declares and has no answer for are read from the old
+		// list, until the report is next saved and the old list is removed.
+		if ( ! empty( $field['merge_from'] ) ) $val = self::merged( $post_id, $section_id, $field, $val );
+
 		// A field that has never been saved holds '', and one saved from an
 		// untouched editor holds <p></p> or a stray newline. Both are empty
 		// to the person looking at them, so both get the standing wording
@@ -125,6 +130,17 @@ class BFTD_Fields {
 
 		$fallback = self::fallback( $section_id, $field_key, $field );
 		return ( null === $fallback ) ? $val : $fallback;
+	}
+
+	/** A checklist's answers with those still saved in the list it took over. */
+	public static function merged( $post_id, $section_id, $field, $val ) {
+		$old = get_post_meta( $post_id, BFTD_Schema::meta_key( $section_id, $field['merge_from'] ), true );
+		if ( ! is_array( $old ) || ! $old ) return $val;
+		$val = is_array( $val ) ? $val : array();
+		foreach ( (array) ( $field['rows'] ?? array() ) as $rid => $label ) {
+			if ( ! isset( $val[ $rid ] ) && isset( $old[ $rid ] ) ) $val[ $rid ] = $old[ $rid ];
+		}
+		return $val;
 	}
 
 	/**
@@ -714,6 +730,19 @@ class BFTD_Fields {
 					echo '<input type="time" id="' . esc_attr( $id ) . '" name="' . $name . '" value="' . esc_attr( (string) $value ) . '">';
 					break;
 
+				case 'multi':
+					// Tick as many as apply (1.222.0). Always posts, so ticking
+					// none is saved as none.
+					$on = is_array( $value ) ? array_map( 'strval', $value ) : array();
+					echo '<input type="hidden" name="' . $name . '[on]" value="1"><ul class="bftd-ticks" id="' . esc_attr( $id ) . '">';
+					foreach ( (array) $field['options'] as $k => $label ) {
+						$oid = $id . '_' . sanitize_key( $k );
+						echo '<li><input type="checkbox" id="' . esc_attr( $oid ) . '" name="' . $name . '[picked][]" value="' . esc_attr( $k ) . '"' . checked( in_array( (string) $k, $on, true ), true, false ) . '>'
+							. ' <label for="' . esc_attr( $oid ) . '">' . esc_html( $label ) . '</label></li>';
+					}
+					echo '</ul>';
+					break;
+
 				case 'number':
 					// A step and floor when the field asks, so a rate takes cents (1.217.5).
 					echo '<input type="number" class="small-text" id="' . esc_attr( $id ) . '" name="' . $name . '" value="' . esc_attr( (string) $value ) . '"'
@@ -1144,8 +1173,14 @@ class BFTD_Fields {
 							<?php endforeach; ?>
 						</select>
 						<?php endif; ?>
+						<?php $fixed = isset( $field['fixed_notes'][ $rid ] ) ? (string) $field['fixed_notes'][ $rid ] : ''; ?>
+						<span class="bftd-cl-note">
+							<?php if ( '' !== $fixed ) : // Always on the report, with the tutor's note after it (1.222.0). ?>
+								<span class="bftd-cl-fixed"><?php echo esc_html( $fixed ); ?></span>
+							<?php endif; ?>
 						<input type="text" name="<?php echo $name; ?>[<?php echo esc_attr( $rid ); ?>][note]"
-							value="<?php echo esc_attr( $note ); ?>" placeholder="Optional note">
+							value="<?php echo esc_attr( $note ); ?>" placeholder="<?php echo '' !== $fixed ? 'Your note (optional)' : 'Optional note'; ?>">
+						</span>
 					</div>
 				<?php endforeach; ?>
 			</div>
@@ -1202,7 +1237,14 @@ class BFTD_Fields {
 							<div class="bftd-crit-entry">
 								<?php // A green tick or a red cross, or neither, at Karl's direction. ?>
 								<span class="bftd-crit-mark" role="radiogroup" aria-label="<?php echo esc_attr( 'Mark for: ' . $label ); ?>">
-									<?php foreach ( array( 'yes' => array( '&#10003;', 'Tick' ), 'no' => array( '&#10007;', 'Cross' ), '' => array( '&ndash;', 'No mark' ) ) as $mv => $m ) : ?>
+									<?php
+									// Counted as correct is ticked, counted as incorrect is
+									// crossed, and either can be N/A (Karl, 1.222.0).
+									$offer = array( 'yes' => array( '&#10003;', 'Tick' ), 'no' => array( '&#10007;', 'Cross' ) );
+									if ( ! empty( $group['marks'] ) ) $offer = array_intersect_key( $offer, array_flip( (array) $group['marks'] ) );
+									if ( '' !== $cell['mark'] && ! isset( $offer[ $cell['mark'] ] ) ) $offer[ $cell['mark'] ] = 'yes' === $cell['mark'] ? array( '&#10003;', 'Tick' ) : array( '&#10007;', 'Cross' );
+									$offer[''] = array( 'N/A', 'N/A' );
+									foreach ( $offer as $mv => $m ) : ?>
 										<label class="bftd-crit-opt bftd-crit-opt-<?php echo $mv ? esc_attr( $mv ) : 'none'; ?>" title="<?php echo esc_attr( $m[1] ); ?>">
 											<input type="radio" name="<?php echo $name; ?>[<?php echo esc_attr( $rid ); ?>][mark]" value="<?php echo esc_attr( $mv ); ?>"<?php checked( $cell['mark'], $mv ); ?>>
 											<span aria-hidden="true"><?php echo $m[0]; ?></span><span class="screen-reader-text"><?php echo esc_html( $m[1] ); ?></span>
@@ -1677,6 +1719,8 @@ class BFTD_Fields {
 				}
 
 				update_post_meta( $post_id, BFTD_Schema::meta_key( $section_id, $key ), $after[ $key ] );
+				// What it read from the list it took over is now saved in it.
+				if ( ! empty( $field['merge_from'] ) ) delete_post_meta( $post_id, BFTD_Schema::meta_key( $section_id, $field['merge_from'] ) );
 			}
 
 			// Visibility, tracked as its own event because hiding a section
@@ -1735,6 +1779,12 @@ class BFTD_Fields {
 				return wp_kses_post( $raw );
 			case 'textarea':
 				return sanitize_textarea_field( $raw );
+			case 'multi':
+				// Only choices the field offers, in the order it offers them.
+				$picked = array_map( 'strval', (array) ( is_array( $raw ) ? ( $raw['picked'] ?? array() ) : array() ) );
+				$out    = array();
+				foreach ( array_keys( (array) $field['options'] ) as $k ) if ( in_array( (string) $k, $picked, true ) ) $out[] = (string) $k;
+				return $out;
 			case 'number':
 				return ( '' === trim( (string) $raw ) ) ? '' : (string) floatval( $raw );
 			case 'select':

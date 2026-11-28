@@ -46,11 +46,11 @@ $notes  = $dx1['body_after'];
 /* ---- it is there without anybody typing it ---- */
 check(!empty($body['shipped']), 'the section carries standing wording');
 $text = strip_tags($body['shipped']);
-check(false !== strpos($text, 'the student completed a one minute handwriting task'),
-  'which is the practice\'s own words');
-check(false !== strpos($body['shipped'], 'https://bftutoring.com/reading-assessments/'),
-  'including the link out to the fuller explanation');
-check(7 === substr_count($body['shipped'], '<p>'), 'in seven paragraphs, letter names the seventh (1.214)');
+check(false !== strpos($text, 'In this one-minute check, your child writes the lowercase alphabet in order'),
+  'which is the practice\'s own words (1.222.0)');
+check(false !== strpos($method['shipped'], 'https://bftutoring.com/18-benefits-of-handwriting/'),
+  'with the link out to 18 benefits of handwriting in How our method helps');
+check(3 === substr_count($body['shipped'], '<p>'), 'in three paragraphs (1.222.0)');
 
 /* It says "the student", which is right for a girl, a boy and a grown adult
    learner without anybody editing it or a name being merged in. */
@@ -161,7 +161,7 @@ foreach (BFTD_Schema::sections() as $sid => $sec) foreach ((array) ($sec['fields
   if (isset($fd['heading']) && (false !== stripos($fd['heading'], 'How does') || false !== stripos($fd['heading'], 'method')))
     check('How our method helps' === $fd['heading'], "every method heading is the same: $sid.$fk");
 $view = file_get_contents(BFTD_PATH . 'includes/class-bftd-report-view.php');
-check(1 === preg_match('/if \( ! empty\( \$field\[.heading.\] \) \) \{\s*echo \x27<h3>\x27/', $view),
+check(1 === preg_match('/if \( ! empty\( \$field\[.heading.\] \)( && [^)]+)? \) \{\s*echo \x27<h3>\x27/', $view),
   'and the report prints it, rather than trusting the writing to carry it');
 
 /* ---- what a tutor owns, and what the practice owns ---- */
@@ -172,7 +172,7 @@ check(!empty($method['shipped']), 'and it is there without anybody typing it');
 $mt = strip_tags($method['shipped']);
 check(false === strpos($mt, 'Kaine'), 'with no child named in it');
 check(1 !== preg_match('/\b(he|she|his|her)\b/', $mt), 'and no pronoun that would be wrong for half of them');
-check(false !== strpos($mt, 'the student is ready'), 'it says "the student", as the introduction does');
+check(false !== strpos($mt, 'your child is ready'), 'it says "your child", as the introduction does (1.222.0)');
 check(false !== strpos($mt, 'Activity 70'), 'and still says what it always said');
 
 /* Both standing halves behave the same way, because they are the same kind of
@@ -259,8 +259,8 @@ check(!isset($dx1_sample['method']),
 class BFTD_Settings_Absent {}
 BFTD_Fields::use_fixture(BFTD_Sample::get('diagnostic')['fields']);
 foreach (array(
-  'dxsec-1' => array('one minute handwriting task', 'motor memory'),
-  'dxsec-2' => array('phoneme segmentation task',   'Short term memory'),
+  'dxsec-1' => array('one-minute check', 'motor memory'),
+  'dxsec-2' => array('phoneme segmentation task',   'Short-term memory'),
 ) as $sid => $words) {
   $sec = BFTD_Schema::section($sid);
   $intro  = BFTD_Fields::get(0, $sid, 'body',   $sec['fields']['body']);

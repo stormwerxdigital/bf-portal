@@ -865,6 +865,8 @@ input[type=search]:focus,input[type=date]:focus,input[type=time]:focus,select:fo
 .bftd-cl-row:last-child{border-bottom:0}
 .bftd-cl-item{color:var(--bftd-body); font-weight:500}
 .bftd-cl-row select, .bftd-cl-row input[type=text]{width:100%}
+.bftd-cl-note{display:flex;flex-direction:column;gap:4px}
+.bftd-cl-fixed{font-size:12px;font-weight:600;color:#50575e}
 
 @media (max-width:782px){
 	.bftd-cl-head{display:none}

@@ -25,8 +25,11 @@ check(false !== strpos(file_get_contents(BFTD_PATH . 'includes/class-bftd-report
 check('picks' === $f['strengths_picks']['type'] && 'picks' === $f['growth_picks']['type'], 'both are tick lists');
 check('Strengths' === $f['strengths_picks']['label'] && 'Areas for growth' === $f['growth_picks']['label'], 'called Strengths and Areas for growth (Laurel, 1.172)');
 check(array('strengths_picks', 'growth_picks') === $sec['pair_table'], 'Strengths first, Areas for growth second');
-check('strengths' === $f['strengths_picks']['legacy_of'] && 'growth' === $f['growth_picks']['legacy_of'] && !empty($f['strengths']['legacy']) && !empty($f['growth']['legacy']),
-  'what was typed before the lists is kept, as the older rows');
+check('strengths' === $f['strengths_picks']['legacy_of'] && 'growth' === $f['growth_picks']['legacy_of'] && empty($f['strengths']['legacy']) && empty($f['growth']['legacy']),
+  'what was typed before the lists is kept, as Other, which is always offered now (1.222.0)');
+$k = array_keys($f);
+check(array('strengths_picks', 'strengths', 'growth_picks', 'growth') === array_values(array_intersect($k, array('strengths_picks', 'strengths', 'growth_picks', 'growth'))) && 'Other strengths' === $f['strengths']['label'] && 'Other areas for growth' === $f['growth']['label'],
+  'each Other comes straight after its own list');
 check(!isset($f['strengths']['master']) && !isset($f['growth']['master']), 'and the 1.207 pick lists are gone, so Settings offers only the tick lists');
 
 /* old bulleted lists read as rows */

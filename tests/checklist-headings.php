@@ -71,12 +71,12 @@ foreach (BFTD_Schema::sections() as $sid => $section) {
     }
   }
 }
-check(3 === $seen, 'all three fixed lists were looked at');
+check(2 === $seen, 'both fixed lists were looked at (conventions and grammar are one since 1.222.0)');
 
 /* ---- the note column is called a note ---- */
 $fields = code_of(BFTD_PATH . 'includes/class-bftd-fields.php');
 check(false !== strpos($fields, '<span>Notes</span>'), 'the third column is Notes');
-check(false !== strpos($fields, 'placeholder="Optional note"'), 'and so is what it asks for');
+check(false !== strpos($fields, "'Optional note'"), 'and so is what it asks for');
 check(false === stripos($fields, 'Optional example'), 'nothing still offers an example');
 
 /* ---- and both renderers actually apply the rule ---- */
